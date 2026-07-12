@@ -1,0 +1,102 @@
+export const FPS = 30;
+
+/** Derived once in AnalysisVideo.tsx from the actual rendered composition
+ * dimensions and passed explicitly to every card, rather than each card
+ * independently calling useVideoConfig(). Lives here (not in AnalysisVideo.tsx)
+ * so every card can import it without a circular dependency back on the file
+ * that imports all of them. */
+export type Orientation = "landscape" | "portrait";
+
+// Football Manager-inspired dark analysis palette — modern, minimal, premium,
+// no gradients/glossy effects. Pitch/team/movement tokens are for the
+// tactical component family (TacticalBoard, Formation, ShotMap, etc).
+export const COLORS = {
+  background: "#111315",
+  panel: "#1a1d20",
+  border: "#2a2f33",
+  text: "#ffffff",
+  textDim: "#b0bec5",
+  accent: "#4f6bff",
+
+  pitch: "#1b3a2f",
+  pitchStripe: "#20423a",
+  pitchLines: "rgba(255,255,255,0.15)",
+  homeTeam: "#4da3ff",
+  awayTeam: "#ff5a5f",
+  ball: "#ffffff",
+  movement: "#3ddc97",
+  passes: "#f8d24a",
+  danger: "#ff5252",
+  highlight: "#ffd54f",
+};
+
+// Broadcast-style typography — Bebas Neue for headlines/captions, Barlow Condensed
+// for body/dialogue. Still the right choice for on-screen text even outside the
+// football-recap context this was originally picked for.
+import { loadFont as loadDisplayFont, fontFamily as displayFontFamily } from "@remotion/google-fonts/BebasNeue";
+import { loadFont as loadBodyFont, fontFamily as bodyFontFamilyName } from "@remotion/google-fonts/BarlowCondensed";
+
+loadDisplayFont();
+loadBodyFont("normal", { weights: ["500", "600", "700"] });
+
+export const DISPLAY_FONT_FAMILY = `"${displayFontFamily}", sans-serif`;
+export const FONT_FAMILY = `"${bodyFontFamilyName}", sans-serif`;
+
+// Shared "eyebrow" title style for every card's small header line (e.g.
+// "INSIDE CHANNEL", "FIRST-HALF SHOT CLUSTER") — bigger/bolder/brighter than
+// the old small textDim label so it reads as a headline, not a caption.
+export const TITLE_STYLE = {
+  fontFamily: DISPLAY_FONT_FAMILY,
+  fontSize: 54,
+  letterSpacing: 3,
+  color: COLORS.text,
+  textAlign: "center" as const,
+  textTransform: "uppercase" as const,
+};
+
+// Football Manager-style player tag: a short, tight, uppercase label under a
+// small disc — not a full name in a normal-weight font, which is what caused
+// the "big blob + big name" look and label overlap when two players sit close
+// together. Weight dropped from 700->600 specifically to buy back the size
+// increase (16 vs the old 14) without regressing into that same overlap —
+// thinner glyphs at a larger size still take up less width than bold glyphs
+// did at the smaller one. Verify against a dense player cluster after any
+// further change here, same as the tacticalPatterns.ts audit note.
+export const PLAYER_LABEL_STYLE = {
+  fontFamily: FONT_FAMILY,
+  fontWeight: 600,
+  fontSize: 16,
+  letterSpacing: 0.4,
+  textTransform: "uppercase" as const,
+};
+
+// Bold per-scene backgrounds for a scene that wants to stand out from the
+// default neutral panel (Tifo Football-style color-blocking) — kept muted
+// enough to hold white text legibly, not literal saturated red/blue/yellow.
+// "neutral" is exactly today's COLORS.background, so a scene with no Panel
+// Color specified renders byte-for-byte identical to before this existed.
+export const PANEL_COLORS = {
+  neutral: COLORS.background,
+  red: "#3a1f22",
+  blue: "#1c2b45",
+  yellow: "#3a3320",
+};
+
+export type PanelColorKey = keyof typeof PANEL_COLORS;
+
+const CHARACTER_PALETTE = ["#4f6bff", "#e6a24f", "#4dcf94", "#b596ff", "#f2726f", "#38bdf8"];
+
+export function hashString(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+/** Deterministic color per character name, so a script never needs to specify
+ * colors explicitly — the same character name always gets the same color. */
+export function colorForCharacter(name: string): string {
+  return CHARACTER_PALETTE[hashString(name) % CHARACTER_PALETTE.length];
+}

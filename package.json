@@ -1,31 +1,54 @@
 {
-  "name": "match-recap-generator-scaffold",
-  "version": "1.0.0",
-  "description": "My Remotion video",
+  "name": "match-recap-generator",
+  "version": "0.1.0",
+  "description": "Generates football match analysis videos: AI voiceover narration over simple, real-data-driven stat/moment cards.",
   "repository": {},
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@remotion/bundler": "4.0.487",
     "@remotion/cli": "4.0.487",
+    "@remotion/google-fonts": "4.0.487",
+    "@remotion/media-parser": "4.0.487",
+    "@remotion/renderer": "4.0.487",
+    "@remotion/tailwind-v4": "4.0.487",
+    "@remotion/transitions": "4.0.487",
+    "cheerio": "^1.2.0",
+    "dotenv": "^16.4.7",
+    "node-edge-tts": "^1.2.10",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-router-dom": "^7.1.1",
     "remotion": "4.0.487",
-    "@remotion/tailwind-v4": "4.0.487",
-    "tailwindcss": "4.0.0"
+    "rss-parser": "^3.13.0",
+    "tailwindcss": "4.3.2",
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@remotion/eslint-config-flat": "4.0.487",
+    "@tailwindcss/vite": "4.3.2",
+    "@types/node": "^22.10.5",
     "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
     "@types/web": "0.0.166",
+    "@vitejs/plugin-react": "^4.3.4",
     "eslint": "9.19.0",
     "prettier": "3.8.1",
-    "typescript": "5.9.3"
+    "tsx": "^4.19.2",
+    "typescript": "5.9.3",
+    "vite": "^6.0.7",
+    "vitest": "^4.1.10"
   },
   "scripts": {
-    "dev": "remotion studio",
-    "build": "remotion bundle",
+    "generate": "tsx src/cli.ts",
+    "ui": "tsx src/server.ts",
+    "ui:dev": "vite",
+    "ui:build": "vite build",
+    "studio": "remotion studio src/video/index.ts",
+    "build": "remotion bundle src/video/index.ts",
     "upgrade": "remotion upgrade",
-    "lint": "eslint src && tsc"
+    "lint": "eslint src && tsc",
+    "test": "vitest run"
   },
   "sideEffects": [
     "*.css"

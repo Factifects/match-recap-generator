@@ -1,0 +1,645 @@
+# THIS WEEK IN FOOTBALL — JULY 11, 2026, BACK TO JULY 5
+
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** This Week In Football
+
+**Annotation:** "This Week In Football"
+
+**Duration:** 3 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High
+
+---
+
+### SCENE 2
+
+**Scene Type:** Statement
+
+**Narration:**
+Two Round of 16 shocks, a legendary manager on the move, and a transfer market that never sleeps — let's dive into everything that happened in football over the past seven days.
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High
+
+---
+
+### SCENE 3
+
+**Scene Type:** Chapter
+
+**Narration:** Today
+
+**Annotation:** "Today"
+
+**Duration:** 3 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High
+
+---
+
+### SCENE 4
+
+**Scene Type:** Icon
+
+**Narration:**
+Two World Cup quarterfinals are being played as this goes out. Norway and Erling Haaland face England in Miami, and Lionel Messi's Argentina take on surprise package Switzerland in Kansas City — the last two tickets to the semifinals, up for grabs right now.
+
+**Panel Color:** Blue
+
+**Icon:** whistle
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: FIFA World Cup 2026 quarterfinal schedule
+
+**Data:** {"icon":"whistle","headline":"Live Today","caption":"Norway vs England, and Argentina vs Switzerland — the last two quarterfinals"}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Stat
+
+**Narration:**
+Whichever way those two go, the semifinal picture completes today — for the first time all tournament, every remaining fixture is now days away, not weeks.
+
+**Annotation:** "Two Matches, One Bracket"
+
+**Duration:** 5 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: FIFA World Cup 2026 bracket
+
+**Data:** {"value":2,"context":"Quarterfinals left to complete the World Cup semifinal draw"}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Chapter
+
+**Narration:** Yesterday
+
+**Annotation:** "Yesterday"
+
+**Duration:** 3 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High
+
+---
+
+### SCENE 7
+
+**Scene Type:** MomentumTimeline
+
+**Narration:**
+Yesterday, Spain looked like the next big shock in the making. Belgium led for most of the match in Los Angeles and were full value for it, before substitute Mikel Merino turned the entire result on its head in a handful of second-half minutes.
+
+**Annotation:** "Spain's Late Escape"
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: match reporting on Spain 2-1 Belgium, quarterfinal
+
+**Data:** {"matchMinutes":90,"phases":[{"startMinute":30,"endMinute":75,"direction":"fall","label":"Belgium In Control"},{"startMinute":80,"endMinute":90,"direction":"rise","label":"Merino Ignites The Comeback"}]}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Zone
+
+**Narration:**
+It didn't come from nowhere. Spain spent the entire final twenty minutes camped in Belgium's third, forcing the kind of sustained pressure that eventually cracks a tiring defense even when the final ball isn't there yet.
+
+**Duration:** 5 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** Medium — Reason: territorial framing inferred from late-match reporting, not tracked possession data
+
+**Data:** {"zone":"attacking","label":"Spain's Final-Third Siege","caption":"Territory alone doesn't win matches — but it explains why the goal finally came"}
+
+---
+
+### SCENE 9
+
+**Scene Type:** GoalSequence
+
+**Narration:**
+And then it did. Merino arrived at the back post completely unmarked and turned the chance in first time, beating Thibaut Courtois's replacement — Belgium's own goalkeeper had already gone off injured earlier in the match, an emotional exit for their captain before the result had even been decided.
+
+**Camera:** Full Pitch -> Zoom Box
+
+**Annotation:** "80' — Merino's Winner"
+
+**Duration:** 7 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source: match reporting on Spain 2-1 Belgium, quarterfinal
+
+**Data:** {"shooter":"Merino","from":{"x":82,"y":65},"to":{"x":100,"y":40},"keeper":"Belgium GK","keeperAt":{"x":96,"y":50},"curve":false}
+
+---
+
+### SCENE 10
+
+**Scene Type:** Chapter
+
+**Narration:** Two Days Ago
+
+**Annotation:** "Two Days Ago"
+
+**Duration:** 3 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High
+
+---
+
+### SCENE 11
+
+**Scene Type:** Icon
+
+**Narration:**
+The day before that, France did what they'd threatened to all tournament — Kylian Mbappé led the line as they beat Morocco two-nil to book their own semifinal spot. We've already covered exactly how that game turned goal by goal in a full breakdown — this is just the headline for anyone catching up.
+
+**Icon:** goal
+
+**Duration:** 5 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source: match reporting on France 2-0 Morocco, quarterfinal
+
+**Data:** {"icon":"goal","headline":"2-0","caption":"France beat Morocco to reach the semifinals — Mbappé leading the way"}
+
+---
+
+### SCENE 12
+
+**Scene Type:** PassNetwork
+
+**Narration:**
+The buildup pattern behind it was the same one that had shown up all match — France working the ball from the back through a short central chain before it ever reached the final third, patient enough to draw Morocco's press out of position first.
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** Medium — Reason: schematic illustration of France's buildup shape, not tracked passing data
+
+**Data:** {"nodes":[{"id":"gk","x":15,"y":50,"team":"home","label":"Maignan"},{"id":"cb","x":32,"y":45,"team":"home","label":"Upamecano"},{"id":"cm","x":52,"y":50,"team":"home","label":"Rabiot"},{"id":"forward","x":75,"y":42,"team":"home","label":"Mbappé"},{"id":"presser","x":58,"y":55,"team":"away","label":"Bouaddi"}],"links":[{"from":"gk","to":"cb","weight":8},{"from":"cb","to":"cm","weight":9},{"from":"cm","to":"forward","weight":6}]}
+
+---
+
+### SCENE 13
+
+**Scene Type:** LeagueTable
+
+**Narration:**
+Those two results left the Golden Boot race exactly where it had been for days — separated by a single goal at the very top.
+
+**Panel Color:** Yellow
+
+**Annotation:** "Golden Boot, Heading Into This Round"
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: FIFA World Cup 2026 Golden Boot tracker, as of the Round of 16
+
+**Data:** {"columnLabel":"Goals","rowLabel":"Player","rows":[{"rank":1,"label":"Messi","value":8,"highlight":true},{"rank":2,"label":"Mbappé","value":7},{"rank":2,"label":"Haaland","value":7},{"rank":4,"label":"Kane","value":6}]}
+
+---
+
+### SCENE 14
+
+**Scene Type:** PlayerComparison
+
+**Narration:**
+Two of that chasing pack are locked dead level with each other. Haaland and Mbappé have scored the exact same number of goals this tournament — both centre-forwards, both carrying their team's entire attacking threat on their own. Pick a favorite; neither of them is giving an inch.
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: FIFA World Cup 2026 Golden Boot tracker
+
+**Data:** {"leftPlayer":"Haaland","rightPlayer":"Mbappé","stats":[{"label":"Goals","left":7,"right":7}]}
+
+---
+
+### SCENE 15
+
+**Scene Type:** Chapter
+
+**Narration:** Earlier This Week
+
+**Annotation:** "Earlier This Week"
+
+**Duration:** 3 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High
+
+---
+
+### SCENE 16
+
+**Scene Type:** VerticalTacticalBoard
+
+**Narration:**
+Rewind a few more days, to the Round of 16 result that arguably shaped this entire side of the bracket. Five-time champions Brazil had the ball and the territory against Norway — until Erling Haaland turned one loose touch into a sprint in behind a back line that had pushed up looking for a second goal of its own. Two Haaland goals later, Brazil were out.
+
+**Subject:** Erling Haaland
+
+**Image Style:** Featured
+
+**Image Side:** Left
+
+**Transition Style:** Zoom In
+
+**Annotation:** "Haaland Breaks Brazil"
+
+**Duration:** 7 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: match reporting on Norway 2-1 Brazil, Round of 16
+
+**Data:** {"players":[{"id":"haaland","x":50,"y":45,"team":"away","role":"ST","label":"Haaland"},{"id":"defender","x":52,"y":68,"team":"home","label":"Brazil Defender"}],"arrows":[{"from":"haaland","to":{"x":42,"y":88}},{"from":"defender","to":{"x":55,"y":82}}],"sideText":"Two Haaland goals in behind a back line that had pushed up for a second of its own — Brazil were out."}
+
+---
+
+### SCENE 17
+
+**Scene Type:** Analysis
+
+**Narration:**
+Look at why it worked, not just that it did. Brazil's back line was still focused on their own attack, watching the ball high up the pitch as they pushed for a second goal — which is exactly when Haaland had already peeled off, unmarked, into the space that focus left open.
+
+**Annotation:** "The Blind Side"
+
+**Duration:** 7 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** Medium — Reason: inferred defensive focus from the buildup sequence, not tracked gaze/positional data
+
+**Data:** {"players":[{"id":"carrier","x":55,"y":48,"team":"home","label":"Brazil Attack"},{"id":"def1","x":68,"y":45,"team":"home","label":"Defender"},{"id":"def2","x":70,"y":58,"team":"home","label":"Defender"},{"id":"haaland","x":88,"y":42,"team":"away","label":"Haaland","revealed":true}],"gazeLines":[{"from":"def1","to":{"x":55,"y":48}},{"from":"def2","to":{"x":55,"y":48}}],"revealCaption":"While Brazil's back line watched their own attack, Haaland had already gone."}
+
+---
+
+### SCENE 18
+
+**Scene Type:** HeatMap
+
+**Narration:**
+It's why he kept finding the same diagonal channel all match — starting deep enough to stay onside, then bursting into exactly the strip of grass Brazil's advancing line kept leaving open behind it.
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** Medium — Reason: illustrative profile of his attacking channel, not tracked positional data
+
+**Data:** {"zones":[{"x":42,"y":48,"intensity":0.35},{"x":62,"y":45,"intensity":0.6},{"x":85,"y":40,"intensity":0.9}]}
+
+---
+
+### SCENE 19
+
+**Scene Type:** VerticalTacticalBoard
+
+**Narration:**
+The other Round of 16 story worth remembering: Argentina trailing Egypt two-nil with ten minutes left, looking finished — reigning champions or not. Cristian Romero headed in from a Messi cross, Messi levelled it himself minutes later, and then substitute Enzo Fernández — the same Enzo Fernández Chelsea are already planning around — arrived unmarked in stoppage time to win it outright. Egypt will wonder how they're not in the semifinals themselves.
+
+**Panel Color:** Blue
+
+**Annotation:** "Argentina's Great Escape"
+
+**Duration:** 7 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: match reporting on Argentina 3-2 Egypt, Round of 16
+
+**Data:** {"players":[{"id":"messi","x":30,"y":58,"team":"home","label":"Messi"},{"id":"def","x":48,"y":72,"team":"away","label":"Defender"},{"id":"fernandez","x":55,"y":45,"team":"home","label":"Fernández"}],"arrows":[{"from":"fernandez","to":{"x":58,"y":80},"curve":true}],"sideText":"Down 2-0 with ten to go: Romero, then Messi, then Fernández's stoppage-time header won it 3-2."}
+
+---
+
+### SCENE 20
+
+**Scene Type:** Sequence
+
+**Narration:**
+That same stretch of matches had a real cost. Jordan Henderson is out for the rest of the tournament after a genuinely freak injury — hurt landing awkwardly while hopping over the advertising boards celebrating England's win over Mexico. Survived the football, undone by the celebration. Amadou Onana ruptured his ACL in the same round, no celebration required.
+
+**Panel Color:** Red
+
+**Subject:** Jordan Henderson
+
+**Annotation:** "The Cost of the Knockouts"
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: injury reporting, Round of 16
+
+**Data:** {"beats":[{"marker":"Henderson","label":"Ruled out for the rest of the tournament after a freak celebration injury"},{"marker":"Onana","label":"Out injured after rupturing his ACL"}]}
+
+---
+
+### SCENE 21
+
+**Scene Type:** Donut
+
+**Narration:**
+Put the whole quarterfinal field together and one thing stands out: this round is overwhelmingly European. Five of the six confirmed quarterfinalists come from UEFA — only Messi's Argentina flies a different confederation's flag.
+
+**Annotation:** "Quarterfinalists by Confederation"
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: FIFA World Cup 2026 bracket
+
+**Data:** {"segments":[{"label":"UEFA","value":5},{"label":"CONMEBOL","value":1}]}
+
+---
+
+### SCENE 22
+
+**Scene Type:** Chapter
+
+**Narration:** Off The Pitch
+
+**Annotation:** "Off The Pitch"
+
+**Duration:** 3 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High
+
+---
+
+### SCENE 23
+
+**Scene Type:** Icon
+
+**Narration:**
+Away from the tournament, the international game had its own headline. Jürgen Klopp is reportedly set to become the next Germany manager, replacing Julian Nagelsmann at the helm of the national team.
+
+**Subject:** Jurgen Klopp
+
+**Subject Kind:** manager
+
+**Image Style:** Featured
+
+**Image Side:** Center
+
+**Icon:** star
+
+**Duration:** 6 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** Medium — Reason: reported by Fabrizio Romano as agreed in principle, formal confirmation pending
+
+**Data:** {"icon":"star","headline":"DFB","caption":"Jürgen Klopp reportedly set to replace Julian Nagelsmann as Germany manager"}
+
+---
+
+### SCENE 24
+
+**Scene Type:** CareerPath
+
+**Narration:**
+It would be the clearest sign yet that his year away from the touchline was a pause, not a retirement — and a return to exactly the international stage his club career never quite gave him a run at.
+
+**Annotation:** "Klopp's Managerial Path"
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: public managerial record
+
+**Data:** {"stops":[{"label":"Mainz","period":"2001-2008"},{"label":"Dortmund","period":"2008-2015"},{"label":"Liverpool","period":"2015-2024"},{"label":"Germany","period":"2026-"}]}
+
+---
+
+### SCENE 25
+
+**Scene Type:** Quote
+
+**Narration:**
+Klopp isn't the only coach reshaping a squad's identity this week, either. Chelsea's own manager has a clear philosophy about exactly the kind of positional battles his midfield is now facing.
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** Medium — Reason: quote drawn from tactical-analysis coverage of Alonso's coaching principles, not a statement made specifically this week
+
+**Data:** {"quote":"The game of football is all about the space you take up in relation to the ball, and why you take it up.","attribution":"Xabi Alonso"}
+
+---
+
+### SCENE 26
+
+**Scene Type:** Sequence
+
+**Narration:**
+That same instinct is shaping a much quieter story at Chelsea, about what happens if their own midfielder walks. Enzo Fernández is being strongly linked with Real Madrid, and Chelsea aren't waiting to find out — they're already lining up who replaces him, with Alonso himself said to favor two players he knows well from his own time at the Bernabéu.
+
+**Panel Color:** Blue
+
+**Annotation:** "Chelsea's Contingency Plan"
+
+**Duration:** 7 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** Medium — Reason: reported by multiple outlets as Alonso's stated preference, not a confirmed approach
+
+**Data:** {"beats":[{"marker":"If Fernández leaves","label":"Chelsea are reportedly preparing contingency plans for his exit"},{"marker":"Alonso's shortlist","label":"Tchouaméni and Güler named as his preferred replacements from his time at Real Madrid"}]}
+
+---
+
+### SCENE 27
+
+**Scene Type:** StatBurst
+
+**Narration:**
+The transfer market didn't wait for the World Cup to finish either. Sandro Tonali is reportedly closing in on a move to Tottenham for a fee well above what Real Madrid would even listen to for Eduardo Camavinga.
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** Medium — Reason: both figures reported, neither a confirmed completed transfer
+
+**Data:** {"label":"This Week's Reported Fees (£m)","leftLabel":"Tonali to Spurs","leftValue":100,"rightLabel":"Camavinga Asking Price","rightValue":60,"format":"integer"}
+
+---
+
+### SCENE 28
+
+**Scene Type:** Icon
+
+**Narration:**
+Real Madrid's new manager is already reshaping who's available. Arsenal are also in for Christos Tzolis, and AC Milan are talking to Luka Modrić — proof the market doesn't pause for anyone.
+
+**Subject:** Eduardo Camavinga
+
+**Image Style:** Featured
+
+**Image Side:** Right
+
+**Panel Color:** Yellow
+
+**Icon:** assist
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** Medium — Reason: reported willingness to sell/talks, not confirmed departures
+
+**Data:** {"icon":"assist","headline":"€60M","caption":"Real Madrid reportedly open to Camavinga offers; Arsenal chase Tzolis; Milan talk to Modrić"}
+
+---
+
+### SCENE 29
+
+**Scene Type:** Chapter
+
+**Narration:** Looking Ahead
+
+**Annotation:** "Looking Ahead"
+
+**Duration:** 3 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High
+
+---
+
+### SCENE 30
+
+**Scene Type:** Stat
+
+**Narration:**
+Which leaves one number that isn't in doubt at all. Whatever happens between now and then, the real season kicks back off in six weeks.
+
+**Annotation:** "Countdown to Kickoff"
+
+**Duration:** 5 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: Premier League 2026/27 season calendar
+
+**Data:** {"value":42,"context":"Days until the Premier League 2026/27 season begins (Aug 22)"}
+
+---
+
+### SCENE 31
+
+**Scene Type:** BarChart
+
+**Narration:**
+Before that, half the league goes on the road. Chelsea's Far East swing alone accounts for three of the announced fixtures so far, with Manchester City, United, and Liverpool all confirming at least one stop of their own.
+
+**Transition Style:** Slide Left
+
+**Annotation:** "Preseason Friendlies Announced So Far"
+
+**Duration:** 6 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source: Premier League clubs' announced summer 2026 friendlies and tours
+
+**Data:** {"bars":[{"label":"Chelsea","value":3},{"label":"Man City","value":2},{"label":"Man Utd","value":1},{"label":"Liverpool","value":1}]}
+
+---
+
+### SCENE 32
+
+**Scene Type:** Sequence
+
+**Narration:**
+Manchester United open against Wrexham in Helsinki on the eighteenth — a fifth-tier club six years ago, now jetting around Europe to play the biggest names in the game, Hollywood ownership clearly still paying off. Chelsea head to Sydney, Hong Kong, and Jakarta. And Manchester City reprise a Champions League final rematch against Inter Milan in Hong Kong — the last stop before it all gets serious again.
+
+**Annotation:** "Preseason Goes Global"
+
+**Duration:** 7 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: Premier League clubs' announced summer 2026 friendlies and tours
+
+**Data:** {"beats":[{"marker":"Jul 18","label":"Man Utd vs Wrexham — Helsinki"},{"marker":"Aug 1","label":"Chelsea vs Tottenham — Sydney"},{"marker":"Aug 1","label":"Man City vs Inter Milan — Hong Kong"}]}
+
+---
+
+### SCENE 33
+
+**Scene Type:** Chapter
+
+**Narration:** That's The Week
+
+**Annotation:** "That's The Week"
+
+**Duration:** 3 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High
+
+---
+
+### SCENE 34
+
+**Scene Type:** Statement
+
+**Narration:**
+That's everything from the last seven days. Stay tuned, and subscribe to stay ahead of every headline in football before anyone else gets there.
+
+**Transition Style:** Zoom Out
+
+**Duration:** 6 seconds
+
+**Transition:** Fade to Black
+
+**Evidence:** High
+
+---

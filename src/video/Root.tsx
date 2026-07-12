@@ -1,0 +1,49 @@
+import "./index.css";
+import { Composition } from "remotion";
+import { AnalysisVideo, transitionFramesFor } from "./compositions/AnalysisVideo";
+import { FPS } from "./theme";
+import type { TimedSegment, AspectRatio } from "../model/Segment";
+
+const FADE_PADDING_FRAMES = 20;
+
+const DIMENSIONS: Record<AspectRatio, { width: number; height: number }> = {
+  "16:9": { width: 1920, height: 1080 },
+  "9:16": { width: 1080, height: 1920 },
+};
+
+/** TransitionSeries overlaps each segment's outgoing transition with the next
+ * — that overlap is shared, not additive, so it must be subtracted from the
+ * naive sum or the composition's declared duration overshoots the actual
+ * rendered content. A hard-cut segment overlaps by far fewer frames than a
+ * dissolve, so this has to be computed per segment, not a flat rate. */
+function totalDurationInFrames(segments: TimedSegment[]): number {
+  const rawSum = segments.reduce(
+    (sum, segment) => sum + Math.ceil(segment.durationSeconds * FPS) + FADE_PADDING_FRAMES,
+    0,
+  );
+  const transitionOverlap = segments.slice(0, -1).reduce((sum, segment) => sum + transitionFramesFor(segment), 0);
+  return rawSum - transitionOverlap;
+}
+
+export const RemotionRoot: React.FC = () => {
+  return (
+    <>
+      <Composition
+        id="AnalysisVideo"
+        component={AnalysisVideo}
+        fps={FPS}
+        width={1920}
+        height={1080}
+        durationInFrames={150}
+        defaultProps={{ segments: [] as TimedSegment[], aspectRatio: "16:9" as AspectRatio }}
+        calculateMetadata={async ({ props }) => {
+          const { segments, aspectRatio } = props as { segments: TimedSegment[]; aspectRatio?: AspectRatio };
+          return {
+            durationInFrames: Math.max(1, totalDurationInFrames(segments)),
+            ...DIMENSIONS[aspectRatio ?? "16:9"],
+          };
+        }}
+      />
+    </>
+  );
+};

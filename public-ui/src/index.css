@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+@theme {
+  --color-bg: #111315;
+  --color-panel: #1a1d20;
+  --color-border: #2a2f33;
+  --color-text: #ffffff;
+  --color-text-dim: #b0bec5;
+  --color-accent: #4f6bff;
+  --color-danger: #ff5252;
+  --font-sans: "Montserrat", system-ui, sans-serif;
+  --font-mono: "Courier New", monospace;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}

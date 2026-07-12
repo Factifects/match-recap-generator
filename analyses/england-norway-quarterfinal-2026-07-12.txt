@@ -1,0 +1,137 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** Not happy, still winning.
+
+**Annotation:** "Not Happy, Still Winning"
+
+**Duration:** 3 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source/Reason: Tuchel's own post-match quotes, BBC Sport.
+
+---
+
+### SCENE 2
+
+**Scene Type:** Icon
+
+**Narration:** Bellingham did it again. Two goals in the quarter-final — and honestly, England needed both of them.
+
+**Subject:** Jude Bellingham
+
+**Data:** {"icon":"goal","headline":"Bellingham Again","caption":"Two goals in the quarter-final win over Norway"}
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: BBC Sport match report.
+
+---
+
+### SCENE 3
+
+**Scene Type:** Quote
+
+**Narration:** We made life very difficult for ourselves. The result is fantastic — but I'm not happy with the performance.
+
+**Subject:** Thomas Tuchel
+
+**Subject Kind:** Manager
+
+**Data:** {"quote":"We made life very difficult for ourselves. The result is fantastic, but I'm not happy with the performance.","attribution":"Thomas Tuchel"}
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: Direct post-match quote, BBC Sport.
+
+---
+
+### SCENE 4
+
+**Scene Type:** Icon
+
+**Narration:** Oh, and before we get into the tactics — Rice reportedly spent nearly three days in bed before this game. Tuchel brought that up himself. Make of it what you want.
+
+**Subject:** Declan Rice
+
+**Panel Color:** Yellow
+
+**Data:** {"icon":"clock","headline":"Nearly 72 Hours","caption":"How long Declan Rice reportedly spent in bed before facing Norway, per Tuchel"}
+
+**Duration:** 7 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** Medium — Source/Reason: Referenced by a linked BBC Sport headline ("Rice in bed for nearly three days before Norway game — Tuchel"); article doesn't elaborate on the cause.
+
+---
+
+### SCENE 5
+
+**Scene Type:** TacticalBoard
+
+**Narration:** Here's why Tuchel wasn't happy, though. Norway sat deep in a flat back five. England's answer? Width. Gordon tucks inside, Anderson swings out behind him — and suddenly Sorloth's dragged completely out of position.
+
+**Camera:** Zoom Left Half → Follow Gordon
+
+**Data:** {"players":[{"id":"gordon","x":68,"y":12,"team":"home","label":"Gordon"},{"id":"anderson","x":55,"y":15,"team":"home","label":"Anderson"},{"id":"oreilly","x":48,"y":10,"team":"home","label":"O'Reilly"},{"id":"sorloth","x":75,"y":25,"team":"away","label":"Sorloth"},{"id":"ryerson","x":80,"y":8,"team":"away","label":"Ryerson"}],"arrows":[{"from":"gordon","to":{"x":72,"y":32}},{"from":"anderson","to":{"x":70,"y":6}}],"highlightZone":{"x":65,"y":0,"width":20,"height":16}}
+
+**Annotation:** "WIDE ROTATION"
+
+**Duration:** 10 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** Medium — Source/Reason: Tactical pattern described and diagrammed in the BBC Sport analysis; positions are illustrative, not tracked data.
+
+---
+
+### SCENE 6
+
+**Scene Type:** Analysis
+
+**Narration:** And that's what set up the goal. Watch Ajer and Berge here — both completely locked onto Gordon. Neither one clocks Bellingham sneaking in behind them until it's way too late.
+
+**Data:** {"players":[{"id":"gordon","x":88,"y":8,"team":"home","label":"Gordon"},{"id":"ajer","x":85,"y":20,"team":"away","label":"Ajer"},{"id":"berge","x":80,"y":45,"team":"away","label":"Berge"},{"id":"bellingham","x":82,"y":55,"team":"home","label":"Bellingham","revealed":true}],"gazeLines":[{"from":"ajer","to":{"x":88,"y":8}},{"from":"berge","to":{"x":88,"y":8}}],"revealCaption":"While Ajer and Berge focused on Gordon out wide, Bellingham arrived late and unmarked through the middle."}
+
+**Duration:** 9 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** Medium — Source/Reason: Goal buildup described in the BBC Sport tactical breakdown; exact marking assignments are inferred from the described movement, not tracking data.
+
+---
+
+### SCENE 7
+
+**Scene Type:** StatBurst
+
+**Narration:** And look, the numbers kind of back Tuchel up here. Sixty-eight percent possession in the first half, dropping to forty-four in the second. That's not a team cruising. That's a team hanging on.
+
+**Data:** {"label":"Possession","leftLabel":"First Half","leftValue":68,"rightLabel":"Second Half","rightValue":44,"format":"integer"}
+
+**Duration:** 7 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: Possession split cited directly in the BBC Sport article.
+
+---
+
+### SCENE 8
+
+**Scene Type:** Statement
+
+**Narration:** So yeah — Tuchel's annoyed, the performance was sloppy by his own admission, and England are one win away from a World Cup final anyway. Football's funny like that. Subscribe before the semi.
+
+**Duration:** 6 seconds
+
+**Transition:** Fade to Black
+
+**Evidence:** High — Source/Reason: Editorial framing based on the reporting above.

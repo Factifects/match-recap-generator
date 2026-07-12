@@ -1,0 +1,216 @@
+# WHY MOROCCO LOST TO FRANCE — PART 2: SECOND HALF + AFTERMATH
+
+### SCENE 1
+
+**Scene Type:** Icon
+
+**Narration:**
+Forty-five minutes gone, and the scoreline still didn't match what had happened. France had dominated territory, chances, and expected goals, and had nothing to show for it. The second half didn't need a new plan. It just needed one of those chances to go in.
+
+**Annotation:** "HT: Still 0-0"
+
+**Duration:** 5 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: official first-half match report
+
+**Data:** {"icon":"whistle","headline":"45'","caption":"Second half begins — still 0-0, despite France's dominance"}
+
+---
+
+### SCENE 2
+
+**Scene Type:** Formation
+
+**Narration:**
+Same shape, same personnel out for the second half. What was about to change wasn't the eleven on the pitch — it was whether any of France's chances would finally go in.
+
+**Annotation:** "Unchanged for the Second Half"
+
+**Duration:** 5 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** Medium — Reason: no substitutions reported at the break; lineup assumed unchanged from Part 1
+
+**Data:** {"sides":[{"team":"France","formationName":"4-2-3-1","side":"away","players":[{"name":"Maignan"},{"name":"Koundé"},{"name":"Upamecano"},{"name":"Saliba"},{"name":"Digne"},{"name":"Koné"},{"name":"Rabiot"},{"name":"Dembélé"},{"name":"Olise"},{"name":"Doué"},{"name":"Mbappé"}]},{"team":"Morocco","formationName":"4-2-3-1","side":"home","players":[{"name":"Bounou"},{"name":"Hakimi"},{"name":"Diop"},{"name":"Salah-Eddine"},{"name":"Mazraoui"},{"name":"El Aynaoui"},{"name":"Bouaddi"},{"name":"Talbi"},{"name":"Ounahi"},{"name":"El Khannouss"},{"name":"Díaz"}]}]}
+
+---
+
+### SCENE 3
+
+**Scene Type:** GoalSequence
+
+**Narration:**
+The sixtieth minute finally gave the scoreline something to match the first half's numbers. Mbappé received centrally, opened his body with one touch, and curled a finish into the far corner. Bounou's weight was already shifted toward the near post — the angle Mbappé usually attacks from — and he couldn't recover across his line in time. A goal built on a full ninety minutes of the same pattern repeating, not a moment that came from nowhere.
+
+**Camera:** Zoom Box
+
+**Annotation:** "60' — Mbappé Breaks the Deadlock"
+
+**Duration:** 7 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source: official match report
+
+**Data:** {"shooter":"Mbappé","from":{"x":85,"y":50},"to":{"x":100,"y":15},"keeper":"Bounou","keeperAt":{"x":96,"y":32},"curve":true}
+
+---
+
+### SCENE 4
+
+**Scene Type:** TacticalBoard
+
+**Narration:**
+The second goal, six minutes later, started with a decoy rather than a shot. Mbappé collected the ball in the same central pocket, but instead of shooting again, laid it off and kept sprinting as if he still had it. That continued run dragged two Moroccan defenders a step deeper — still worried about him getting in behind — and Dembélé arrived late into the space they had just vacated. Whether Morocco's defenders were specifically drilled to fear that exact run again is impossible to say, but the same central spacing problem from the first half was still there in the sixty-sixth minute.
+
+**Camera:** Zoom Out
+
+**Annotation:** "66' — Blind-Side Run"
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** Medium — Reason: tactical inference from the buildup sequence, not from tracked defensive data
+
+**Data:** {"players":[{"id":"dembele","x":88,"y":68,"team":"away","label":"Dembélé"},{"id":"mbappe","x":82,"y":50,"team":"away","label":"Mbappé"},{"id":"defenders","x":80,"y":55,"team":"home","label":"Morocco Defenders"}],"arrows":[{"from":"defenders","to":{"x":78,"y":45}}]}
+
+---
+
+### SCENE 5
+
+**Scene Type:** GoalSequence
+
+**Narration:**
+Dembélé didn't need to do much once the ball found him. The space had already been built before he even touched it — a low finish into the far corner made it two, and put the game entirely out of reach.
+
+**Camera:** Zoom Box
+
+**Annotation:** "66' — Dembélé Makes It Two"
+
+**Duration:** 6 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source: official match report
+
+**Data:** {"shooter":"Dembélé","from":{"x":85,"y":65},"to":{"x":100,"y":30},"keeper":"Bounou","keeperAt":{"x":96,"y":45},"curve":false}
+
+---
+
+### SCENE 6
+
+**Scene Type:** MomentumTimeline
+
+**Narration:**
+From there, the match's rhythm changed completely. France stopped needing to commit numbers forward. Morocco pushed bodies up looking for a way back in, but for the next seventeen minutes, nothing threatened Maignan's goal at all.
+
+**Annotation:** "Momentum Shift"
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: shot event timeline
+
+**Data:** {"matchMinutes":90,"phases":[{"startMinute":66,"endMinute":83,"direction":"fall","label":"17 Minutes, No Threat Created"}]}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Icon
+
+**Narration:**
+Morocco's first shot on target of the entire match didn't arrive until the eighty-third minute. Hakimi advanced down the right and squared it for Ounahi — Maignan palmed it away comfortably. It's a small detail, but it says a lot: eighty-two minutes of a knockout match without forcing a save from the opposition goalkeeper.
+
+**Annotation:** "83' — First Shot on Target"
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High
+
+**Data:** {"icon":"save","headline":"83'","caption":"Morocco's first shot on target all match — saved comfortably"}
+
+---
+
+### SCENE 8
+
+**Scene Type:** BarChart
+
+**Narration:**
+The aggregate numbers reflect exactly what that pattern produced all night — twenty-two shots to five, an eight-to-one edge on target, and an expected-goals gap of roughly three to nothing.
+
+**Annotation:** "Final Match Numbers"
+
+**Duration:** 6 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source: official match stats
+
+**Data:** {"bars":[{"label":"France Shots","value":22},{"label":"Morocco Shots","value":5},{"label":"France On Target","value":8},{"label":"Morocco On Target","value":1},{"label":"France xG","value":3},{"label":"Morocco xG","value":0}]}
+
+---
+
+### SCENE 9
+
+**Scene Type:** Radar
+
+**Narration:**
+Put the three headline numbers on one profile and the shape speaks for itself — France's line sits at the outer edge on every axis measured, Morocco's nowhere close on any of them. There's no category here where the game was actually close.
+
+**Annotation:** "Match Profile — Attacking Output"
+
+**Duration:** 7 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source: official match stats, normalized against this match's own totals
+
+**Data:** {"axes":["Shots","Shots on Target","xG"],"series":[{"label":"France","values":[100,100,100]},{"label":"Morocco","values":[23,13,0]}]}
+
+---
+
+### SCENE 10
+
+**Scene Type:** Icon
+
+**Narration:**
+There's a personal milestone buried in the scoreline too. Mbappé's goal was his eighth of the tournament — official confirmation that whatever else is debated about this performance, his finishing in front of goal wasn't the problem.
+
+**Annotation:** "8th Goal of the Tournament"
+
+**Duration:** 5 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source: official tournament scoring records
+
+**Data:** {"icon":"goal","headline":"8th","caption":"Mbappé's eighth goal of the 2026 World Cup"}
+
+---
+
+### SCENE 11
+
+**Scene Type:** TacticalBoard
+
+**Narration:**
+Strip away the scoreline and one mechanism decided this match — Mbappé occupying defenders in the half-space, France's wide players punishing whoever followed him, and Morocco never finding an equivalent tool to do the same in reverse.
+
+**Annotation:** "The Mechanism Behind the Scoreline"
+
+**Duration:** 8 seconds
+
+**Transition:** Fade to Black
+
+**Evidence:** High — Source: composite of confirmed match events and tactical pattern
+
+**Data:** {"players":[{"id":"mbappe","x":78,"y":15,"team":"away","label":"Mbappé"},{"id":"doue","x":60,"y":40,"team":"away","label":"Doué"},{"id":"dembele","x":85,"y":70,"team":"away","label":"Dembélé"},{"id":"marker1","x":62,"y":22,"team":"home","label":"Morocco Defender"},{"id":"marker2","x":70,"y":75,"team":"home","label":"Morocco Defender"}],"arrows":[{"from":"mbappe","to":{"x":68,"y":32}},{"from":"dembele","to":{"x":92,"y":60}}],"highlightZone":{"x":70,"y":8,"width":25,"height":84}}
+
+---

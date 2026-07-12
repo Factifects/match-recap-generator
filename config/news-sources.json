@@ -1,0 +1,12 @@
+[
+  { "name": "BBC Sport Football", "feedUrl": "http://feeds.bbci.co.uk/sport/football/rss.xml" },
+  { "name": "The Guardian Football", "feedUrl": "https://www.theguardian.com/football/rss" },
+  { "name": "ESPN FC", "feedUrl": "https://www.espn.com/espn/rss/soccer/news" },
+  { "name": "The Independent Football", "feedUrl": "https://www.independent.co.uk/sport/football/rss" },
+  { "name": "talkSPORT Football", "feedUrl": "https://talksport.com/football/feed/" },
+  { "name": "90min", "feedUrl": "https://www.90min.com/posts.rss" },
+  { "name": "Mirror Football", "feedUrl": "https://www.mirror.co.uk/sport/football/?service=rss" },
+  { "name": "Metro Football", "feedUrl": "https://metro.co.uk/sport/football/feed/" },
+  { "name": "CaughtOffside", "feedUrl": "https://www.caughtoffside.com/feed/" },
+  { "name": "The Athletic Soccer", "feedUrl": "https://www.nytimes.com/athletic/rss/soccer/" }
+]
