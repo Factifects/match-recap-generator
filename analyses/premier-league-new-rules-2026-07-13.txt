@@ -1,0 +1,145 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** New Rules, 2026-27
+
+**Annotation:** "New Rules: 2026-27"
+
+**Duration:** 3 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: video title, not a factual claim.
+
+---
+
+### SCENE 2
+
+**Scene Type:** Stat Burst
+
+**Narration:** The Premier League just changed how the game is played. First up: injury treatment just got longer — players assessed on the pitch now have to stay off for a full minute, double the old 30 seconds.
+
+**Data:** {"label":"Minimum Off-Pitch Treatment Time","leftLabel":"Old Rule","leftValue":30,"rightLabel":"New Rule","rightValue":60,"format":"integer"}
+
+**Duration:** 8 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source/Reason: Premier League 2026-27 rule change increasing minimum on-field treatment absence from 30 seconds to 1 minute.
+
+---
+
+### SCENE 3
+
+**Scene Type:** Icon
+
+**Narration:** Substitutions are on the clock too. A player being subbed off now has just 10 seconds to leave the pitch.
+
+**Data:** {"icon":"sub","headline":"10-Second Sub Rule","caption":"Miss it, and your replacement waits until the next stoppage"}
+
+**Duration:** 6 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source/Reason: Premier League 2026-27 rule giving substituted players a 10-second limit to leave the field.
+
+---
+
+### SCENE 4
+
+**Scene Type:** Sequence
+
+**Narration:** Time-wasting on restarts is next. A strict 5-second countdown now applies to throw-ins and goal-kicks. Blow past it on a throw-in, and possession flips to the other team. Blow past it on a goal-kick, and the opposition gets a corner.
+
+**Annotation:** "The 5-Second Countdown"
+
+**Data:** {"beats":[{"marker":"0:00","label":"5-second countdown begins on the restart"},{"marker":"Throw-in","label":"Too slow — possession awarded to the opponent"},{"marker":"Goal-kick","label":"Too slow — opponent awarded a corner"}]}
+
+**Duration:** 8 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: Premier League 2026-27 rule imposing a 5-second restart countdown with possession/corner penalties for delay.
+
+---
+
+### SCENE 5
+
+**Scene Type:** Icon
+
+**Narration:** Hair-pulling finally has a clear line. Excessive force gets a straight red. Without it, it's a yellow.
+
+**Data:** {"icon":"card","headline":"Hair-Pulling Clarified","caption":"Excessive force = red card. Without it = yellow card."}
+
+**Duration:** 6 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source/Reason: Premier League 2026-27 disciplinary guidance distinguishing red vs yellow for hair-pulling by force/intent.
+
+---
+
+### SCENE 6
+
+**Scene Type:** Zone
+
+**Narration:** Goalkeepers get more protection too — blocking their movement without playing the ball is now a foul inside the box.
+
+**Camera:** Wide Tactical View
+
+**Data:** {"zone":"defensive","label":"Goalkeeper Protection","caption":"Obstructing the keeper without playing the ball = a foul in the box"}
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: Premier League 2026-27 rule strengthening goalkeeper protection against off-the-ball obstruction in the penalty area.
+
+---
+
+### SCENE 7
+
+**Scene Type:** Icon
+
+**Narration:** And VAR's job just got bigger — it can now review a second yellow card that turns into a red.
+
+**Data:** {"icon":"whistle","headline":"VAR Expands","caption":"Second-yellow red cards are now reviewable"}
+
+**Duration:** 6 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source/Reason: Premier League 2026-27 rule allowing VAR review of a second-yellow-card dismissal.
+
+---
+
+### SCENE 8
+
+**Scene Type:** KpiPanel
+
+**Narration:** Five rules, one new season. Here's the whole list at a glance.
+
+**Annotation:** "New Rules At A Glance"
+
+**Data:** {"title":"New Rules At A Glance","stats":[{"label":"Injury Treatment","value":"60s","delta":"Up from 30s"},{"label":"Sub Exit Time","value":"10s"},{"label":"Restart Countdown","value":"5s"},{"label":"VAR 2nd Yellow","value":"Reviewable"}]}
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: recap of the rule changes detailed in the scenes above.
+
+---
+
+### SCENE 9
+
+**Scene Type:** Statement
+
+**Narration:** Same 90 minutes, new rulebook. Follow for more before kickoff.
+
+**Duration:** 5 seconds
+
+**Transition:** Fade to Black
+
+**Evidence:** High — Source/Reason: closing call-to-action.

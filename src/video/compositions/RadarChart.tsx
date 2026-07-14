@@ -1,14 +1,9 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, FONT_FAMILY, TITLE_STYLE, colorForCharacter, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, FONT_FAMILY, TITLE_STYLE, colorForCharacter } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, scaleSettle } from "../motion";
-
-interface RadarSeries {
-  label: string;
-  values: number[];
-  color?: string;
-}
+import type { SharedVisualProps, RadarData } from "../sharedVisualProps";
 
 const SIZE = 640;
 const CENTER = SIZE / 2;
@@ -33,15 +28,7 @@ function polygonPoints(values: number[]): string {
  * single number or a two-value comparison. Each series' polygon grows in
  * from the center (a quiet scale settle, not a spring pop), and the grid/
  * axis labels fade in first so the scale reads before the data does. */
-export const RadarChart: React.FC<{
-  title: string;
-  axes: string[];
-  series: RadarSeries[];
-  backgroundColor?: PanelColorKey;
-  /** Not read — a fixed 640px square already fits the 1080px portrait canvas
-   * with room to spare. */
-  orientation?: Orientation;
-}> = ({ title, axes, series, backgroundColor }) => {
+export const RadarChart: React.FC<{ data: RadarData } & SharedVisualProps> = ({ data: { title, axes, series }, backgroundColor }) => {
   const frame = useCurrentFrame();
   const titleOpacity = fadeIn(frame, 0, 14);
   const gridOpacity = fadeIn(frame, 6, 16);

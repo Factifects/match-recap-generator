@@ -1,29 +1,14 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { Pitch, PITCH_WIDTH, PITCH_HEIGHT, pitchX, pitchY } from "./Pitch";
-import { VerticalPitch, VERTICAL_PITCH_WIDTH, VERTICAL_PITCH_HEIGHT, vpitchX, vpitchY } from "./VerticalPitch";
+import { PerspectivePitch, PERSPECTIVE_PITCH_WIDTH, PERSPECTIVE_PITCH_HEIGHT, perspectiveProject } from "./PerspectivePitch";
+import { JerseyDisc } from "./JerseyDisc";
 import { fadeIn, scaleSettle } from "../motion";
+import type { SharedVisualProps, AnalysisData } from "../sharedVisualProps";
 
-interface AnalysisPlayer {
-  id: string;
-  x: number;
-  y: number;
-  team: "home" | "away";
-  label: string;
-  /** The one thing this scene is explaining — everyone else is the frozen
-   * "what the defense was looking at" baseline, this fades in late, after
-   * the gaze lines have already made their point. */
-  revealed?: boolean;
-}
-
-interface GazeLine {
-  from: string;
-  to: { x: number; y: number };
-}
-
-const PLAYER_RADIUS = 11;
+const PLAYER_RADIUS = 15;
 const REVEAL_START_FRAME = 55;
 
 /** Doesn't introduce a new moment (that's TacticalBoard) — revisits one
@@ -31,23 +16,20 @@ const REVEAL_START_FRAME = 55;
  * thin gaze/attention lines showing what the defense was focused on, then
  * fade in the one element that explains what that focus missed. Same
  * schematic-illustration standard as every other tactical visual here. */
-export const AnalysisBoard: React.FC<{
-  title: string;
-  players: AnalysisPlayer[];
-  gazeLines?: GazeLine[];
-  revealCaption?: string;
-  backgroundColor?: PanelColorKey;
-  orientation?: Orientation;
-}> = ({ title, players, gazeLines = [], revealCaption, backgroundColor, orientation = "landscape" }) => {
+export const AnalysisBoard: React.FC<{ data: AnalysisData } & SharedVisualProps> = ({
+  data: { title, players, gazeLines = [], revealCaption },
+  backgroundColor,
+  orientation,
+}) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";
-  const boardWidth = isPortrait ? VERTICAL_PITCH_WIDTH : PITCH_WIDTH;
-  const boardHeight = isPortrait ? VERTICAL_PITCH_HEIGHT : PITCH_HEIGHT;
+  const boardWidth = isPortrait ? PERSPECTIVE_PITCH_WIDTH : PITCH_WIDTH;
+  const boardHeight = isPortrait ? PERSPECTIVE_PITCH_HEIGHT : PITCH_HEIGHT;
   // player.x is the goal-to-goal (length) axis, player.y the touchline-to-
   // touchline (width) axis — portrait must feed each into the opposite
   // pixel-mapper, not just swap which mapper function is used.
   const project = (px: number, py: number): [number, number] =>
-    isPortrait ? [vpitchX(py), vpitchY(px)] : [pitchX(px), pitchY(py)];
+    isPortrait ? perspectiveProject(px, py) : [pitchX(px), pitchY(py)];
   const titleOpacity = fadeIn(frame, 0, 14);
   const pitchOpacity = fadeIn(frame, 4, 16);
   const gazeOpacity = fadeIn(frame, 30, 20);
@@ -58,9 +40,10 @@ export const AnalysisBoard: React.FC<{
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 24 }}>{title}</div>
 
+        <div style={{ width: boardWidth, height: boardHeight, position: "relative" }}>
         <svg width={boardWidth} height={boardHeight} viewBox={`0 0 ${boardWidth} ${boardHeight}`} style={{ overflow: "visible" }}>
           <g opacity={pitchOpacity}>
-            {isPortrait ? <VerticalPitch /> : <Pitch />}
+            {isPortrait ? <PerspectivePitch /> : <Pitch />}
           </g>
 
           {/* Dotted, muted, thin — deliberately unlike MovementArrow's solid
@@ -96,17 +79,26 @@ export const AnalysisBoard: React.FC<{
 
             return (
               <g key={player.id} opacity={opacity} style={revealed ? { transformOrigin: `${cx}px ${cy}px`, transform: `scale(${scale})` } : undefined}>
-                {revealed && (
-                  <circle cx={cx} cy={cy} r={PLAYER_RADIUS + 6} fill="none" stroke={COLORS.highlight} strokeWidth={2} opacity={0.85} />
-                )}
-                <circle cx={cx} cy={cy} r={PLAYER_RADIUS} fill={color} />
-                <text x={cx} y={cy + 20} textAnchor="middle" fill={COLORS.text} style={PLAYER_LABEL_STYLE}>
+                <JerseyDisc cx={cx} cy={cy} radius={PLAYER_RADIUS} color={color} highlighted={revealed} />
+                <text x={cx} y={cy + PLAYER_RADIUS + 15} textAnchor="middle" fill={COLORS.text} style={PLAYER_LABEL_STYLE}>
                   {player.label}
                 </text>
               </g>
             );
           })}
         </svg>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: boardWidth,
+            height: boardHeight,
+            pointerEvents: "none",
+            background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 46%, rgba(0,0,0,0.5) 100%)",
+          }}
+        />
+        </div>
 
         {revealCaption && (
           <div

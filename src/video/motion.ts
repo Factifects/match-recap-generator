@@ -44,3 +44,14 @@ export function scaleSettle(frame: number, start: number, duration = 16, from = 
     easing: EASE,
   });
 }
+
+/** Continuous sine oscillation between `min` and `max` — unlike every other
+ * helper in this file, this never settles; it's for ambient "still alive"
+ * motion (a pulsing highlight zone, an idle glow at a landed arrow's tip)
+ * layered on TOP of a one-shot entrance, not a replacement for one. `period`
+ * is frames per full cycle. `phaseOffset` (radians) staggers multiple
+ * pulsing elements in the same scene so they don't all breathe in lockstep. */
+export function pulse(frame: number, period: number, min: number, max: number, phaseOffset = 0): number {
+  const t = (frame / period) * Math.PI * 2 + phaseOffset;
+  return min + ((Math.sin(t) + 1) / 2) * (max - min);
+}

@@ -1,23 +1,23 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { FEATURED_ENTRANCE_FRAMES } from "./BackgroundArt";
 import { fadeIn, slideIn } from "../motion";
+import type { SharedVisualProps, QuoteData } from "../sharedVisualProps";
 
 /** A quoted statement with attribution — the Tifo Football "manager quote
  * next to a portrait" style. For narration that's reporting what someone
  * SAID, not a fact/stat about them (that's Icon/Stat) — a direct quote reads
  * as more credible and more human than paraphrasing it into plain narration. */
-export const QuoteCard: React.FC<{
-  quote: string;
-  attribution: string;
-  backgroundImage?: string;
-  backgroundImageMode?: "faded" | "featured";
-  backgroundImageSide?: "left" | "right" | "center";
-  backgroundColor?: PanelColorKey;
-  orientation?: Orientation;
-}> = ({ quote, attribution, backgroundImage, backgroundImageMode, backgroundImageSide, backgroundColor, orientation = "landscape" }) => {
+export const QuoteCard: React.FC<{ data: QuoteData } & SharedVisualProps> = ({
+  data: { quote, attribution },
+  backgroundImage,
+  backgroundImageMode,
+  backgroundImageSide,
+  backgroundColor,
+  orientation,
+}) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";
 

@@ -5,12 +5,14 @@
 }
 
 @theme {
-  --color-bg: #111315;
-  --color-panel: #1a1d20;
-  --color-border: #2a2f33;
-  --color-text: #ffffff;
-  --color-text-dim: #b0bec5;
-  --color-accent: #4f6bff;
+  --color-bg: #0c0e11;
+  --color-panel: #16191d;
+  --color-panel-alt: #1c2024;
+  --color-border: #262b30;
+  --color-text: #f5f7f2;
+  --color-text-dim: #9aa3a8;
+  --color-accent: #c8ff4d;
+  --color-accent-ink: #10130a;
   --color-danger: #ff5252;
   --font-sans: "Montserrat", system-ui, sans-serif;
   --font-mono: "Courier New", monospace;
@@ -19,4 +21,5 @@
 body {
   background: var(--color-bg);
   color: var(--color-text);
+  font-feature-settings: "ss01";
 }

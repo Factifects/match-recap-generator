@@ -1,62 +1,85 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, slideIn } from "../motion";
+import type { SharedVisualProps, LeagueTableData } from "../sharedVisualProps";
 
-interface TableRow {
-  rank: number;
-  label: string;
-  value: number;
-  highlight?: boolean;
-}
-
-const ROW_HEIGHT = 70;
+const ROW_HEIGHT = 88;
 const ROW_STAGGER_FRAMES = 5;
+const RANK_COLUMN_WIDTH = 64;
+const STAT_COLUMN_WIDTH = 150;
+// Portrait's canvas is only 1080px wide — a real 6-column standings table at
+// landscape's column widths would run past 1400px and clip off both edges.
+// Narrower columns/rank gutter here, not narrower text everywhere — the
+// single-column case still gets a wide, readable table in portrait too.
+const RANK_COLUMN_WIDTH_PORTRAIT = 44;
+const STAT_COLUMN_WIDTH_PORTRAIT = 84;
 
 /** A full ranked multi-row table — league standings, top-scorer charts,
  * anything with more than the two entries PlayerComparison/StatBurst handle.
  * One row can be highlighted (e.g. the team the narration is actually
  * about) — the Tifo Football standings-table reference. Rows reveal top to
- * bottom on a stagger, like BarChart's bars, rather than appearing at once. */
-export const LeagueTableCard: React.FC<{
-  title: string;
-  columnLabel: string;
-  rowLabel?: string;
-  rows: TableRow[];
-  backgroundColor?: PanelColorKey;
-  /** Not read — 760px width already comfortably fits the 1080px portrait
-   * canvas, so this card needs no orientation-specific values. Accepted
-   * purely so AnalysisVideo.tsx can pass it uniformly to every card. */
-  orientation?: Orientation;
-}> = ({ title, columnLabel, rowLabel = "Team", rows, backgroundColor }) => {
+ * bottom on a stagger, like BarChart's bars, rather than appearing at once.
+ * Sized against BarChartCard's own scale (68px values) rather than a size
+ * that reads small next to every sibling card on the same 1920x1080 canvas. */
+export const LeagueTableCard: React.FC<{ data: LeagueTableData } & SharedVisualProps> = ({
+  data: { title, columnLabel, columnLabels, rowLabel = "Team", rows },
+  backgroundColor,
+  orientation,
+}) => {
   const frame = useCurrentFrame();
   const titleOpacity = fadeIn(frame, 0, 10);
   const headerOpacity = fadeIn(frame, 6, 10);
+  const isPortrait = orientation === "portrait";
+  // Real standings (MP/W/D/L/GD/Pts) or a multi-stat leaderboard (Goals/
+  // Assists/xG) instead of one proportional-bar column — only when the
+  // author supplies `columnLabels`; a plain single-column table (still the
+  // common case) renders exactly as before.
+  const isMultiColumn = !!columnLabels && columnLabels.length > 0;
+  const rankColumnWidth = isPortrait ? RANK_COLUMN_WIDTH_PORTRAIT : RANK_COLUMN_WIDTH;
+  const statColumnWidth = isPortrait ? STAT_COLUMN_WIDTH_PORTRAIT : STAT_COLUMN_WIDTH;
+  const width = isMultiColumn
+    ? rankColumnWidth + (isPortrait ? 220 : 460) + columnLabels!.length * statColumnWidth
+    : isPortrait
+      ? 900
+      : 1100;
+  const statFontSize = isPortrait ? 24 : 34;
+  const rankFontSize = isPortrait ? 28 : 40;
+  const labelFontSize = isPortrait ? 26 : 38;
+  const headerFontSize = isPortrait ? 16 : 22;
 
   return (
-    <SceneFrame backgroundColor={backgroundColor}>
-      <div style={{ width: 760 }}>
-        <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 28, textAlign: "left" }}>{title}</div>
+    <SceneFrame backgroundColor={backgroundColor} orientation={orientation}>
+      <div style={{ width }}>
+        <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 36, textAlign: "left" }}>{title}</div>
 
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             opacity: headerOpacity,
-            paddingBottom: 10,
+            paddingBottom: 14,
             borderBottom: `2px solid ${COLORS.border}`,
             fontFamily: FONT_FAMILY,
             fontWeight: 700,
-            fontSize: 18,
-            letterSpacing: 1,
+            fontSize: headerFontSize,
+            letterSpacing: 1.2,
             textTransform: "uppercase",
             color: COLORS.textDim,
           }}
         >
-          <div style={{ width: 52 }}>#</div>
+          <div style={{ width: rankColumnWidth }}>#</div>
           <div style={{ flex: 1 }}>{rowLabel}</div>
-          <div>{columnLabel}</div>
+          {isMultiColumn ? (
+            columnLabels!.map((label) => (
+              <div key={label} style={{ width: statColumnWidth, textAlign: "right" }}>
+                {label}
+              </div>
+            ))
+          ) : (
+            <div>{columnLabel}</div>
+          )}
         </div>
 
         {rows.map((row, index) => {
@@ -64,6 +87,7 @@ export const LeagueTableCard: React.FC<{
           const opacity = fadeIn(frame, start, 12);
           const x = slideIn(frame, start, 12, 24);
           const color = row.highlight ? COLORS.highlight : COLORS.text;
+          const columns = row.columns ?? [row.value];
 
           return (
             <div
@@ -79,9 +103,17 @@ export const LeagueTableCard: React.FC<{
                 background: row.highlight ? "rgba(255,213,79,0.08)" : "transparent",
               }}
             >
-              <div style={{ width: 52, fontFamily: DISPLAY_FONT_FAMILY, fontSize: 32, color }}>{row.rank}</div>
-              <div style={{ flex: 1, fontFamily: FONT_FAMILY, fontWeight: 700, fontSize: 30, color }}>{row.label}</div>
-              <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 34, color }}>{row.value}</div>
+              <div style={{ width: rankColumnWidth, fontFamily: DISPLAY_FONT_FAMILY, fontSize: rankFontSize, color }}>{row.rank}</div>
+              <div style={{ flex: 1, fontFamily: FONT_FAMILY, fontWeight: 700, fontSize: labelFontSize, color }}>{row.label}</div>
+              {isMultiColumn ? (
+                columnLabels!.map((label, colIndex) => (
+                  <div key={label} style={{ width: statColumnWidth, textAlign: "right", fontFamily: DISPLAY_FONT_FAMILY, fontSize: statFontSize, color }}>
+                    {columns[colIndex] ?? "–"}
+                  </div>
+                ))
+              ) : (
+                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: isPortrait ? 36 : 46, color }}>{row.value}</div>
+              )}
             </div>
           );
         })}

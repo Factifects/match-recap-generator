@@ -1,14 +1,9 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, slideIn } from "../motion";
-
-interface StatRow {
-  label: string;
-  left: number;
-  right: number;
-}
+import type { SharedVisualProps, PlayerComparisonData } from "../sharedVisualProps";
 
 const ROW_STAGGER_FRAMES = 8;
 const ROW_HEIGHT = 74;
@@ -20,13 +15,11 @@ function formatValue(v: number): string {
 /** Side-by-side, row-by-row comparison of two named players across whatever
  * stats the narration is discussing — a generalization of StatBurstCard's
  * single two-value comparison into multiple rows under one head-to-head. */
-export const PlayerComparison: React.FC<{
-  leftPlayer: string;
-  rightPlayer: string;
-  stats: StatRow[];
-  backgroundColor?: PanelColorKey;
-  orientation?: Orientation;
-}> = ({ leftPlayer, rightPlayer, stats, backgroundColor, orientation = "landscape" }) => {
+export const PlayerComparison: React.FC<{ data: PlayerComparisonData } & SharedVisualProps> = ({
+  data: { leftPlayer, rightPlayer, stats },
+  backgroundColor,
+  orientation,
+}) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";
 

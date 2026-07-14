@@ -1,37 +1,27 @@
 import React from "react";
 import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, scaleSettle } from "../motion";
+import type { SharedVisualProps, StatBurstData } from "../sharedVisualProps";
+
+function formatterFor(format: "integer" | "decimal"): (value: number) => string {
+  return format === "decimal" ? (v) => v.toFixed(2) : (v) => String(Math.round(v));
+}
 
 /**
  * Data visualization, not a text caption — numbers count up while bars grow
  * into place, the card settling in with a quiet scale/fade instead of a
  * spring pop.
  */
-export const StatBurstCard: React.FC<{
-  label: string;
-  leftLabel: string;
-  leftValue: number;
-  rightLabel: string;
-  rightValue: number;
-  leftColor?: string;
-  rightColor?: string;
-  formatValue?: (value: number) => string;
-  backgroundColor?: PanelColorKey;
-  orientation?: Orientation;
-}> = ({
-  label,
-  leftLabel,
-  leftValue,
-  rightLabel,
-  rightValue,
+export const StatBurstCard: React.FC<{ data: StatBurstData; leftColor?: string; rightColor?: string } & SharedVisualProps> = ({
+  data: { label, leftLabel, leftValue, rightLabel, rightValue, format, prefix, suffix },
   leftColor = COLORS.homeTeam,
   rightColor = COLORS.awayTeam,
-  formatValue = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(2)),
   backgroundColor,
-  orientation = "landscape",
+  orientation,
 }) => {
+  const formatValue = formatterFor(format);
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const isPortrait = orientation === "portrait";
@@ -56,7 +46,11 @@ export const StatBurstCard: React.FC<{
   // side-by-side, since a 168px number is the whole point of this card.
   const valueBlock = (value: number, valueColor: string, valueLabel: string, align: "left" | "right" | "center") => (
     <div style={{ textAlign: align }}>
-      <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 168, color: valueColor, lineHeight: 1 }}>{formatValue(value)}</div>
+      <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 168, color: valueColor, lineHeight: 1 }}>
+        {prefix}
+        {formatValue(value)}
+        {suffix}
+      </div>
       <div style={{ fontFamily: FONT_FAMILY, fontWeight: 600, fontSize: 34, color: COLORS.text, marginTop: 6 }}>{valueLabel}</div>
     </div>
   );

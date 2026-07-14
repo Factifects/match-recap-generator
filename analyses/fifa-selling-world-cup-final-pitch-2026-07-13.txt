@@ -1,0 +1,125 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** Selling The World Cup Final... Literally
+
+**Annotation:** "Selling The Final... Literally"
+
+**Duration:** 3 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: video title, not a factual claim.
+
+---
+
+### SCENE 2
+
+**Scene Type:** Bar Chart
+
+**Narration:** FIFA is selling the actual turf from the World Cup final, and it's not cheap. Four tiers: 450, 900, 1,200, and 3,000 dollars for the top edition.
+
+**Annotation:** "The Four Price Tiers"
+
+**Data:** {"bars":[{"label":"Base","value":450},{"label":"Tier 2","value":900},{"label":"Tier 3","value":1200},{"label":"Hero Edition","value":3000}],"prefix":"$"}
+
+**Duration:** 7 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source/Reason: FIFA's four confirmed price tiers for the pitch collectibles, reported by The Athletic.
+
+---
+
+### SCENE 3
+
+**Scene Type:** Icon
+
+**Narration:** Each piece is real turf from the final, encased in resin, and inscribed with the venue, the date, and the final score itself.
+
+**Data:** {"icon":"star","headline":"A Piece of History","caption":"Real grass, encased in resin, inscribed with the venue, date and final score"}
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: reported packaging details for FIFA's pitch collectibles.
+
+---
+
+### SCENE 4
+
+**Scene Type:** Stat
+
+**Narration:** Each tier is capped at 2,026 pieces. If every single one sells, that's over 11.2 million dollars — from grass.
+
+**Data:** {"value":11.2,"prefix":"$","suffix":"m","context":"Potential revenue if all four tiers sell out (2,026 pieces each)"}
+
+**Duration:** 7 seconds
+
+**Transition:** Hard Cut
+
+**Evidence:** High — Source/Reason: each tier limited to 2,026 pieces; total potential revenue of over $11.2m if fully sold, as reported by The Athletic.
+
+---
+
+### SCENE 5
+
+**Scene Type:** Icon
+
+**Narration:** Pay the full 3,000, and you also get a gold-etched souvenir ticket, a mini replica match ball, and a crystal-cut glass World Cup trophy.
+
+**Data:** {"icon":"star","headline":"The Hero Edition Extras","caption":"Gold-etched ticket, mini replica ball and a crystal-cut glass World Cup trophy"}
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: reported contents of the $3,000 "Hero Edition" tier.
+
+---
+
+### SCENE 6
+
+**Scene Type:** Stat Burst
+
+**Narration:** For comparison: that 3,000 dollar World Cup tier is nothing next to what sports memorabilia can really go for — two sections of Madison Square Garden's NBA Finals court sold at Sotheby's for over 100,000 dollars each.
+
+**Data:** {"label":"Memorabilia Price Check","leftLabel":"WC Pitch (Hero Edition)","leftValue":3000,"rightLabel":"MSG NBA Finals Court (Sotheby's)","rightValue":100000,"format":"integer","prefix":"$"}
+
+**Duration:** 8 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: Sotheby's auction of two 4-by-8 Madison Square Garden NBA Finals court sections, each selling for over $100,000, reported by The Athletic in the same piece.
+
+---
+
+### SCENE 7
+
+**Scene Type:** Icon
+
+**Narration:** And this isn't FIFA's first sellout, either — in May, they released 375 dollar host-city jerseys, only 999 of each of the 16 designs.
+
+**Data:** {"icon":"star","headline":"Not FIFA's First Rodeo","caption":"$375 host-city jerseys already sold — only 999 made of each of the 16 designs"}
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Evidence:** High — Source/Reason: FIFA's $375 limited-edition host-city jerseys (999 of each of 16 designs), reported by The Athletic.
+
+---
+
+### SCENE 8
+
+**Scene Type:** Statement
+
+**Narration:** Real grass, a resin box, and up to 3,000 dollars. Would you actually buy a piece of the World Cup final? Let us know below.
+
+**Duration:** 6 seconds
+
+**Transition:** Fade to Black
+
+**Evidence:** High — Source/Reason: closing call-to-action.

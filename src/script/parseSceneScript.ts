@@ -1,11 +1,39 @@
 import { type TimedSegment, type Visual, type CameraStage, segmentSchema, visualSchema } from "../model/Segment";
-import { resolvePattern, type PatternRole } from "../video/tacticalPatterns";
+import { VISUAL_DEFINITIONS } from "../model/visualDefinitions";
+import { resolvePattern, TACTICAL_PATTERNS, type PatternRole, type PatternRoleTemplate } from "../video/tacticalPatterns";
 import { findAsset, findPersonArt } from "../video/assets";
+import { PHASE_DURATION_FRAMES } from "../video/compositions/TacticalBoard";
+import { FPS } from "../video/theme";
 
 const SCENE_MARKER = /^### SCENE \d+/;
 const FIELD_LINE = /^\*\*([^*]+):\*\*\s*(.*)$/;
 const DURATION_NUMBER = /(\d+(?:\.\d+)?)/;
 const CAMERA_ARROW = /→|->/; // the "→" glyph used between multi-stage camera directives
+
+// The floor `resolveSegmentAudio` applies on top of real narration audio —
+// deliberately small, just enough for a static visual's entrance animation
+// to finish (see motion.ts: most fade/slide/scale-settle entrances resolve
+// inside 16-24 frames, well under a second at 30fps). Previously this floor
+// came from the authored `Duration` field, a hand-written narration-length
+// guess that's reliably longer than real ElevenLabs speech — every scene
+// held on screen in silence until that guess's clock ran out, regardless of
+// how long the narrator actually took. `Duration` still drives the
+// no-`--audio` estimate render (parseDurationSeconds below); it no longer
+// floors real audio.
+const MIN_REAL_AUDIO_FLOOR_SECONDS = 2;
+
+/** Only a visual with genuine multi-beat choreography earns a floor above
+ * the bare minimum — right now that's a multi-phase TacticalBoard, whose
+ * phases each hold the screen for PHASE_DURATION_FRAMES so a real breakdown
+ * legitimately runs long because it has real content, not because of an
+ * inflated word-count guess. */
+function computeVisualMinDurationSeconds(visual: Visual | undefined): number {
+  if (visual?.kind === "tactical-board" && visual.phases && visual.phases.length > 0) {
+    const phaseCount = 1 + visual.phases.length;
+    return (phaseCount * PHASE_DURATION_FRAMES) / FPS;
+  }
+  return MIN_REAL_AUDIO_FLOOR_SECONDS;
+}
 
 interface SceneFields {
   [field: string]: string;
@@ -84,10 +112,101 @@ const TRANSITION_STYLE_KEYS: Record<string, TransitionStyle> = {
 /** An optional **Transition Style:** field — independent of Transition
  * (Hard Cut/Cross Dissolve/Fade to Black), which still controls timing only.
  * Undefined falls back to "fade" in AnalysisVideo.tsx, so every existing
- * script's scenes keep dissolving exactly as before. */
-function resolveTransitionStyle(fields: SceneFields): TransitionStyle | undefined {
+ * script's scenes keep dissolving exactly as before. Falls back to the
+ * matching Story Beat default (see STORY_BEAT_TRANSITION_DEFAULTS) when no
+ * explicit Transition Style is set but a Story Beat is — an explicit field
+ * always wins over the beat-derived default. */
+function resolveTransitionStyle(fields: SceneFields, storyBeat: StoryBeat | undefined): TransitionStyle | undefined {
   const value = fields["Transition Style"]?.trim().toLowerCase();
-  return value ? TRANSITION_STYLE_KEYS[value] : undefined;
+  if (value && TRANSITION_STYLE_KEYS[value]) return TRANSITION_STYLE_KEYS[value];
+  return storyBeat ? STORY_BEAT_TRANSITION_DEFAULTS[storyBeat] : undefined;
+}
+
+type StoryBeat = "reveal" | "comparison" | "evidence" | "escalation" | "explanation" | "payoff" | "reflection" | "question";
+const STORY_BEAT_KEYS: Record<string, StoryBeat> = {
+  reveal: "reveal",
+  comparison: "comparison",
+  evidence: "evidence",
+  escalation: "escalation",
+  explanation: "explanation",
+  payoff: "payoff",
+  reflection: "reflection",
+  question: "question",
+};
+
+// Each beat's own narrative shape suggests a default presentation — a Reveal
+// wants something appearing suddenly closer, a Comparison wants the
+// side-by-side motion of a slide, evidence lands hardest with a settling
+// pull-back, escalation rises, and the calmer beats (Explanation/Reflection/
+// Question) default to a plain fade rather than fighting for attention.
+// Purely a default: an explicit **Transition Style:** field always overrides it.
+const STORY_BEAT_TRANSITION_DEFAULTS: Record<StoryBeat, TransitionStyle> = {
+  reveal: "zoom-in",
+  comparison: "slide-left",
+  evidence: "zoom-out",
+  escalation: "slide-up",
+  explanation: "fade",
+  payoff: "zoom-in",
+  reflection: "fade",
+  question: "fade",
+};
+
+/** An optional **Story Beat:** field — authoring metadata for the scene's
+ * narrative function (see STORY_BEAT_TRANSITION_DEFAULTS). Undefined leaves
+ * transitionStyle entirely up to the explicit Transition Style field (or the
+ * "fade" fallback), so a script that never sets Story Beat is unaffected. */
+function resolveStoryBeat(fields: SceneFields): StoryBeat | undefined {
+  const value = fields["Story Beat"]?.trim().toLowerCase();
+  return value ? STORY_BEAT_KEYS[value] : undefined;
+}
+
+// Sorted longest-key-first so a more specific multi-word pattern name (e.g.
+// "half-space overload") matches before a shorter one it happens to contain
+// ("half-space") — first match in this order wins.
+const TACTICAL_PATTERN_NAMES_BY_LENGTH = Object.keys(TACTICAL_PATTERNS).sort((a, b) => b.length - a.length);
+
+/** The parser doesn't require an explicit **Pattern:** field — if the author
+ * simply writes the tactical concept into the Narration itself ("Hakimi
+ * overlaps down the right"), any TACTICAL_PATTERNS key appearing as a
+ * substring of the Narration text (case-insensitive) is picked automatically.
+ * An explicit Pattern field always wins when both are present; this only
+ * fires when Pattern is absent, so no existing script's pattern choice can
+ * be silently overridden by a coincidental word match in its own prose. */
+function detectPatternFromNarration(narration: string | undefined): string | null {
+  if (!narration) return null;
+  const lower = narration.toLowerCase();
+  return TACTICAL_PATTERN_NAMES_BY_LENGTH.find((name) => lower.includes(name)) ?? null;
+}
+
+/** Builds one phase's (or phase 0's) resolved player list from a pattern's
+ * role templates and the script's real Focus/Supporting Players names —
+ * shared by phase 0 and every entry in a multi-phase pattern's `phases`,
+ * since a later phase re-uses the SAME role->name mapping (the same person
+ * plays "focus" in every phase, only their x/y changes). A role missing from
+ * `roles` (common in a later phase that only re-arranges some of the cast)
+ * simply isn't included, matching TacticalBoard.tsx's own "phases don't have
+ * to repeat everyone" behavior for hand-authored Data phases. */
+function buildRolePlayers(
+  roles: Partial<Record<PatternRole, PatternRoleTemplate>>,
+  roleNames: Partial<Record<PatternRole, string>>,
+): { id: string; x: number; y: number; team: "home" | "away"; label: string }[] {
+  const players: { id: string; x: number; y: number; team: "home" | "away"; label: string }[] = [];
+  (Object.keys(roles) as PatternRole[]).forEach((role) => {
+    const name = roleNames[role];
+    const roleTemplate = roles[role];
+    if (!name || !roleTemplate) return;
+    players.push({ id: role, x: roleTemplate.x, y: roleTemplate.y, team: roleTemplate.side, label: name });
+  });
+  return players;
+}
+
+function buildRoleArrows(
+  arrows: { from: PatternRole; toX: number; toY: number; kind?: "run" | "pass" }[] | undefined,
+  players: { id: string }[],
+) {
+  return (arrows ?? [])
+    .filter((arrow) => players.some((p) => p.id === arrow.from))
+    .map((arrow) => ({ from: arrow.from, to: { x: arrow.toX, y: arrow.toY }, kind: arrow.kind ?? "run" }));
 }
 
 function resolveTacticalBoardVisual(fields: SceneFields): Visual | null {
@@ -98,8 +217,10 @@ function resolveTacticalBoardVisual(fields: SceneFields): Visual | null {
   const dataOverride = resolveDataVisual("tactical-board", fields);
   if (dataOverride) return dataOverride;
 
-  const patternName = fields["Pattern"];
-  if (!patternName || patternName.trim() === "—") return null;
+  const explicitPatternName = fields["Pattern"]?.trim();
+  const patternName =
+    explicitPatternName && explicitPatternName !== "—" ? explicitPatternName : detectPatternFromNarration(fields["Narration"]);
+  if (!patternName) return null;
   const template = resolvePattern(patternName);
   if (!template) return null;
 
@@ -119,18 +240,27 @@ function resolveTacticalBoardVisual(fields: SceneFields): Visual | null {
   // player, so an opposition-requiring pattern can't silently ship without one.
   if (template.roles.supporting3) roleNames.supporting3 = supportingNames[2] || "Defender";
 
-  const players: { id: string; x: number; y: number; team: "home" | "away"; label: string }[] = [];
-  (Object.keys(template.roles) as PatternRole[]).forEach((role) => {
-    const name = roleNames[role];
-    const roleTemplate = template.roles[role];
-    if (!name || !roleTemplate) return;
-    players.push({ id: role, x: roleTemplate.x, y: roleTemplate.y, team: roleTemplate.side, label: name });
-  });
+  const players = buildRolePlayers(template.roles, roleNames);
   if (players.length === 0) return null;
 
-  const arrows = (template.arrows ?? [])
-    .filter((arrow) => players.some((p) => p.id === arrow.from))
-    .map((arrow) => ({ from: arrow.from, to: { x: arrow.toX, y: arrow.toY } }));
+  const arrows = buildRoleArrows(template.arrows, players);
+
+  // A pattern's own `phases` (see "switch of play"/"counter press") become
+  // real follow-on beats, exactly like a hand-authored Data block's `phases`
+  // — same role->name substitution as phase 0, just re-arranged per phase.
+  const phases = (template.phases ?? [])
+    .map((phase) => {
+      const phasePlayers = buildRolePlayers(phase.roles, roleNames);
+      if (phasePlayers.length === 0) return null;
+      return {
+        players: phasePlayers,
+        arrows: buildRoleArrows(phase.arrows, phasePlayers),
+        highlightZone: phase.highlightZone,
+        caption: phase.caption,
+        dataPoint: phase.dataPoint,
+      };
+    })
+    .filter((phase): phase is NonNullable<typeof phase> => phase !== null);
 
   const result = visualSchema.safeParse({
     kind: "tactical-board",
@@ -138,32 +268,10 @@ function resolveTacticalBoardVisual(fields: SceneFields): Visual | null {
     players,
     arrows,
     highlightZone: template.highlightZone,
+    phases: phases.length > 0 ? phases : undefined,
   });
   return result.success ? result.data : null;
 }
-
-const DATA_DRIVEN_KINDS: Record<string, string> = {
-  formation: "formation",
-  shotmap: "shot-map",
-  playercomparison: "player-comparison",
-  barchart: "barchart",
-  goalsequence: "goal-sequence",
-  momentumtimeline: "momentum-timeline",
-  stat: "single-stat",
-  statburst: "statburst",
-  icon: "icon",
-  zone: "zone",
-  sequence: "sequence",
-  donut: "shape",
-  radar: "radar",
-  verticaltacticalboard: "vertical-tactical-board",
-  quote: "quote",
-  leaguetable: "league-table",
-  careerpath: "career-path",
-  passnetwork: "pass-network",
-  heatmap: "heat-map",
-  analysis: "analysis",
-};
 
 /** Scene types other than TacticalBoard need real numeric/positional data
  * that free-text Narration/Focus/Pattern fields can't reliably provide (exact
@@ -186,12 +294,16 @@ function resolveDataVisual(kind: string, fields: SceneFields): Visual | null {
   }
 }
 
+/** Looks up a "Scene Type:" string against the visual registry's
+ * `sceneTypeKey` instead of a hand-maintained kind-name dictionary — adding
+ * a 22nd visual type needs no edit here, just one new entry in
+ * src/model/visualDefinitions.ts. */
 function resolveVisual(sceneType: string, fields: SceneFields): Visual | null {
-  const type = sceneType.trim().toLowerCase();
+  const type = sceneType.trim().toLowerCase().replace(/\s+/g, "");
   if (type === "tacticalboard") return resolveTacticalBoardVisual(fields);
-  const kind = DATA_DRIVEN_KINDS[type.replace(/\s+/g, "")];
-  if (!kind) return null;
-  return resolveDataVisual(kind, fields);
+  const definition = VISUAL_DEFINITIONS.find((def) => def.sceneTypeKey === type);
+  if (!definition) return null;
+  return resolveDataVisual(definition.kind, fields);
 }
 
 /** Average position of a set of players — used as a camera anchor when a
@@ -356,6 +468,17 @@ function resolvePanelColor(fields: SceneFields): "neutral" | "red" | "blue" | "y
   return value && PANEL_COLOR_KEYS.has(value) ? (value as "neutral" | "red" | "blue" | "yellow") : undefined;
 }
 
+const BOARD_POSITION_KEYS = new Set(["left", "right", "center"]);
+
+/** An optional **Board Position:** field, TacticalBoard/Formation only —
+ * undefined falls back to those cards' own default ("center"), so every
+ * existing script renders exactly as before. */
+function resolveBoardPosition(visual: Visual, fields: SceneFields): "left" | "right" | "center" | undefined {
+  if (visual.kind !== "tactical-board" && visual.kind !== "formation") return undefined;
+  const value = fields["Board Position"]?.trim().toLowerCase();
+  return value && BOARD_POSITION_KEYS.has(value) ? (value as "left" | "right" | "center") : undefined;
+}
+
 /** A jersey image per side of a Formation scene, keyed by "home"/"away" —
  * only included when a real asset exists for that team, so a side with no
  * jersey art falls back to Formation's plain colored disc. */
@@ -396,12 +519,14 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
       const chapterResult = segmentSchema.safeParse({ type: "chapter", text: stripQuotes(fields["Annotation"]) || narration });
       if (!chapterResult.success) continue;
       const chapterDurationSeconds = parseDurationSeconds(fields["Duration"]);
+      const chapterStoryBeat = resolveStoryBeat(fields);
       segments.push({
         ...chapterResult.data,
         durationSeconds: chapterDurationSeconds,
-        visualMinDurationSeconds: chapterDurationSeconds,
+        visualMinDurationSeconds: MIN_REAL_AUDIO_FLOOR_SECONDS,
         transitionOut: parseTransitionOut(fields["Transition"]),
-        transitionStyle: resolveTransitionStyle(fields),
+        transitionStyle: resolveTransitionStyle(fields, chapterStoryBeat),
+        storyBeat: chapterStoryBeat,
         panelColor: resolvePanelColor(fields),
       });
       continue;
@@ -419,12 +544,14 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
       const statementResult = segmentSchema.safeParse({ type: "statement", text: narration, visual: undefined });
       if (!statementResult.success) continue;
       const statementDurationSeconds = parseDurationSeconds(fields["Duration"]);
+      const statementStoryBeat = resolveStoryBeat(fields);
       segments.push({
         ...statementResult.data,
         durationSeconds: statementDurationSeconds,
-        visualMinDurationSeconds: statementDurationSeconds,
+        visualMinDurationSeconds: MIN_REAL_AUDIO_FLOOR_SECONDS,
         transitionOut: parseTransitionOut(fields["Transition"]),
-        transitionStyle: resolveTransitionStyle(fields),
+        transitionStyle: resolveTransitionStyle(fields, statementStoryBeat),
+        storyBeat: statementStoryBeat,
         panelColor: resolvePanelColor(fields),
       });
       continue;
@@ -439,20 +566,23 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
     const focusPoint = resolveFocusPoint(fields, visual);
     const camera = parseCameraField(fields["Camera"], focusPoint, visual);
 
-    const visualMinDurationSeconds = parseDurationSeconds(fields["Duration"]);
+    const estimatedDurationSeconds = parseDurationSeconds(fields["Duration"]);
+    const storyBeat = resolveStoryBeat(fields);
     segments.push({
       ...result.data,
-      durationSeconds: visualMinDurationSeconds,
-      visualMinDurationSeconds,
+      durationSeconds: estimatedDurationSeconds,
+      visualMinDurationSeconds: computeVisualMinDurationSeconds(visual),
       camera,
       transitionOut: parseTransitionOut(fields["Transition"]),
-      transitionStyle: resolveTransitionStyle(fields),
+      transitionStyle: resolveTransitionStyle(fields, storyBeat),
+      storyBeat,
       backgroundImage: resolveBackgroundImage(visual, fields),
       backgroundImageMode: resolveBackgroundImageMode(fields),
       backgroundImageSide: resolveBackgroundImageSide(fields),
       panelColor: resolvePanelColor(fields),
       iconImage: resolveIconImage(visual),
       jerseyImages: resolveJerseyImages(visual),
+      boardPosition: resolveBoardPosition(visual, fields),
     });
   }
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
-import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY } from "../theme";
 
 // A fixed, ordered palette rather than colorForCharacter's name-hash — two
 // segment labels can hash to the same color by coincidence (confirmed via a
@@ -11,11 +11,7 @@ import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, type PanelColorKey, type Orie
 const SLICE_PALETTE = ["#4f6bff", "#e6a24f", "#3ddc97", "#ff5a5f", "#b596ff", "#38bdf8"];
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, drawIn } from "../motion";
-
-interface Segment {
-  label: string;
-  value: number;
-}
+import type { SharedVisualProps, DonutChartData } from "../sharedVisualProps";
 
 const SIZE = 640;
 const CENTER = SIZE / 2;
@@ -29,14 +25,10 @@ const LABEL_RADIUS = RADIUS + STROKE_WIDTH / 2 + 46;
  * spring, with its percentage labeled just outside the ring and the total
  * shown in the center hole — for a value that's naturally a share-of-whole
  * rather than a two-way comparison or a category breakdown. */
-export const DonutChartCard: React.FC<{
-  title: string;
-  segments: Segment[];
-  backgroundColor?: PanelColorKey;
-  /** Not read — a fixed 640px square already fits the 1080px portrait canvas
-   * with room to spare. */
-  orientation?: Orientation;
-}> = ({ title, segments, backgroundColor }) => {
+export const DonutChartCard: React.FC<{ data: DonutChartData } & SharedVisualProps> = ({
+  data: { title, segments },
+  backgroundColor,
+}) => {
   const frame = useCurrentFrame();
   const total = segments.reduce((sum, s) => sum + s.value, 0) || 1;
 

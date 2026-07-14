@@ -7,31 +7,11 @@ import { slide } from "@remotion/transitions/slide";
 import { zoomIn, zoomOut } from "../transitions";
 import { ChapterCard } from "./ChapterCard";
 import { StatementCard } from "./StatementCard";
-import { StatBurstCard } from "./StatBurstCard";
-import { SequenceCard } from "./SequenceCard";
-import { BarChartCard } from "./BarChartCard";
-import { IconInfographicCard } from "./IconInfographicCard";
-import { ZoneMapCard } from "./ZoneMapCard";
-import { DonutChartCard } from "./DonutChartCard";
-import { TacticalBoard } from "./TacticalBoard";
-import { Formation } from "./Formation";
-import { ShotMap } from "./ShotMap";
-import { PlayerComparison } from "./PlayerComparison";
-import { GoalSequence } from "./GoalSequence";
-import { MomentumTimeline } from "./MomentumTimeline";
-import { SingleStatCard } from "./SingleStatCard";
-import { RadarChart } from "./RadarChart";
-import { VerticalTacticalBoard } from "./VerticalTacticalBoard";
-import { QuoteCard } from "./QuoteCard";
-import { LeagueTableCard } from "./LeagueTableCard";
-import { CareerPathCard } from "./CareerPathCard";
-import { PassNetworkCard } from "./PassNetworkCard";
-import { HeatMapCard } from "./HeatMapCard";
-import { AnalysisBoard } from "./AnalysisBoard";
-import type { TimedSegment, AspectRatio } from "../../model/Segment";
+import { VISUAL_COMPONENTS } from "../visualComponents";
+import type { SharedVisualProps } from "../sharedVisualProps";
+import type { TimedSegment, AspectRatio, Visual } from "../../model/Segment";
 import type { Orientation } from "../theme";
 
-const FADE_PADDING_FRAMES = 20;
 export const TRANSITION_FRAMES = 15; // ~0.5s crossfade at 30fps between segments
 export const HARD_CUT_FRAMES = 1; // minimal, non-zero (linearTiming needs a real range)
 
@@ -75,10 +55,6 @@ function presentationFor(segment: TimedSegment): TransitionPresentation<Record<s
   return presentation as unknown as TransitionPresentation<Record<string, unknown>>;
 }
 
-function formatterFor(format: "integer" | "decimal"): (value: number) => string {
-  return format === "decimal" ? (v) => v.toFixed(2) : (v) => String(Math.round(v));
-}
-
 /** Each beat's real narration audio (once generated) drives its own duration, so a
  * beat's visual — plain caption or a graphic override — always plays under the
  * full narration for that text, never a trimmed version of it. */
@@ -89,14 +65,27 @@ function formatterFor(format: "integer" | "decimal"): (value: number) => string 
  * independently calling useVideoConfig() and duplicating the same
  * width>height check. `aspectRatio` stays in the prop type purely so
  * Root.tsx's defaultProps/inputProps shape still type-checks here. */
-export const AnalysisVideo: React.FC<{ segments: TimedSegment[]; aspectRatio?: AspectRatio }> = ({ segments }) => {
+export const AnalysisVideo: React.FC<{
+  segments: TimedSegment[];
+  aspectRatio?: AspectRatio;
+  /** Relative path (public/) to a short ambient bed, looped for the whole video's
+   * duration at a low, unobtrusive volume — independent of any segment's own
+   * audio/sfx, so it isn't affected by segment count or per-scene transitions. */
+  backgroundMusicPath?: string;
+}> = ({ segments, backgroundMusicPath }) => {
   const { fps, width, height } = useVideoConfig();
   const orientation: Orientation = height > width ? "portrait" : "landscape";
 
   return (
-    <TransitionSeries>
+    <>
+      {backgroundMusicPath && <Html5Audio src={staticFile(backgroundMusicPath)} loop volume={0.06} />}
+      <TransitionSeries>
       {segments.map((segment, index) => {
-        const durationInFrames = Math.ceil(segment.durationSeconds * fps) + FADE_PADDING_FRAMES;
+        // Pad only by exactly what the outgoing transition consumes (15 frames for a
+        // dissolve, 1 for a hard cut) — no extra dead air on top, since that padding
+        // used to be a flat 20 frames regardless of transition, leaving audible silence
+        // after the narration ended and before the next segment's crossfade even began.
+        const durationInFrames = Math.ceil(segment.durationSeconds * fps) + transitionFramesFor(segment);
         return (
           <React.Fragment key={index}>
             <TransitionSeries.Sequence durationInFrames={durationInFrames}>
@@ -106,227 +95,31 @@ export const AnalysisVideo: React.FC<{ segments: TimedSegment[]; aspectRatio?: A
               {segment.type === "statement" && !segment.visual && (
                 <StatementCard text={segment.text} backgroundColor={segment.panelColor} orientation={orientation} />
               )}
-              {segment.type === "statement" && segment.visual?.kind === "statburst" && (
-                <StatBurstCard
-                  label={segment.visual.label}
-                  leftLabel={segment.visual.leftLabel}
-                  leftValue={segment.visual.leftValue}
-                  rightLabel={segment.visual.rightLabel}
-                  rightValue={segment.visual.rightValue}
-                  formatValue={formatterFor(segment.visual.format)}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "sequence" && (
-                <SequenceCard
-                  title={segment.visual.title}
-                  beats={segment.visual.beats}
-                  backgroundImage={segment.backgroundImage}
-                  backgroundImageMode={segment.backgroundImageMode}
-                  backgroundImageSide={segment.backgroundImageSide}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "barchart" && (
-                <BarChartCard
-                  title={segment.visual.title}
-                  bars={segment.visual.bars}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "icon" && (
-                <IconInfographicCard
-                  icon={segment.visual.icon}
-                  headline={segment.visual.headline}
-                  caption={segment.visual.caption}
-                  backgroundImage={segment.backgroundImage}
-                  backgroundImageMode={segment.backgroundImageMode}
-                  backgroundImageSide={segment.backgroundImageSide}
-                  backgroundColor={segment.panelColor}
-                  iconImage={segment.iconImage}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "zone" && (
-                <ZoneMapCard
-                  zone={segment.visual.zone}
-                  label={segment.visual.label}
-                  caption={segment.visual.caption}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "shape" && (
-                <DonutChartCard
-                  title={segment.visual.title}
-                  segments={segment.visual.segments}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "tactical-board" && (
-                <TacticalBoard
-                  title={segment.visual.title}
-                  players={segment.visual.players}
-                  arrows={segment.visual.arrows}
-                  highlight={segment.visual.highlight}
-                  highlightZone={segment.visual.highlightZone}
-                  annotations={segment.visual.annotations}
-                  camera={segment.camera}
-                  durationInFrames={durationInFrames}
-                  backgroundImage={segment.backgroundImage}
-                  backgroundImageMode={segment.backgroundImageMode}
-                  backgroundImageSide={segment.backgroundImageSide}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "formation" && (
-                <Formation
-                  title={segment.visual.title}
-                  sides={segment.visual.sides}
-                  backgroundImage={segment.backgroundImage}
-                  backgroundImageMode={segment.backgroundImageMode}
-                  backgroundImageSide={segment.backgroundImageSide}
-                  backgroundColor={segment.panelColor}
-                  jerseyImages={segment.jerseyImages}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "shot-map" && (
-                <ShotMap
-                  title={segment.visual.title}
-                  shots={segment.visual.shots}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "player-comparison" && (
-                <PlayerComparison
-                  leftPlayer={segment.visual.leftPlayer}
-                  rightPlayer={segment.visual.rightPlayer}
-                  stats={segment.visual.stats}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "goal-sequence" && (
-                <GoalSequence
-                  title={segment.visual.title}
-                  shooter={segment.visual.shooter}
-                  from={segment.visual.from}
-                  to={segment.visual.to}
-                  keeper={segment.visual.keeper}
-                  keeperAt={segment.visual.keeperAt}
-                  curve={segment.visual.curve}
-                  camera={segment.camera}
-                  durationInFrames={durationInFrames}
-                  backgroundImage={segment.backgroundImage}
-                  backgroundImageMode={segment.backgroundImageMode}
-                  backgroundImageSide={segment.backgroundImageSide}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "momentum-timeline" && (
-                <MomentumTimeline
-                  title={segment.visual.title}
-                  matchMinutes={segment.visual.matchMinutes}
-                  phases={segment.visual.phases}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "single-stat" && (
-                <SingleStatCard
-                  title={segment.visual.title}
-                  value={segment.visual.value}
-                  context={segment.visual.context}
-                  backgroundImage={segment.backgroundImage}
-                  backgroundImageMode={segment.backgroundImageMode}
-                  backgroundImageSide={segment.backgroundImageSide}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "radar" && (
-                <RadarChart
-                  title={segment.visual.title}
-                  axes={segment.visual.axes}
-                  series={segment.visual.series}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "vertical-tactical-board" && (
-                <VerticalTacticalBoard
-                  title={segment.visual.title}
-                  players={segment.visual.players}
-                  arrows={segment.visual.arrows}
-                  sideText={segment.visual.sideText}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "quote" && (
-                <QuoteCard
-                  quote={segment.visual.quote}
-                  attribution={segment.visual.attribution}
-                  backgroundImage={segment.backgroundImage}
-                  backgroundImageMode={segment.backgroundImageMode}
-                  backgroundImageSide={segment.backgroundImageSide}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "league-table" && (
-                <LeagueTableCard
-                  title={segment.visual.title}
-                  columnLabel={segment.visual.columnLabel}
-                  rowLabel={segment.visual.rowLabel}
-                  rows={segment.visual.rows}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "career-path" && (
-                <CareerPathCard
-                  title={segment.visual.title}
-                  stops={segment.visual.stops}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "pass-network" && (
-                <PassNetworkCard
-                  title={segment.visual.title}
-                  nodes={segment.visual.nodes}
-                  links={segment.visual.links}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "heat-map" && (
-                <HeatMapCard
-                  title={segment.visual.title}
-                  zones={segment.visual.zones}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
-              {segment.type === "statement" && segment.visual?.kind === "analysis" && (
-                <AnalysisBoard
-                  title={segment.visual.title}
-                  players={segment.visual.players}
-                  gazeLines={segment.visual.gazeLines}
-                  revealCaption={segment.visual.revealCaption}
-                  backgroundColor={segment.panelColor}
-                  orientation={orientation}
-                />
-              )}
+              {segment.type === "statement" &&
+                segment.visual &&
+                (() => {
+                  // One generic lookup into the visual registry
+                  // (src/video/visualComponents.tsx) instead of a 21-branch
+                  // conditional chain — every card already shares the same
+                  // `{ data, ...SharedVisualProps }` contract (see the visual
+                  // registry plan), so there's nothing per-kind left to
+                  // special-case here. Adding a 22nd visual type needs no
+                  // edit to this file at all.
+                  const Component = VISUAL_COMPONENTS[segment.visual.kind] as React.FC<{ data: Visual } & SharedVisualProps>;
+                  const shared: SharedVisualProps = {
+                    backgroundColor: segment.panelColor,
+                    backgroundImage: segment.backgroundImage,
+                    backgroundImageMode: segment.backgroundImageMode,
+                    backgroundImageSide: segment.backgroundImageSide,
+                    orientation,
+                    camera: segment.camera,
+                    durationInFrames,
+                    iconImage: segment.iconImage,
+                    jerseyImages: segment.jerseyImages,
+                    boardPosition: segment.boardPosition,
+                  };
+                  return <Component data={segment.visual} {...shared} />;
+                })()}
               {segment.audioStaticPath && <Html5Audio src={staticFile(segment.audioStaticPath)} />}
               {segment.sfxStaticPath && <Html5Audio src={staticFile(segment.sfxStaticPath)} volume={0.5} />}
             </TransitionSeries.Sequence>
@@ -339,6 +132,7 @@ export const AnalysisVideo: React.FC<{ segments: TimedSegment[]; aspectRatio?: A
           </React.Fragment>
         );
       })}
-    </TransitionSeries>
+      </TransitionSeries>
+    </>
   );
 };

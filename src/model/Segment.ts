@@ -19,13 +19,23 @@ export { ICON_KEYS, ZONE_KEYS, FORMATION_NAMES } from "./visualDefinitions";
 // pre-audio, its word-count estimate) always drives how long it's on screen, so
 // swapping the caption for a graphic never silently drops narration content.
 // Derived from the visual registry (src/model/visualDefinitions.ts) rather
-// than hand-listed here — see that file's docstring for why.
+// than hand-listed here — see that file's docstring for why. `Visual` is
+// derived independently from the union of each registry entry's own schema
+// type, rather than from `z.infer<typeof visualSchema>` — zod v4's
+// `discriminatedUnion` wants a compile-time-literal tuple of
+// `$ZodTypeDiscriminable` options, which a runtime `.map()` over the
+// registry can't produce without an `any` escape hatch; that cast is
+// confined to `visualSchema`'s construction, not `Visual`'s type, so every
+// other file's type-checking is unaffected. Discrimination itself still
+// works correctly at runtime — zod only needs each element to be an object
+// schema with a literal `kind`, which every registry entry already is.
+export type Visual = z.infer<(typeof VISUAL_DEFINITIONS)[number]["schema"]>;
+
 export const visualSchema = z.discriminatedUnion(
   "kind",
-  VISUAL_DEFINITIONS.map((def) => def.schema) as [(typeof VISUAL_DEFINITIONS)[number]["schema"], ...z.ZodTypeAny[]],
-);
-
-export type Visual = z.infer<typeof visualSchema>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  VISUAL_DEFINITIONS.map((def) => def.schema) as any,
+) as z.ZodType<Visual>;
 
 export const segmentSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("chapter"), text: z.string().min(1) }),
@@ -56,8 +66,17 @@ export type TimedSegment = Segment & {
   /** Which presentation plays the "dissolve" — independent of transitionOut,
    * which still controls timing (cut = 1 frame, everything else = the normal
    * crossfade duration). "cut" always forces a hard cut regardless of this.
-   * Defaults to "fade" (today's only behavior) when absent. */
+   * Defaults to "fade" (today's only behavior) when absent. An explicit
+   * `Transition Style` field always wins; absent that, `storyBeat` (below)
+   * supplies a default — see STORY_BEAT_TRANSITION_DEFAULTS in
+   * parseSceneScript.ts. */
   transitionStyle?: "fade" | "zoom-in" | "zoom-out" | "slide-left" | "slide-right" | "slide-up" | "slide-down";
+  /** Authoring metadata for the scene's narrative function — a Reveal lands
+   * differently than a Question. Not rendered directly (no on-screen badge),
+   * but drives transitionStyle's default when the author hasn't set an
+   * explicit Transition Style, so a script's beats can be structural without
+   * hand-picking a presentation for every single scene. */
+  storyBeat?: "reveal" | "comparison" | "evidence" | "escalation" | "explanation" | "payoff" | "reflection" | "question";
   /** Scene-spec scripts only: the author's stated minimum for how long this
    * scene's visual needs to breathe, independent of narration length. Kept
    * separate from durationSeconds so resolveSegmentAudio can take max(realAudio,
@@ -93,4 +112,9 @@ export type TimedSegment = Segment & {
    * "home"/"away" — same parse-time resolution as backgroundImage. A side
    * with no jersey asset falls back to the plain colored disc. */
   jerseyImages?: Partial<Record<"home" | "away", string>>;
+  /** TacticalBoard/Formation scenes only: where the pitch board sits in a
+   * landscape frame. "left"/"right" moves the title/caption into a side text
+   * panel instead of overlaying/sitting above the board. Defaults to
+   * "center" (today's behavior) when absent; ignored in portrait. */
+  boardPosition?: "left" | "right" | "center";
 };

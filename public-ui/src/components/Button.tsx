@@ -8,12 +8,12 @@ export const Button: React.FC<
 > = ({ variant = "primary", className = "", ...props }) => {
   const variantClass =
     variant === "primary"
-      ? "bg-accent text-white hover:brightness-110"
+      ? "bg-accent text-accent-ink hover:brightness-105"
       : "bg-transparent text-text border border-border hover:border-[#3d444a]";
 
   return (
     <button
-      className={`self-start px-[18px] py-[10px] rounded-[7px] text-[13px] font-semibold cursor-pointer mt-5 disabled:opacity-50 disabled:cursor-not-allowed ${variantClass} ${className}`}
+      className={`self-start px-5 py-2.5 rounded-full text-[13px] font-bold cursor-pointer mt-5 transition-[filter] disabled:opacity-40 disabled:cursor-not-allowed ${variantClass} ${className}`}
       {...props}
     />
   );

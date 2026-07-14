@@ -92,9 +92,30 @@ function resolveFocusPointPerspective(focus: CameraFocus): { x: number; y: numbe
   }
 }
 
+/** Clamps a focus coordinate so the zoomed viewport never pans past the
+ * pitch's own edge — without this, a focus point near the edge (any action
+ * in a defensive corner, a near-touchline duel) at a real zoom leaves a gap
+ * where the transformed pitch simply doesn't reach, exposing the panel
+ * background behind it as a solid block next to the pitch. Confirmed via a
+ * real render: "Zoom Left Half" centered on a focus point at pitch-x 15%
+ * left roughly a third of the 1920px frame as flat background. `dimension`
+ * is the pitch's own full width/height in board pixels (same value passed
+ * as `frameWidth`/`frameHeight` below); `dimension / (2 * zoom)` is half of
+ * what's actually visible at that zoom, so clamping the center to stay at
+ * least that far from each edge guarantees the full viewport is covered by
+ * pitch. Zoom <= 1 (the viewport is as wide as, or wider than, the pitch)
+ * has no valid clamp range — just center on the pitch's own middle instead. */
+function clampFocusCoordinate(value: number, dimension: number, zoom: number): number {
+  const halfViewport = dimension / (2 * zoom);
+  if (halfViewport >= dimension / 2) return dimension / 2;
+  return Math.min(Math.max(value, halfViewport), dimension - halfViewport);
+}
+
 function transformFor(cx: number, cy: number, z: number, frameWidth: number, frameHeight: number): string {
-  const tx = frameWidth / 2 / z - cx;
-  const ty = frameHeight / 2 / z - cy;
+  const clampedCx = clampFocusCoordinate(cx, frameWidth, z);
+  const clampedCy = clampFocusCoordinate(cy, frameHeight, z);
+  const tx = frameWidth / 2 / z - clampedCx;
+  const ty = frameHeight / 2 / z - clampedCy;
   return `scale(${z}) translate(${tx}px, ${ty}px)`;
 }
 

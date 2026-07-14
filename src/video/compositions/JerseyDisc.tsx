@@ -1,6 +1,14 @@
 import React from "react";
-import { staticFile } from "remotion";
+import { staticFile, useCurrentFrame } from "remotion";
 import { COLORS } from "../theme";
+
+// A continuously looping, outward-expanding ring — a live "sonar ping" read
+// as "this marker is a live, tracked thing," not a flat static sticker. Runs
+// for the marker's entire on-screen life (not just its entrance), which is
+// the whole point: an entrance animation says "I arrived," a pulse says "I'm
+// still here and active."
+const PULSE_PERIOD_FRAMES = 55;
+const PULSE_MAX_GROWTH = 16;
 
 // The only jersey art in the project today is these two specific national
 // kits (public/assets/jerseys/) — real per-team art plugs in via the
@@ -27,6 +35,7 @@ export const JerseyDisc: React.FC<{
   opacity?: number;
   jerseyImage?: string;
 }> = ({ cx, cy, radius = 15, color, highlighted = false, opacity = 1, jerseyImage }) => {
+  const frame = useCurrentFrame();
   const clipId = `jersey-clip-${Math.round(cx)}-${Math.round(cy)}-${Math.round(radius)}`;
   const src = jerseyImage ?? FALLBACK_JERSEY;
   // Oversized relative to the clip circle and nudged down slightly so the
@@ -34,9 +43,18 @@ export const JerseyDisc: React.FC<{
   // head-on product shot with margin above the collar), not the whole
   // square including its empty top margin.
   const imageSize = radius * 2.6;
+  // Offsetting each marker's cycle by its own position (rather than one
+  // shared global phase) keeps a whole team from blinking in unison like a
+  // single blob — each disc pings independently, closer to how a real
+  // live-tracking overlay would look.
+  const phaseOffset = Math.round(cx * 3 + cy * 7) % PULSE_PERIOD_FRAMES;
+  const pulseProgress = ((frame + phaseOffset) % PULSE_PERIOD_FRAMES) / PULSE_PERIOD_FRAMES;
+  const pulseRadius = radius + pulseProgress * PULSE_MAX_GROWTH;
+  const pulseOpacity = (1 - pulseProgress) * 0.4;
 
   return (
     <g opacity={opacity}>
+      <circle cx={cx} cy={cy} r={pulseRadius} fill="none" stroke={color} strokeWidth={1.5} opacity={pulseOpacity} />
       {highlighted && <circle cx={cx} cy={cy} r={radius + 6} fill="none" stroke={COLORS.highlight} strokeWidth={2} opacity={0.85} />}
       <circle cx={cx} cy={cy} r={radius} fill={color} />
       <defs>

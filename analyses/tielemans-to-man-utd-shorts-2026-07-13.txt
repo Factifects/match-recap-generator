@@ -1,0 +1,181 @@
+### SCENE 1
+
+**Scene Type:** Icon
+
+**Subject:** Youri Tielemans
+
+**Image Style:** Featured
+
+**Image Side:** Center
+
+**Narration:** Here we go — Manchester United complete the signing of Youri Tielemans.
+
+**Data:** {"icon":"star","headline":"HERE WE GO","caption":"Manchester United complete the signing of Youri Tielemans"}
+
+**Duration:** 5 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Reveal
+
+**Evidence:** High — Source/Reason: Fabrizio Romano and David Ornstein both reported full agreement on the transfer; The Peoples Person, Yahoo Sports and RTE (13 July 2026).
+
+---
+
+### SCENE 2
+
+**Scene Type:** Statement
+
+**Narration:** United triggered his release clause, reached full agreement with Aston Villa, and his medical is scheduled for tomorrow.
+
+**Duration:** 6 seconds
+
+**Transition:** Fade to Black
+
+**Story Beat:** Explanation
+
+**Evidence:** High — Source/Reason: Fabrizio Romano and David Ornstein both reported full agreement and the release clause being triggered, with a medical scheduled next; The Peoples Person, Yahoo Sports and RTE (13 July 2026).
+
+---
+
+### SCENE 3
+
+**Scene Type:** Hero Metric
+
+**Narration:** United didn't negotiate a fee — they triggered his release clause outright.
+
+**Data:** {"label":"Release Clause","value":35,"prefix":"£","suffix":"M","barProgress":0.55,"subtext":"Paid In Full To Aston Villa"}
+
+**Duration:** 6 seconds
+
+**Transition:** Hard Cut
+
+**Story Beat:** Payoff
+
+**Evidence:** High — Source/Reason: £35m ($47m) release clause triggered, also reported as €41m by other outlets (the same figure converted, not a conflicting number) — per ESPN, The Peoples Person and RTE (13 July 2026).
+
+---
+
+### SCENE 4
+
+**Scene Type:** Stat
+
+**Subject:** Youri Tielemans
+
+**Image Style:** Featured
+
+**Image Side:** Center
+
+**Narration:** He's still one of the Premier League's most reliable creators — four assists this season alone, third-most at Aston Villa.
+
+**Annotation:** "A Proven Premier League Creator"
+
+**Data:** {"value":4,"context":"Assists in 2025-26 — third-most for Aston Villa"}
+
+**Duration:** 7 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Explanation
+
+**Evidence:** High — Source/Reason: 4 Premier League assists in 2025-26, tied for third-most at Aston Villa, per StatMuse (13 July 2026).
+
+---
+
+### SCENE 5
+
+**Scene Type:** Icon
+
+**Subject:** Youri Tielemans
+
+**Image Style:** Featured
+
+**Image Side:** Center
+
+**Narration:** Premier League fans already know exactly what he's capable of from distance.
+
+**Data:** {"icon":"goal","headline":"The Wembley Wonder-Strike","caption":"His long-range winner beat Chelsea in the 2021 FA Cup Final"}
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Escalation
+
+**Evidence:** High — Source/Reason: Tielemans scored the winning goal for Leicester City in the 2021 FA Cup Final against Chelsea, widely documented.
+
+---
+
+### SCENE 6
+
+**Scene Type:** CareerPath
+
+**Narration:** From Anderlecht's academy, through Monaco, an FA Cup at Leicester, and three years at Aston Villa — Old Trafford is the next stop.
+
+**Annotation:** "Tielemans' Career Path"
+
+**Data:** {"stops":[{"label":"Anderlecht","period":"Academy"},{"label":"AS Monaco","period":"2017-2019"},{"label":"Leicester City","period":"2019-2023"},{"label":"Aston Villa","period":"2023-2026"},{"label":"Manchester United","period":"2026-"}]}
+
+**Duration:** 7 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Explanation
+
+**Evidence:** High — Source/Reason: widely documented club history; Manchester United move per Fabrizio Romano/David Ornstein (13 July 2026).
+
+---
+
+### SCENE 7
+
+**Scene Type:** Player Comparison
+
+**Narration:** He won't just be squad depth, either — his output this season already compares well with United's own midfield engine room.
+
+**Annotation:** "2025-26 Premier League Season"
+
+**Data:** {"leftPlayer":"Tielemans","rightPlayer":"Casemiro","stats":[{"label":"Assists","left":4,"right":2},{"label":"Appearances","left":25,"right":34},{"label":"Minutes Played","left":1862,"right":2589}]}
+
+**Duration:** 8 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Comparison
+
+**Evidence:** High — Source/Reason: 2025-26 Premier League season stats via StatMuse (Tielemans) and public season stats (Casemiro), both as of 13 July 2026.
+
+---
+
+### SCENE 8
+
+**Scene Type:** Donut
+
+**Narration:** And when he's been fit, Aston Villa haven't left him out — 21 starts from 25 appearances this season.
+
+**Data:** {"segments":[{"label":"Starts","value":21},{"label":"From the Bench","value":4}]}
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Evidence
+
+**Evidence:** High — Source/Reason: 25 total appearances with 21 Premier League starts in 2025-26, per StatMuse (13 July 2026); bench figure derived by subtraction.
+
+---
+
+### SCENE 9
+
+**Scene Type:** Statement
+
+**Narration:** An FA Cup winner in the Premier League. Belgium's captain at a World Cup. Manchester United just signed a proven performer for club and country.
+
+**Duration:** 6 seconds
+
+**Transition:** Fade to Black
+
+**Story Beat:** Payoff
+
+**Evidence:** High — Source/Reason: Tielemans won the FA Cup with Leicester (2021) and captained Belgium at the 2026 World Cup, both widely documented; Manchester United signing per Romano/Ornstein (13 July 2026).
+
+---

@@ -1,8 +1,9 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, FONT_FAMILY, TITLE_STYLE, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, drawIn } from "../motion";
+import type { SharedVisualProps, MomentumTimelineData } from "../sharedVisualProps";
 
 const TIMELINE_WIDTH = 720;
 const BASELINE_Y = 90;
@@ -19,29 +20,17 @@ const TIMELINE_HEIGHT_PORTRAIT = 1400;
 const BASELINE_X_PORTRAIT = 130;
 const PEAK_WIDTH_PORTRAIT = 130;
 
-interface Phase {
-  startMinute: number;
-  endMinute: number;
-  direction: "rise" | "fall";
-  label: string;
-}
-
 /** A horizontal minute-axis where each named stretch of the match gets its
  * own arch — rising above the baseline in green for a stretch where threat
  * built, dipping below it in red for a stretch where it drained away —
  * instead of a single hill that only ever means "something happened here."
  * A match's whole rhythm (build, lull, build again) reads left-to-right
  * across the axis rather than needing a separate scene per beat. */
-export const MomentumTimeline: React.FC<{
-  title: string;
-  matchMinutes: number;
-  phases: Phase[];
-  backgroundColor?: PanelColorKey;
-  /** Portrait rotates the whole chart 90° — see TIMELINE_HEIGHT_PORTRAIT
-   * above. Not a Pitch-based card, so this is a genuinely different vertical
-   * chart rather than a coordinate-system swap. */
-  orientation?: Orientation;
-}> = ({ title, matchMinutes, phases, backgroundColor, orientation = "landscape" }) => {
+export const MomentumTimeline: React.FC<{ data: MomentumTimelineData } & SharedVisualProps> = ({
+  data: { title, matchMinutes, phases },
+  backgroundColor,
+  orientation,
+}) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";
   const titleOpacity = fadeIn(frame, 0, 14);

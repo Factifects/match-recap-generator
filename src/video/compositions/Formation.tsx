@@ -1,29 +1,29 @@
 import React from "react";
 import { staticFile, useCurrentFrame } from "remotion";
-import { COLORS, TITLE_STYLE, PLAYER_LABEL_STYLE, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { Pitch, PITCH_WIDTH, PITCH_HEIGHT, pitchX, pitchY } from "./Pitch";
-import { VerticalPitch, VERTICAL_PITCH_WIDTH, VERTICAL_PITCH_HEIGHT, vpitchX, vpitchY } from "./VerticalPitch";
+import { PerspectivePitch, PERSPECTIVE_PITCH_WIDTH, PERSPECTIVE_PITCH_HEIGHT, perspectiveProject } from "./PerspectivePitch";
+import { JerseyDisc } from "./JerseyDisc";
 import { fadeIn, drawIn } from "../motion";
-import { FORMATION_TEMPLATES, type FormationName } from "../formations";
+import { FORMATION_TEMPLATES } from "../formations";
+import type { SharedVisualProps, FormationData } from "../sharedVisualProps";
 
-interface Player {
-  name: string;
-}
+type FormationSide = FormationData["sides"][number];
 
-interface FormationSide {
-  team: string;
-  formationName: FormationName;
-  players: Player[];
-  side: "home" | "away";
-}
-
-const PLAYER_RADIUS = 11;
+const PLAYER_RADIUS = 15;
 const JERSEY_WIDTH = 30;
 const JERSEY_HEIGHT = 34;
 const HALF_MARGIN = 5;
 const HALF_SPAN = 40;
 const ENTRY_X = 50; // halfway line — players glide in from here, not a plain fade-in-place
+// Ghost trail during the entrance glide — same lag/opacity recipe as
+// TacticalBoard's GHOST_TRAIL, so a team assembling into shape reads as
+// motion instead of 22 dots individually fading in mid-air.
+const GHOST_TRAIL = [
+  { lag: 0.22, opacity: 0.1 },
+  { lag: 0.13, opacity: 0.18 },
+  { lag: 0.06, opacity: 0.28 },
+];
 
 function defaultTitle(sides: FormationSide[]): string {
   return sides.map((s) => `${s.team} ${s.formationName}`).join("  vs  ");
@@ -46,44 +46,50 @@ function positionX(slotX: number, side: "home" | "away", singleSide: boolean): n
  * moment. Renders one or two sides on the same pitch at once (mirrored, so
  * two sides face each other), for scenes comparing both teams' shape
  * simultaneously. Unnamed slots (fewer players given than the formation has)
- * simply aren't rendered. */
-export const Formation: React.FC<{
-  title?: string;
-  sides: FormationSide[];
-  backgroundImage?: string;
-  backgroundImageMode?: "faded" | "featured";
-  backgroundImageSide?: "left" | "right" | "center";
-  backgroundColor?: PanelColorKey;
-  jerseyImages?: Partial<Record<"home" | "away", string>>;
-  /** Portrait swaps the pitch primitive/pixel functions, and — since the
-   * goal-to-goal length axis is y in portrait instead of x — swaps which
-   * screen axis positionX's output (still "position along pitch length",
-   * regardless of orientation) and slot.y (still "position across pitch
-   * width") each feed into, rather than needing a second position function. */
-  orientation?: Orientation;
-}> = ({ title, sides, backgroundImage, backgroundImageMode, backgroundImageSide, backgroundColor, jerseyImages, orientation = "landscape" }) => {
+ * simply aren't rendered. Always renders on PerspectivePitch (touchline axis
+ * running left/right on screen) regardless of the overall video's
+ * orientation, same reasoning as TacticalBoard — a flat horizontal pitch has
+ * no way to put a left-sided player on the screen's left edge.
+ *
+ * `boardPosition` (default "center") controls layout: centered with the
+ * title above (unchanged from before), or offset left/right with the title
+ * moved into a side text panel instead, mirroring VerticalTacticalBoard's
+ * board+sideText row. */
+export const Formation: React.FC<{ data: FormationData } & SharedVisualProps> = ({
+  data: { title, sides },
+  backgroundImage,
+  backgroundImageMode,
+  backgroundImageSide,
+  backgroundColor,
+  jerseyImages,
+  orientation,
+  boardPosition = "center",
+}) => {
   const frame = useCurrentFrame();
-  const isPortrait = orientation === "portrait";
-  const boardWidth = isPortrait ? VERTICAL_PITCH_WIDTH : PITCH_WIDTH;
-  const boardHeight = isPortrait ? VERTICAL_PITCH_HEIGHT : PITCH_HEIGHT;
+  const boardWidth = PERSPECTIVE_PITCH_WIDTH;
+  const boardHeight = PERSPECTIVE_PITCH_HEIGHT;
   const titleOpacity = fadeIn(frame, 0, 14);
   const pitchOpacity = fadeIn(frame, 4, 16);
   const singleSide = sides.length < 2;
+  // Board Position only applies in landscape — portrait's board already
+  // fills the frame edge to edge, so there's no spare room for a side panel.
+  const isSideLayout = orientation !== "portrait" && (boardPosition === "left" || boardPosition === "right");
+  const resolvedTitle = title ?? defaultTitle(sides);
+  // lengthCoord is always the goal-to-goal (depth) axis, slot.y always the
+  // touchline-to-touchline (width) axis — perspectiveProject's width
+  // argument maps LOW value to screen-left, but this codebase's convention
+  // is LOW y = the "right" side (see Pitch.tsx's edge labels and
+  // SCRIPT_TEMPLATE.md's reference table), so width must be mirrored
+  // (100 - widthCoord) or "right"-labeled players render on the screen's
+  // left — same fix as TacticalBoard's `project`, confirmed via an actual
+  // rendered still (see feedback_formation_slot_order_bug in memory).
+  const project = (lengthCoord: number, widthCoord: number): [number, number] => perspectiveProject(lengthCoord, 100 - widthCoord);
 
-  return (
-    <SceneFrame
-      backgroundColor={backgroundColor}
-      backgroundImage={backgroundImage}
-      backgroundImageMode={backgroundImageMode}
-      backgroundImageSide={backgroundImageSide}
-      orientation={orientation}
-    >
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 24 }}>{title ?? defaultTitle(sides)}</div>
-
+  const boardBlock = (
+    <div style={{ width: boardWidth, height: boardHeight, position: "relative" }}>
         <svg width={boardWidth} height={boardHeight} viewBox={`0 0 ${boardWidth} ${boardHeight}`} style={{ overflow: "visible" }}>
           <g opacity={pitchOpacity}>
-            {isPortrait ? <VerticalPitch /> : <Pitch />}
+            <PerspectivePitch />
           </g>
 
           {sides.map((formationSide, sideIndex) => {
@@ -99,12 +105,22 @@ export const Formation: React.FC<{
               // Players glide in from the halfway line rather than fading in
               // already standing in formation — the shape visibly assembles.
               const entryProgress = drawIn(frame, start, 16);
-              const lengthCoord = ENTRY_X + (finalLengthPos - ENTRY_X) * entryProgress;
-              const cx = isPortrait ? vpitchX(slot.y) : pitchX(lengthCoord);
-              const cy = isPortrait ? vpitchY(lengthCoord) : pitchY(slot.y);
+              const positionAt = (progress: number): [number, number] => {
+                const lengthCoord = ENTRY_X + (finalLengthPos - ENTRY_X) * progress;
+                return project(lengthCoord, slot.y);
+              };
+              const [cx, cy] = positionAt(entryProgress);
+              const isGliding = entryProgress > 0 && entryProgress < 1;
 
               return (
                 <g key={`${sideIndex}-${index}`} opacity={opacity}>
+                  {isGliding &&
+                    GHOST_TRAIL.map(({ lag, opacity: ghostOpacity }, ghostIndex) => {
+                      const ghostProgress = entryProgress - lag;
+                      if (ghostProgress <= 0) return null;
+                      const [gx, gy] = positionAt(ghostProgress);
+                      return <circle key={ghostIndex} cx={gx} cy={gy} r={PLAYER_RADIUS * 0.7} fill={color} opacity={ghostOpacity} />;
+                    })}
                   {jersey ? (
                     <image
                       href={staticFile(jersey)}
@@ -115,11 +131,11 @@ export const Formation: React.FC<{
                       preserveAspectRatio="xMidYMid meet"
                     />
                   ) : (
-                    <circle cx={cx} cy={cy} r={PLAYER_RADIUS} fill={color} />
+                    <JerseyDisc cx={cx} cy={cy} radius={PLAYER_RADIUS} color={color} />
                   )}
                   <text
                     x={cx}
-                    y={cy + (jersey ? JERSEY_HEIGHT / 2 + 14 : 20)}
+                    y={cy + (jersey ? JERSEY_HEIGHT / 2 + 14 : PLAYER_RADIUS + 15)}
                     textAnchor="middle"
                     fill={COLORS.text}
                     style={PLAYER_LABEL_STYLE}
@@ -131,6 +147,54 @@ export const Formation: React.FC<{
             });
           })}
         </svg>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: boardWidth,
+            height: boardHeight,
+            pointerEvents: "none",
+            background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 46%, rgba(0,0,0,0.5) 100%)",
+          }}
+        />
+    </div>
+  );
+
+  const titlePanel = (
+    <div style={{ width: 480, fontFamily: FONT_FAMILY, fontWeight: 600, fontSize: 34, lineHeight: 1.4, color: COLORS.textDim, opacity: titleOpacity }}>
+      {resolvedTitle}
+    </div>
+  );
+
+  return (
+    <SceneFrame
+      backgroundColor={backgroundColor}
+      backgroundImage={backgroundImage}
+      backgroundImageMode={backgroundImageMode}
+      backgroundImageSide={backgroundImageSide}
+      orientation={orientation}
+    >
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        {!isSideLayout && <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 24 }}>{resolvedTitle}</div>}
+
+        {isSideLayout ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 64 }}>
+            {boardPosition === "left" ? (
+              <>
+                {boardBlock}
+                {titlePanel}
+              </>
+            ) : (
+              <>
+                {titlePanel}
+                {boardBlock}
+              </>
+            )}
+          </div>
+        ) : (
+          boardBlock
+        )}
       </div>
     </SceneFrame>
   );

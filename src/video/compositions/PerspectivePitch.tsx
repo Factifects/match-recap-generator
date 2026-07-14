@@ -1,10 +1,14 @@
 import React from "react";
 import { COLORS } from "../theme";
 
-// Same board footprint as VerticalPitch (560x900) so this drops into the same
-// fixed-size clip container / camera system without a layout change — only
-// what gets drawn inside that box changes.
-export const PERSPECTIVE_PITCH_WIDTH = 560;
+// Widened from the original 560 (a real render showed it reading as "too
+// slim" — only ~52% of a 1080px portrait frame's width, leaving large dead
+// margins either side even at the pitch's own widest edge). 760 brings that
+// up to ~70%, still leaving room for the title above and progress dots
+// below. This is now WIDER than VerticalPitch's 560x900 flat footprint on
+// purpose — the two no longer need to match; VerticalTacticalBoard (the one
+// composition that also renders on this same board) gets the same widening.
+export const PERSPECTIVE_PITCH_WIDTH = 760;
 export const PERSPECTIVE_PITCH_HEIGHT = 900;
 
 // How much narrower the far (top, opponent-goal) edge is than the near
@@ -37,6 +41,21 @@ export function perspectiveProject(lengthPercent: number, widthPercent: number):
   const flatX = (widthPercent / 100) * PERSPECTIVE_PITCH_WIDTH;
   const pixelX = PERSPECTIVE_PITCH_WIDTH / 2 + (flatX - PERSPECTIVE_PITCH_WIDTH / 2) * widthScale;
   return [pixelX, pixelY];
+}
+
+/** The trapezoid pitch boundary as an SVG path — exported so cards that need
+ * to clip content to the actual pitch shape (not the full rectangular board,
+ * which is wider than the trapezoid at every row except the very bottom) can
+ * reuse the exact same outline PerspectivePitch itself draws. A flat
+ * boardWidth x boardHeight clip rect would let content bleed past the
+ * trapezoid's slanted edges into the letterboxed corners. */
+export function perspectivePitchOutlinePath(): string {
+  return pathFromPercentPoints([
+    [0, 0],
+    [0, 100],
+    [100, 100],
+    [100, 0],
+  ]);
 }
 
 function pathFromPercentPoints(points: [number, number][], close = true): string {

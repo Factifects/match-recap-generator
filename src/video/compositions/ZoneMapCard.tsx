@@ -1,13 +1,13 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, FONT_FAMILY, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, FONT_FAMILY } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { Pitch, PITCH_WIDTH, PITCH_HEIGHT } from "./Pitch";
-import { VerticalPitch, VERTICAL_PITCH_WIDTH, VERTICAL_PITCH_HEIGHT } from "./VerticalPitch";
+import { PerspectivePitch, PERSPECTIVE_PITCH_WIDTH, PERSPECTIVE_PITCH_HEIGHT, perspectiveProject } from "./PerspectivePitch";
 import { fadeIn } from "../motion";
-import type { ZONE_KEYS } from "../../model/Segment";
+import type { SharedVisualProps, ZoneData } from "../sharedVisualProps";
 
-type ZoneKey = (typeof ZONE_KEYS)[number];
+type ZoneKey = ZoneData["zone"];
 
 const THIRD_WIDTH = PITCH_WIDTH / 3;
 const ZONE_X: Record<ZoneKey, number> = { defensive: 0, middle: THIRD_WIDTH, attacking: THIRD_WIDTH * 2 };
@@ -18,17 +18,29 @@ const ZONE_X: Record<ZoneKey, number> = { defensive: 0, middle: THIRD_WIDTH, att
 const CHEVRON_SPACING = 90;
 const CHEVRON_COUNT = 4;
 
-// Portrait's goal-to-goal axis is y, not x — VerticalPitch's own convention
-// (vpitchY: 0=bottom/own goal, 100=top/opponent's goal) puts "attacking" at
-// the TOP of the frame, so the attacking third is the top band (smallest
-// pixel y) and the defensive third is the bottom band, mirroring
-// ZONE_X/CHEVRON direction onto the new axis rather than reusing them as-is.
-const VERTICAL_THIRD_HEIGHT = VERTICAL_PITCH_HEIGHT / 3;
-const ZONE_Y_PORTRAIT: Record<ZoneKey, number> = {
-  attacking: 0,
-  middle: VERTICAL_THIRD_HEIGHT,
-  defensive: VERTICAL_THIRD_HEIGHT * 2,
+// Portrait's goal-to-goal axis is length (0=own goal/near, 100=opponent's
+// goal/far), and "attacking" sits at the far end — the top of the frame once
+// projected. Defined in percent-space (not pixels) so it can be fed through
+// perspectiveProject, same convention as everywhere else pitch-based.
+const ZONE_LENGTH_RANGE_PORTRAIT: Record<ZoneKey, [number, number]> = {
+  defensive: [0, 100 / 3],
+  middle: [100 / 3, 200 / 3],
+  attacking: [200 / 3, 100],
 };
+
+/** A zone band's four corners projected through the perspective warp — a
+ * trapezoid, not a rect, since the board narrows toward the far end. Shared
+ * by the highlight glow and the chevron clip path. */
+function trapezoidBandPath(lengthStart: number, lengthEnd: number): string {
+  const corners: [number, number][] = [
+    [lengthStart, 0],
+    [lengthStart, 100],
+    [lengthEnd, 100],
+    [lengthEnd, 0],
+  ];
+  const pts = corners.map(([l, w]) => perspectiveProject(l, w));
+  return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} L ${pts[2][0]} ${pts[2][1]} L ${pts[3][0]} ${pts[3][1]} Z`;
+}
 
 /** Abstract pitch diagram — line art only, no players — with one third
  * highlighted via a radial glow (brighter at the zone's own center, fading
@@ -36,21 +48,15 @@ const ZONE_Y_PORTRAIT: Record<ZoneKey, number> = {
  * chevrons through the zone suggesting attacking flow/territorial
  * dominance. Shares the same Pitch primitive every tactical component uses,
  * so it looks identical to TacticalBoard/Formation/ShotMap. */
-export const ZoneMapCard: React.FC<{
-  zone: ZoneKey;
-  label: string;
-  caption: string;
-  backgroundColor?: PanelColorKey;
-  /** Reorients the highlighted band from a vertical strip (horizontal
-   * thirds) to a horizontal band (vertical thirds) — see ZONE_Y_PORTRAIT
-   * above for why "attacking" moves to the top third instead of the far
-   * third, and the chevron direction flip below. */
-  orientation?: Orientation;
-}> = ({ zone, label, caption, backgroundColor, orientation = "landscape" }) => {
+export const ZoneMapCard: React.FC<{ data: ZoneData } & SharedVisualProps> = ({
+  data: { zone, label, caption },
+  backgroundColor,
+  orientation,
+}) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";
-  const boardWidth = isPortrait ? VERTICAL_PITCH_WIDTH : PITCH_WIDTH;
-  const boardHeight = isPortrait ? VERTICAL_PITCH_HEIGHT : PITCH_HEIGHT;
+  const boardWidth = isPortrait ? PERSPECTIVE_PITCH_WIDTH : PITCH_WIDTH;
+  const boardHeight = isPortrait ? PERSPECTIVE_PITCH_HEIGHT : PITCH_HEIGHT;
 
   const pitchOpacity = fadeIn(frame, 0, 12);
   const highlightOpacity = fadeIn(frame, 14, 12);
@@ -59,17 +65,23 @@ export const ZoneMapCard: React.FC<{
   const chevronOffset = (frame * 1.4) % CHEVRON_SPACING;
 
   // Landscape: highlighted band is a vertical strip at zoneX, THIRD_WIDTH
-  // wide, full pitch height. Portrait: a horizontal band at zoneY,
-  // VERTICAL_THIRD_HEIGHT tall, full pitch width.
+  // wide, full pitch height. Portrait: a trapezoid band spanning the
+  // zone's length range, projected through the perspective warp.
   const zoneX = ZONE_X[zone];
-  const zoneY = ZONE_Y_PORTRAIT[zone];
+  const [lengthStart, lengthEnd] = ZONE_LENGTH_RANGE_PORTRAIT[zone];
+  const [, yNear] = isPortrait ? perspectiveProject(lengthStart, 50) : [0, 0];
+  const [, yFar] = isPortrait ? perspectiveProject(lengthEnd, 50) : [0, 0];
   const centerX = isPortrait ? boardWidth / 2 : zoneX + THIRD_WIDTH / 2;
-  const centerY = isPortrait ? zoneY + VERTICAL_THIRD_HEIGHT / 2 : PITCH_HEIGHT / 2;
-  const glowRadius = isPortrait ? VERTICAL_THIRD_HEIGHT * 0.85 : THIRD_WIDTH * 0.75;
+  const centerY = isPortrait ? (yNear + yFar) / 2 : PITCH_HEIGHT / 2;
+  const glowRadius = isPortrait ? Math.abs(yNear - yFar) * 0.85 : THIRD_WIDTH * 0.75;
+  const bandPath = isPortrait ? trapezoidBandPath(lengthStart, lengthEnd) : "";
+  const [dividerOneA, dividerOneB] = isPortrait ? [perspectiveProject(100 / 3, 0), perspectiveProject(100 / 3, 100)] : [null, null];
+  const [dividerTwoA, dividerTwoB] = isPortrait ? [perspectiveProject(200 / 3, 0), perspectiveProject(200 / 3, 100)] : [null, null];
 
   return (
     <SceneFrame backgroundColor={backgroundColor} orientation={orientation}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ width: boardWidth, height: boardHeight, position: "relative" }}>
         <svg width={boardWidth} height={boardHeight} viewBox={`0 0 ${boardWidth} ${boardHeight}`} style={{ overflow: "visible" }}>
           <defs>
             <radialGradient id="zone-glow" cx="50%" cy="50%" r="55%">
@@ -77,21 +89,17 @@ export const ZoneMapCard: React.FC<{
               <stop offset="100%" stopColor={COLORS.highlight} stopOpacity={0} />
             </radialGradient>
             <clipPath id="zone-clip">
-              {isPortrait ? (
-                <rect x={0} y={zoneY} width={boardWidth} height={VERTICAL_THIRD_HEIGHT} />
-              ) : (
-                <rect x={zoneX} y={0} width={THIRD_WIDTH} height={PITCH_HEIGHT} />
-              )}
+              {isPortrait ? <path d={bandPath} /> : <rect x={zoneX} y={0} width={THIRD_WIDTH} height={PITCH_HEIGHT} />}
             </clipPath>
           </defs>
 
           <g opacity={pitchOpacity}>
-            {isPortrait ? <VerticalPitch /> : <Pitch />}
+            {isPortrait ? <PerspectivePitch /> : <Pitch />}
           </g>
           {isPortrait ? (
             <>
-              <line x1={0} y1={VERTICAL_THIRD_HEIGHT} x2={boardWidth} y2={VERTICAL_THIRD_HEIGHT} stroke={COLORS.pitchLines} strokeWidth={1} strokeDasharray="6 6" opacity={pitchOpacity} />
-              <line x1={0} y1={VERTICAL_THIRD_HEIGHT * 2} x2={boardWidth} y2={VERTICAL_THIRD_HEIGHT * 2} stroke={COLORS.pitchLines} strokeWidth={1} strokeDasharray="6 6" opacity={pitchOpacity} />
+              <line x1={dividerOneA![0]} y1={dividerOneA![1]} x2={dividerOneB![0]} y2={dividerOneB![1]} stroke={COLORS.pitchLines} strokeWidth={1} strokeDasharray="6 6" opacity={pitchOpacity} />
+              <line x1={dividerTwoA![0]} y1={dividerTwoA![1]} x2={dividerTwoB![0]} y2={dividerTwoB![1]} stroke={COLORS.pitchLines} strokeWidth={1} strokeDasharray="6 6" opacity={pitchOpacity} />
             </>
           ) : (
             <>
@@ -101,7 +109,7 @@ export const ZoneMapCard: React.FC<{
           )}
 
           {isPortrait ? (
-            <rect x={0} y={zoneY} width={boardWidth} height={VERTICAL_THIRD_HEIGHT} fill="url(#zone-glow)" opacity={highlightOpacity} />
+            <path d={bandPath} fill="url(#zone-glow)" opacity={highlightOpacity} />
           ) : (
             <rect x={zoneX} y={0} width={THIRD_WIDTH} height={PITCH_HEIGHT} fill="url(#zone-glow)" opacity={highlightOpacity} />
           )}
@@ -111,10 +119,11 @@ export const ZoneMapCard: React.FC<{
             {Array.from({ length: CHEVRON_COUNT }).map((_, i) => {
               if (isPortrait) {
                 // Attacking = toward decreasing pixel y (up the frame), so
-                // chevrons start below the band and drift upward through it —
-                // mirror of the landscape sweep, which starts before the
-                // zone and drifts toward increasing x.
-                const y = zoneY + VERTICAL_THIRD_HEIGHT + CHEVRON_SPACING - i * CHEVRON_SPACING - chevronOffset;
+                // chevrons start below the band (yNear, larger pixel y) and
+                // drift upward through it toward yFar — mirror of the
+                // landscape sweep, which starts before the zone and drifts
+                // toward increasing x.
+                const y = yNear + CHEVRON_SPACING - i * CHEVRON_SPACING - chevronOffset;
                 return (
                   <path
                     key={i}
@@ -142,6 +151,18 @@ export const ZoneMapCard: React.FC<{
             })}
           </g>
         </svg>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: boardWidth,
+            height: boardHeight,
+            pointerEvents: "none",
+            background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 46%, rgba(0,0,0,0.5) 100%)",
+          }}
+        />
+        </div>
         <div
           style={{
             marginTop: 40,

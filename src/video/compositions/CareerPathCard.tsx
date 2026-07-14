@@ -1,13 +1,9 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, FONT_FAMILY, TITLE_STYLE, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, drawIn, scaleSettle } from "../motion";
-
-interface CareerStop {
-  label: string;
-  period: string;
-}
+import type { SharedVisualProps, CareerPathData } from "../sharedVisualProps";
 
 const PATH_WIDTH = 1500;
 // Portrait swaps the left-to-right timeline for a top-to-bottom one — 1500px
@@ -21,12 +17,11 @@ const STOP_GAP_FRAMES = 14;
  * stacked-beats layout. For "here's the path that led here" narration (a
  * managerial CV, a transfer history), distinct from Sequence's use for
  * connected in-match moments. */
-export const CareerPathCard: React.FC<{
-  title: string;
-  stops: CareerStop[];
-  backgroundColor?: PanelColorKey;
-  orientation?: Orientation;
-}> = ({ title, stops, backgroundColor, orientation = "landscape" }) => {
+export const CareerPathCard: React.FC<{ data: CareerPathData } & SharedVisualProps> = ({
+  data: { title, stops },
+  backgroundColor,
+  orientation,
+}) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";
   const titleOpacity = fadeIn(frame, 0, 10);

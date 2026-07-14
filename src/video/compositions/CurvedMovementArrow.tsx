@@ -1,8 +1,9 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
 import { COLORS } from "../theme";
-import { drawIn } from "../motion";
+import { drawIn, pulse } from "../motion";
 import { vpitchX, vpitchY } from "./VerticalPitch";
+import { BallGlyph } from "./BallGlyph";
 
 export const CURVED_ARROW_DRAW_DURATION = 18;
 
@@ -29,6 +30,7 @@ export const CurvedMovementArrow: React.FC<{
   color?: string;
   bow?: number;
   project?: (px: number, py: number) => [number, number];
+  kind?: "run" | "pass";
 }> = ({
   fromX,
   fromY,
@@ -39,6 +41,7 @@ export const CurvedMovementArrow: React.FC<{
   color = COLORS.movement,
   bow = 40,
   project = (px, py) => [vpitchX(px), vpitchY(py)],
+  kind = "run",
 }) => {
   const frame = useCurrentFrame();
   const progress = drawIn(frame, startFrame, duration);
@@ -81,6 +84,11 @@ export const CurvedMovementArrow: React.FC<{
   const travelOpacity = progress > 0.01 && progress < 0.96 ? 1 : 0;
   const travelPulse = 1 + Math.sin(frame / 4) * 0.25;
 
+  // Same idle-glow handoff as MovementArrow once the curve has landed — see
+  // its comment for why the tip would otherwise go dead for the rest of the
+  // scene.
+  const idleGlowOpacity = progress >= 0.96 ? pulse(frame, 80, 0.06, 0.18, startFrame) : 0;
+
   return (
     <g opacity={progress > 0 ? 1 : 0}>
       <path
@@ -94,7 +102,12 @@ export const CurvedMovementArrow: React.FC<{
         strokeDashoffset={1 - progress}
       />
       <circle cx={tip.x} cy={tip.y} r={11 * travelPulse} fill={color} opacity={travelOpacity * 0.22} />
-      <circle cx={tip.x} cy={tip.y} r={4.5} fill="#ffffff" opacity={travelOpacity * 0.9} />
+      {kind === "pass" ? (
+        <BallGlyph cx={tip.x} cy={tip.y} size={9} opacity={travelOpacity} />
+      ) : (
+        <circle cx={tip.x} cy={tip.y} r={4.5} fill="#ffffff" opacity={travelOpacity * 0.9} />
+      )}
+      <circle cx={tip.x} cy={tip.y} r={13} fill={color} opacity={idleGlowOpacity} />
       {progress > 0.02 && <polygon points={`${tip.x},${tip.y} ${leftWing.x},${leftWing.y} ${rightWing.x},${rightWing.y}`} fill={color} />}
     </g>
   );

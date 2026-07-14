@@ -1,10 +1,11 @@
 import React from "react";
 import { Img, interpolate, staticFile, useCurrentFrame } from "remotion";
-import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { FEATURED_ENTRANCE_FRAMES } from "./BackgroundArt";
 import { ICON_PATHS, type IconKey } from "../icons";
 import { fadeIn, scaleSettle, drawIn } from "../motion";
+import type { SharedVisualProps, IconData } from "../sharedVisualProps";
 
 export function IconGlyph({
   icon,
@@ -51,26 +52,14 @@ function IconArt({ icon, iconImage, frame, start, color }: { icon: IconKey; icon
 /** A single fact paired with a symbolic icon — for beats that are about ONE
  * concrete thing (a card shown, a save made) rather than a comparison or a
  * sequence of moments. */
-export const IconInfographicCard: React.FC<{
-  icon: IconKey;
-  headline: string;
-  caption: string;
-  backgroundImage?: string;
-  backgroundImageMode?: "faded" | "featured";
-  backgroundImageSide?: "left" | "right" | "center";
-  backgroundColor?: PanelColorKey;
-  iconImage?: string;
-  orientation?: Orientation;
-}> = ({
-  icon,
-  headline,
-  caption,
+export const IconInfographicCard: React.FC<{ data: IconData } & SharedVisualProps> = ({
+  data: { icon, headline, caption },
   backgroundImage,
   backgroundImageMode,
   backgroundImageSide,
   backgroundColor,
   iconImage,
-  orientation = "landscape",
+  orientation,
 }) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";

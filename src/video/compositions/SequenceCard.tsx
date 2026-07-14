@@ -1,26 +1,21 @@
 import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
-import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, slideIn } from "../motion";
-
-interface Beat {
-  marker: string; // e.g. a minute mark, "60'"
-  label: string; // e.g. "Mbappe curls it in"
-}
+import type { SharedVisualProps, SequenceData } from "../sharedVisualProps";
 
 /** For connected moments that build on each other — "X, then Y, N minutes apart."
  * Beats reveal in sequence with a connecting line drawing between them, rather
  * than appearing all at once, so the causality/momentum reads visually. */
-export const SequenceCard: React.FC<{
-  title: string;
-  beats: Beat[];
-  backgroundColor?: PanelColorKey;
-  backgroundImage?: string;
-  backgroundImageMode?: "faded" | "featured";
-  backgroundImageSide?: "left" | "right" | "center";
-  orientation?: Orientation;
-}> = ({ title, beats, backgroundColor, backgroundImage, backgroundImageMode, backgroundImageSide, orientation = "landscape" }) => {
+export const SequenceCard: React.FC<{ data: SequenceData } & SharedVisualProps> = ({
+  data: { title, beats },
+  backgroundColor,
+  backgroundImage,
+  backgroundImageMode,
+  backgroundImageSide,
+  orientation,
+}) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";
 

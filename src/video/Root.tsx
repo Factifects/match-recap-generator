@@ -4,8 +4,6 @@ import { AnalysisVideo, transitionFramesFor } from "./compositions/AnalysisVideo
 import { FPS } from "./theme";
 import type { TimedSegment, AspectRatio } from "../model/Segment";
 
-const FADE_PADDING_FRAMES = 20;
-
 const DIMENSIONS: Record<AspectRatio, { width: number; height: number }> = {
   "16:9": { width: 1920, height: 1080 },
   "9:16": { width: 1080, height: 1920 },
@@ -15,10 +13,12 @@ const DIMENSIONS: Record<AspectRatio, { width: number; height: number }> = {
  * — that overlap is shared, not additive, so it must be subtracted from the
  * naive sum or the composition's declared duration overshoots the actual
  * rendered content. A hard-cut segment overlaps by far fewer frames than a
- * dissolve, so this has to be computed per segment, not a flat rate. */
+ * dissolve, so this has to be computed per segment, not a flat rate. Each
+ * segment's own padding (added in AnalysisVideo.tsx) is exactly its own
+ * transitionFramesFor, so the same call is reused here to stay in sync. */
 function totalDurationInFrames(segments: TimedSegment[]): number {
   const rawSum = segments.reduce(
-    (sum, segment) => sum + Math.ceil(segment.durationSeconds * FPS) + FADE_PADDING_FRAMES,
+    (sum, segment) => sum + Math.ceil(segment.durationSeconds * FPS) + transitionFramesFor(segment),
     0,
   );
   const transitionOverlap = segments.slice(0, -1).reduce((sum, segment) => sum + transitionFramesFor(segment), 0);
@@ -35,7 +35,11 @@ export const RemotionRoot: React.FC = () => {
         width={1920}
         height={1080}
         durationInFrames={150}
-        defaultProps={{ segments: [] as TimedSegment[], aspectRatio: "16:9" as AspectRatio }}
+        defaultProps={{
+          segments: [] as TimedSegment[],
+          aspectRatio: "16:9" as AspectRatio,
+          backgroundMusicPath: undefined as string | undefined,
+        }}
         calculateMetadata={async ({ props }) => {
           const { segments, aspectRatio } = props as { segments: TimedSegment[]; aspectRatio?: AspectRatio };
           return {

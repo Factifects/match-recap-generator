@@ -1,7 +1,7 @@
 import path from "node:path";
 import { parseAnalysisScript } from "./script/parseAnalysisScript";
 import { parseSceneScript, isSceneScript } from "./script/parseSceneScript";
-import { resolveSegmentAudio, type TtsProvider } from "./audio/resolveAudio";
+import { resolveSegmentAudio, generateBackgroundMusic, type TtsProvider } from "./audio/resolveAudio";
 import { renderVideo, type RenderProgress } from "./render/renderVideo";
 import type { TimedSegment, AspectRatio } from "./model/Segment";
 
@@ -11,6 +11,10 @@ export interface GenerateOptions {
   edgeVoice?: string;
   aspectRatio?: AspectRatio;
   outputName?: string;
+  /** Overrides the render's auto-computed (free-RAM-based) concurrency — see
+   * renderVideo.ts's safeConcurrency(). Leave unset to let it size itself to
+   * whatever RAM is actually free at render time. */
+  concurrency?: number;
   onLog?: (message: string) => void;
   onProgress?: (progress: RenderProgress) => void;
 }
@@ -32,6 +36,7 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
 
   log(`Parsed ${segments.length} segments as ${usedSceneFormat ? "scene-spec" : "prose+tags"} format.`);
 
+  let backgroundMusicPath: string | undefined;
   if (options.withAudio) {
     const provider = options.ttsProvider ?? "elevenlabs";
     log(
@@ -40,6 +45,11 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
         : "Generating narration audio via ElevenLabs (real API cost applies)...",
     );
     segments = await resolveSegmentAudio(segments, { provider, edgeVoice: options.edgeVoice });
+    // Independent of the narration provider above — edge-tts is speech-only, so the
+    // ambient bed always goes through ElevenLabs's sound-generation endpoint regardless
+    // of whether narration itself used the free edge voice or real ElevenLabs speech.
+    log("Generating low ambient background music bed via ElevenLabs (real API cost applies)...");
+    backgroundMusicPath = await generateBackgroundMusic("elevenlabs");
   }
 
   const totalSeconds = segments.reduce((sum, s) => sum + s.durationSeconds, 0);
@@ -54,7 +64,7 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   const outputName = options.outputName ?? `generated-${Date.now()}${orientationSuffix}`;
   const outputPath = path.join(process.cwd(), "output", `${outputName}.mp4`);
   log(`Rendering to ${outputPath}...`);
-  await renderVideo("AnalysisVideo", { segments, aspectRatio }, outputPath, options.onProgress);
+  await renderVideo("AnalysisVideo", { segments, aspectRatio, backgroundMusicPath }, outputPath, options.onProgress, options.concurrency);
   log("Render complete.");
 
   return { outputPath, segmentCount: segments.length, totalSeconds, usedSceneFormat };

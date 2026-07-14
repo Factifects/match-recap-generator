@@ -25,7 +25,31 @@ const tableRowSchema = z.object({
   rank: z.number(),
   label: z.string(),
   value: z.number(),
+  // Extra stat columns beyond `value` (e.g. a real standings row's W/D/L/GD,
+  // or a Golden-Boot row's Assists/xG alongside Goals) — present only when
+  // the table's own `columnLabels` is, so a plain single-column table (the
+  // common case) is unaffected.
+  columns: z.array(z.number()).optional(),
   highlight: z.boolean().optional(),
+});
+
+const kpiStatSchema = z.object({
+  label: z.string(),
+  value: z.string(),
+  // A short run of recent values (already normalized 0-100 by the author,
+  // same convention as radar's series values) rendered as a tiny sparkline —
+  // optional, since not every stat has a meaningful trend to show.
+  trend: z.array(z.number().min(0).max(100)).optional(),
+  // A plain-language delta ("+12 vs last match", "-3 PPDA") — kept as a
+  // pre-formatted string rather than a signed number, since the "is this
+  // good?" direction differs stat to stat (lower PPDA is better, higher xG
+  // is better) and only the author writing the stat actually knows which.
+  delta: z.string().optional(),
+  // Drives a small colored indicator triangle next to `delta` — separate
+  // from delta's sign (a PPDA of -3 is "good", i.e. green, even though the
+  // number itself is negative), so the author states the verdict directly
+  // rather than the component guessing it from a number's sign.
+  deltaDirection: z.enum(["up", "down", "neutral"]).optional(),
 });
 
 const careerStopSchema = z.object({
@@ -47,7 +71,20 @@ const networkLinkSchema = z.object({
   weight: z.number().min(0),
 });
 
-export const ICON_KEYS = ["goal", "card", "save", "whistle", "clock", "star", "assist", "sub"] as const;
+export const ICON_KEYS = [
+  "goal",
+  "card",
+  "save",
+  "whistle",
+  "clock",
+  "star",
+  "assist",
+  "sub",
+  "trophy",
+  "ticket",
+  "grass",
+  "case",
+] as const;
 export const ZONE_KEYS = ["defensive", "middle", "attacking"] as const;
 export const FORMATION_NAMES = ["4-3-3", "4-2-3-1", "3-4-2-1", "5-4-1", "4-4-2"] as const;
 
@@ -73,6 +110,16 @@ const tacticalPlayerSchema = z.object({
 const tacticalArrowSchema = z.object({
   from: z.string(),
   to: z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100) }),
+  // "run" (default) glides the FROM player's own marker to `to` — for an
+  // actual player movement (an overlapping run, a covering shift). "pass"
+  // instead leaves the FROM player's marker exactly where it is and animates
+  // only the ball traveling to `to` — for the ball moving between two
+  // players who both stay put. Defaulting to "run" keeps every existing
+  // script's arrows behaving exactly as before; "pass" exists specifically
+  // because a real render showed the previous run-only behavior making a
+  // passer's own disc slide across the pitch to the receiver's feet, reading
+  // as "the passer ran there" rather than "the passer played the ball there."
+  kind: z.enum(["run", "pass"]).default("run"),
 });
 
 // Kept separate from tacticalPlayerSchema/tacticalArrowSchema rather than
@@ -127,6 +174,22 @@ const tacticalAnnotationSchema = z.object({
   y: z.number().min(0).max(100),
 });
 
+// A follow-on beat after the board's initial (top-level players/arrows)
+// arrangement — a full player arrangement, not a delta, so the component can
+// glide every marker from its previous-phase position to this one by
+// matching on `id` without guessing which players didn't move. `caption`/
+// `dataPoint` are what turn a re-arrangement into an actual demonstration:
+// a short on-screen line (what's happening) and a small stat readout (the
+// number that makes it true), each phase's own beat instead of one static
+// diagram the narration has to describe unaided.
+const tacticalPhaseSchema = z.object({
+  players: z.array(tacticalPlayerSchema).min(1),
+  arrows: z.array(tacticalArrowSchema).optional(),
+  highlightZone: tacticalZoneSchema.optional(),
+  caption: z.string().optional(),
+  dataPoint: z.string().optional(),
+});
+
 const shotSchema = z.object({
   x: z.number().min(0).max(100),
   y: z.number().min(0).max(100),
@@ -139,6 +202,40 @@ const comparisonStatRowSchema = z.object({
   label: z.string(),
   left: z.number(),
   right: z.number(),
+});
+
+const treemapSegmentSchema = z.object({
+  label: z.string(),
+  value: z.number().min(0),
+});
+
+const tierCardSchema = z.object({
+  name: z.string(),
+  price: z.string(),
+  tagline: z.string().optional(),
+  featured: z.boolean().optional(),
+});
+
+const funnelStageSchema = z.object({
+  label: z.string(),
+  value: z.number().min(0),
+});
+
+const packedCircleSchema = z.object({
+  label: z.string(),
+  value: z.number().min(0),
+});
+
+const splitPanelSchema = z.object({
+  label: z.string(),
+  value: z.string(),
+  caption: z.string().optional(),
+});
+
+const gridItemSchema = z.object({
+  label: z.string(),
+  caption: z.string().optional(),
+  icon: z.enum(ICON_KEYS).optional(),
 });
 
 export interface VisualDefinition<Schema extends z.ZodTypeAny = z.ZodTypeAny> {
@@ -163,7 +260,8 @@ export const VISUAL_DEFINITIONS = [
     kind: "tactical-board",
     category: "pitch-tactics",
     label: "Tactical Board",
-    description: "Named players as jersey-colored discs on a pitch, with movement arrows and an optional highlighted zone.",
+    description:
+      "Named players as jersey-colored discs on a pitch, with movement arrows and an optional highlighted zone. Optionally an ordered `phases` array turns this into a real multi-beat demonstration (players/arrows re-arrange phase to phase, each with its own caption/data readout) instead of one static diagram.",
     sceneTypeKey: "tacticalboard",
     schema: z.object({
       kind: z.literal("tactical-board"),
@@ -173,6 +271,7 @@ export const VISUAL_DEFINITIONS = [
       highlight: z.array(z.string()).optional(),
       highlightZone: tacticalZoneSchema.optional(),
       annotations: z.array(tacticalAnnotationSchema).optional(),
+      phases: z.array(tacticalPhaseSchema).min(1).optional(),
     }),
   },
   {
@@ -255,7 +354,8 @@ export const VISUAL_DEFINITIONS = [
     kind: "goal-sequence",
     category: "pitch-tactics",
     label: "Goal Sequence",
-    description: "A single shot/touch as a ball-path animation from one pitch point to another, with an optional keeper.",
+    description:
+      "A single shot/touch as a ball-path animation from one pitch point to another, with an optional keeper. `curve: \"bounce\"` (with optional `bouncePoints`) arcs the ball through real up-down hops instead of one smooth glide — for a loose ball, a lofted through-ball, or a deflection.",
     sceneTypeKey: "goalsequence",
     schema: z.object({
       kind: z.literal("goal-sequence"),
@@ -265,7 +365,8 @@ export const VISUAL_DEFINITIONS = [
       to: pitchPointSchema,
       keeper: z.string().optional(),
       keeperAt: pitchPointSchema.optional(),
-      curve: z.boolean().default(false),
+      curve: z.union([z.boolean(), z.literal("bounce")]).default(false),
+      bouncePoints: z.array(pitchPointSchema).optional(),
     }),
   },
   {
@@ -296,6 +397,11 @@ export const VISUAL_DEFINITIONS = [
       rightLabel: z.string(),
       rightValue: z.number(),
       format: z.enum(["integer", "decimal"]).default("integer"),
+      // Attached directly to both big numbers (e.g. prefix "£" -> "£215m") —
+      // not just left to a caption, since these cards have no caption field
+      // at all and a bare number is ambiguous for money/other units.
+      prefix: z.string().optional(),
+      suffix: z.string().optional(),
     }),
   },
   {
@@ -308,6 +414,10 @@ export const VISUAL_DEFINITIONS = [
       kind: z.literal("barchart"),
       title: z.string(),
       bars: z.array(barSchema).min(2),
+      // Chart-level, applied to every bar's value label (e.g. prefix "$" on a
+      // set of price-tier bars) — bars within one chart always share a unit.
+      prefix: z.string().optional(),
+      suffix: z.string().optional(),
     }),
   },
   {
@@ -355,6 +465,10 @@ export const VISUAL_DEFINITIONS = [
       title: z.string(),
       value: z.number(),
       context: z.string().optional(),
+      // Attached directly to the giant number (e.g. prefix "£" -> "£449m")
+      // instead of relying on `context`'s small text to carry the unit.
+      prefix: z.string().optional(),
+      suffix: z.string().optional(),
     }),
   },
   {
@@ -383,14 +497,119 @@ export const VISUAL_DEFINITIONS = [
     kind: "league-table",
     category: "stats-dataviz",
     label: "League Table",
-    description: "A full ranked multi-row table (standings, top-scorer charts), minimum two rows.",
+    description:
+      "A full ranked multi-row table (standings, top-scorer charts), minimum two rows. Optional `columnLabels` + per-row `columns` render a real multi-stat table (e.g. MP/W/D/L/GD/Pts, or Goals/Assists/xG) instead of one proportional-bar column.",
     sceneTypeKey: "leaguetable",
     schema: z.object({
       kind: z.literal("league-table"),
       title: z.string(),
       columnLabel: z.string(),
+      columnLabels: z.array(z.string()).optional(),
       rowLabel: z.string().optional(),
       rows: z.array(tableRowSchema).min(2),
+    }),
+  },
+  {
+    kind: "kpi-panel",
+    category: "stats-dataviz",
+    label: "KPI Panel",
+    description:
+      "3-5 small stat tiles in one card (label, big value, optional trend sparkline/delta) — Power BI's multi-row-card pattern, for a dense analytics readout (xG, progressive passes, PPDA, distance covered, etc.) instead of forcing several facts into separate scenes.",
+    sceneTypeKey: "kpipanel",
+    schema: z.object({
+      kind: z.literal("kpi-panel"),
+      title: z.string(),
+      stats: z.array(kpiStatSchema).min(2).max(5),
+    }),
+  },
+  {
+    kind: "hero-metric",
+    category: "stats-dataviz",
+    label: "Hero Metric",
+    description:
+      "One number given the full frame — eyebrow label, a proportional bar, the giant value, then subtext. For the single number a scene is actually about, not a stat that shares billing with others.",
+    sceneTypeKey: "herometric",
+    schema: z.object({
+      kind: z.literal("hero-metric"),
+      label: z.string(),
+      value: z.number(),
+      prefix: z.string().optional(),
+      suffix: z.string().optional(),
+      subtext: z.string().optional(),
+      // Author-decided fill (0-1), same "you choose the scale" convention as
+      // Radar/HeatMap — not derived from `value` itself, since there's no
+      // universal "100%" for an arbitrary metric (revenue, distance, a count).
+      barProgress: z.number().min(0).max(1).optional(),
+    }),
+  },
+  {
+    kind: "treemap",
+    category: "stats-dataviz",
+    label: "Treemap",
+    description: "Proportionally-sized rectangles for a set of values — for a pricing/distribution breakdown where relative size tells the story, not a ranked list.",
+    sceneTypeKey: "treemap",
+    schema: z.object({
+      kind: z.literal("treemap"),
+      title: z.string().optional(),
+      segments: z.array(treemapSegmentSchema).min(2),
+      prefix: z.string().optional(),
+      suffix: z.string().optional(),
+    }),
+  },
+  {
+    kind: "tier-cards",
+    category: "stats-dataviz",
+    label: "Tier Cards",
+    description: "A row of pricing/package tiers, each a name + price + tagline — one tier can be marked `featured` to visually stand out (a raised, highlighted card) from the rest.",
+    sceneTypeKey: "tiercards",
+    schema: z.object({
+      kind: z.literal("tier-cards"),
+      title: z.string().optional(),
+      tiers: z.array(tierCardSchema).min(2).max(5),
+    }),
+  },
+  {
+    kind: "funnel",
+    category: "stats-dataviz",
+    label: "Funnel",
+    description: "Ordered stages narrowing top to bottom, each stage's width proportional to its value — for a hierarchy or drop-off (a transfer process, a knockout draw, a pricing ladder), not a flat category comparison (that's Bar Chart).",
+    sceneTypeKey: "funnel",
+    schema: z.object({
+      kind: z.literal("funnel"),
+      title: z.string().optional(),
+      stages: z.array(funnelStageSchema).min(2).max(6),
+      // Cosmetic only — both shapes narrow the same direction (top-to-bottom
+      // by value); "pyramid" renders each stage as a centered triangular band
+      // instead of a rectangle, for a hierarchy-of-levels feel rather than a
+      // drop-off/conversion feel. Defaults to "funnel".
+      shape: z.enum(["funnel", "pyramid"]).default("funnel"),
+    }),
+  },
+  {
+    kind: "packed-circles",
+    category: "stats-dataviz",
+    label: "Packed Circles",
+    description: "A cluster of circles sized by value (area, not radius, scales with value) — for a distribution/magnitude comparison across more items than Stat Burst's two values, without Bar Chart's implied ranking axis.",
+    sceneTypeKey: "packedcircles",
+    schema: z.object({
+      kind: z.literal("packed-circles"),
+      title: z.string().optional(),
+      circles: z.array(packedCircleSchema).min(2).max(8),
+      prefix: z.string().optional(),
+      suffix: z.string().optional(),
+    }),
+  },
+  {
+    kind: "split-cards",
+    category: "stats-dataviz",
+    label: "Split Cards",
+    description: "Two panels side by side, each a label/value/caption — for a qualitative or mixed-content comparison (a claim vs a claim, not just two numbers) that Stat Burst's numeric-only head-to-head can't carry.",
+    sceneTypeKey: "splitcards",
+    schema: z.object({
+      kind: z.literal("split-cards"),
+      title: z.string().optional(),
+      left: splitPanelSchema,
+      right: splitPanelSchema,
     }),
   },
   {
@@ -440,6 +659,18 @@ export const VISUAL_DEFINITIONS = [
       kind: z.literal("career-path"),
       title: z.string(),
       stops: z.array(careerStopSchema).min(2),
+    }),
+  },
+  {
+    kind: "grid",
+    category: "narrative-callouts",
+    label: "Grid",
+    description: "A grid of small items, each an optional icon + label + caption — for a collection of related facts (transfer rumors, top scorers, award nominees) shown together, not a single fact (that's Icon) or a ranked table (that's League Table).",
+    sceneTypeKey: "grid",
+    schema: z.object({
+      kind: z.literal("grid"),
+      title: z.string().optional(),
+      items: z.array(gridItemSchema).min(2).max(9),
     }),
   },
   {

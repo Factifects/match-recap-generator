@@ -14,6 +14,14 @@ export const ICON_PATHS: Record<IconKey, string> = {
   star: "M24 3 L29.5 18 L45 18 L32.5 27.5 L37.5 43 L24 33.5 L10.5 43 L15.5 27.5 L3 18 L18.5 18 Z",
   assist: "M6 30 C16 8 32 8 42 20 M42 20 L30 20 M42 20 L42 32",
   sub: "M14 6 L14 30 M14 6 L7 13 M14 6 L21 13 M34 42 L34 18 M34 42 L27 35 M34 42 L41 35",
+  // Added for memorabilia/collectible content (limited-edition merchandise,
+  // pieces of the pitch, tickets) — the original 8 icons above are all
+  // football-ACTION glyphs (a goal, a card, a save), so this content had
+  // nothing to reach for except the generic "star" for every single item.
+  trophy: "M14 6h20v8c0 9-5 16-10 16s-10-7-10-16z M14 10c-5 0-8 3-8 7s3 7 8 7 M34 10c5 0 8 3 8 7s-3 7-8 7 M24 30v6 M16 40h16 M18 36h12v4h-12z",
+  ticket: "M8 8h32a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z M8 24a4 4 0 0 0 0-8 M28 12v6 M28 22v6 M28 32v6",
+  grass: "M10 42V24c0-6 4-10 4-16 M18 42V20c0-8 3-12 3-18 M24 42V22c0-7 4-11 4-17 M30 42V20c0-8 3-12 3-18 M38 42V24c0-6 4-10 4-16",
+  case: "M8 16h28v22H8z M8 16l6-8h28l-6 8z M36 16l6-8v22l-6 8z",
 };
 
 // Keyword -> icon, checked in order (first match wins). Deliberately narrow
@@ -29,6 +37,10 @@ const ICON_KEYWORDS: [RegExp, IconKey][] = [
   [/\bmasterclass\b|\bbrilliant(ce)?\b|\belite\b|\bgolden boot\b|\bmagnificent\b/i, "star"],
   [/\bassist(ed)?\b|\blaid it back\b|\bsquared\b|\bset up\b|\bteed up\b/i, "assist"],
   [/\bsubstitut(e|ed|ion)\b|\bbrought on\b|\breplaced\b/i, "sub"],
+  [/\btrophy\b|\btrophies\b|\bchampions?\b|\btitle-winning\b/i, "trophy"],
+  [/\bticket(s)?\b/i, "ticket"],
+  [/\bturf\b|\bthe grass\b/i, "grass"],
+  [/\bdisplay case\b|\bresin case\b|\bcollector'?s case\b/i, "case"],
 ];
 
 export function matchIconForText(text: string): IconKey | null {

@@ -1,8 +1,9 @@
 import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
-import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE, colorForCharacter, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE, colorForCharacter } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, drawIn } from "../motion";
+import type { SharedVisualProps, BarChartData } from "../sharedVisualProps";
 
 const MAX_BAR_HEIGHT = 480;
 const BAR_WIDTH = 170;
@@ -14,11 +15,6 @@ const BAR_GAP = 64;
 const BAR_WIDTH_PORTRAIT = 120;
 const BAR_GAP_PORTRAIT = 28;
 const BAR_STAGGER_FRAMES = 6;
-
-interface Bar {
-  label: string;
-  value: number;
-}
 
 /** Mixes a hex color toward white by `amount` (0-1) — used for the bar's
  * gradient top-stop, so a bar reads with some depth instead of a flat fill. */
@@ -37,12 +33,11 @@ function lighten(hex: string, amount: number): string {
  * staggered timing so the chart visibly builds rather than appearing static.
  * Bars use a subtle top-to-bottom gradient and a thin baseline edge (not a
  * flat fill), for a bit more depth than a plain bar chart. */
-export const BarChartCard: React.FC<{
-  title: string;
-  bars: Bar[];
-  backgroundColor?: PanelColorKey;
-  orientation?: Orientation;
-}> = ({ title, bars, backgroundColor, orientation = "landscape" }) => {
+export const BarChartCard: React.FC<{ data: BarChartData } & SharedVisualProps> = ({
+  data: { title, bars, prefix, suffix },
+  backgroundColor,
+  orientation,
+}) => {
   const frame = useCurrentFrame();
   const maxValue = Math.max(...bars.map((b) => b.value), 1);
   const isPortrait = orientation === "portrait";
@@ -74,7 +69,9 @@ export const BarChartCard: React.FC<{
                     marginBottom: 10,
                   }}
                 >
+                  {prefix}
                   {Number.isInteger(bar.value) ? bar.value : bar.value.toFixed(2)}
+                  {suffix}
                 </div>
                 <div
                   style={{

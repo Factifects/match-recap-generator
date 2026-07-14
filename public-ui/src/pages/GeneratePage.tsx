@@ -123,68 +123,80 @@ export const GeneratePage: React.FC = () => {
           value={script}
           onChange={(e) => setScript(e.target.value)}
           placeholder="Paste your script here..."
-          className="w-full flex-1 min-h-[360px] bg-bg text-text border border-border rounded-lg p-3 font-mono text-[13px] resize-y"
+          className="w-full flex-1 min-h-[360px] bg-bg text-text border border-border rounded-xl p-3.5 font-mono text-[13px] resize-y"
         />
       </Card>
 
-      <Card span={4} eyebrow="Options">
-        <label className="flex items-center gap-2.5 text-[13px] text-text-dim leading-tight">
-          <input
-            type="checkbox"
-            checked={withAudio}
-            onChange={(e) => setWithAudio(e.target.checked)}
-            className="w-[15px] h-[15px] accent-accent shrink-0"
-          />
-          Generate real narration audio (otherwise timing is a word-count estimate)
-        </label>
-
-        <label className={`flex items-center gap-2.5 text-[13px] mt-4 ${withAudio ? "text-text-dim" : "text-text-dim/40"}`}>
-          Voice:
-          <select
-            value={voiceSelection}
-            onChange={(e) => setVoiceSelection(e.target.value)}
-            disabled={!withAudio}
-            className="bg-bg text-text border border-border rounded-md px-2 py-1 text-[13px] flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {VOICE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-            </select>
+      <div className="col-span-12 md:col-span-4 flex flex-col gap-4">
+        <Card tone="alt" eyebrow="Narration">
+          <label className="flex items-center gap-2.5 text-[13px] text-text-dim leading-tight">
+            <input
+              type="checkbox"
+              checked={withAudio}
+              onChange={(e) => setWithAudio(e.target.checked)}
+              className="w-[15px] h-[15px] accent-accent shrink-0"
+            />
+            Generate real narration audio (otherwise timing is a word-count estimate)
           </label>
 
-        <label className="flex items-center gap-2.5 text-[13px] text-text-dim mt-4">
-          Aspect ratio:
-          <select
-            value={aspectRatio}
-            onChange={(e) => setAspectRatio(e.target.value as "16:9" | "9:16")}
-            className="bg-bg text-text border border-border rounded-md px-2 py-1 text-[13px]"
+          <label
+            className={`flex items-center gap-2.5 text-[13px] mt-4 ${withAudio ? "text-text-dim" : "text-text-dim/40"}`}
           >
-            <option value="16:9">16:9 (Standard)</option>
-            <option value="9:16">9:16 (Shorts/Reels)</option>
-          </select>
-        </label>
+            Voice:
+            <select
+              value={voiceSelection}
+              onChange={(e) => setVoiceSelection(e.target.value)}
+              disabled={!withAudio}
+              className="bg-bg text-text border border-border rounded-md px-2 py-1 text-[13px] flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {VOICE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </Card>
 
-        <Button variant="primary" onClick={handleGenerate} disabled={generating}>
-          Generate Video
-        </Button>
+        <Card tone="alt" eyebrow="Aspect Ratio">
+          <div className="flex gap-1 bg-bg border border-border rounded-full p-1">
+            {(["16:9", "9:16"] as const).map((ratio) => (
+              <button
+                key={ratio}
+                onClick={() => setAspectRatio(ratio)}
+                className={`flex-1 text-[13px] font-bold py-1.5 rounded-full transition-colors cursor-pointer ${
+                  aspectRatio === ratio ? "bg-accent text-accent-ink" : "text-text-dim hover:text-text"
+                }`}
+              >
+                {ratio === "16:9" ? "16:9 Standard" : "9:16 Shorts"}
+              </button>
+            ))}
+          </div>
+        </Card>
 
-        {progressPercent !== null && (
-          <div className="mt-3.5 w-full h-2 bg-bg border border-border rounded-full overflow-hidden">
+        <Card tone="accent" className="items-start">
+          <Button variant="primary" onClick={handleGenerate} disabled={generating} className="!bg-accent-ink !text-accent">
+            Generate Video
+          </Button>
+
+          {progressPercent !== null && (
+            <div className="mt-3.5 w-full h-2 bg-accent-ink/15 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-accent-ink transition-[width] duration-200 ease-out"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          )}
+
+          {status && (
             <div
-              className="h-full bg-accent transition-[width] duration-200 ease-out"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        )}
-
-        {status && (
-          <div className={`mt-3.5 text-[13px] leading-relaxed ${statusIsError ? "text-danger" : "text-text-dim"}`}>
-            {status}
-          </div>
-        )}
-      </Card>
+              className={`mt-3.5 text-[13px] leading-relaxed ${statusIsError ? "text-danger" : "text-accent-ink/80"}`}
+            >
+              {status}
+            </div>
+          )}
+        </Card>
+      </div>
 
       {videoUrl && (
         // Portrait renders get a narrower card that hugs the video instead

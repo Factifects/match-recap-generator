@@ -1,18 +1,11 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { TITLE_STYLE, type PanelColorKey, type Orientation } from "../theme";
+import { TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { Pitch, PITCH_WIDTH, PITCH_HEIGHT, pitchX, pitchY } from "./Pitch";
-import { VerticalPitch, VERTICAL_PITCH_WIDTH, VERTICAL_PITCH_HEIGHT, vpitchX, vpitchY } from "./VerticalPitch";
+import { PerspectivePitch, PERSPECTIVE_PITCH_WIDTH, PERSPECTIVE_PITCH_HEIGHT, perspectiveProject, perspectivePitchOutlinePath } from "./PerspectivePitch";
 import { fadeIn, scaleSettle } from "../motion";
-
-interface HeatZone {
-  x: number;
-  y: number;
-  /** 0-1, author-decided — same "you pick the scale" philosophy as Radar's
-   * pre-normalized values, not a literal recorded metric. */
-  intensity: number;
-}
+import type { SharedVisualProps, HeatMapData } from "../sharedVisualProps";
 
 const ZONE_RADIUS = 130;
 const ZONE_STAGGER_FRAMES = 5;
@@ -52,21 +45,20 @@ function heatColor(intensity: number): string {
  * normal alpha compositing, not a true accumulated density field) — schematic
  * illustration of the narration's claim, same standard as every other
  * tactical visual here, not literal positional tracking data. */
-export const HeatMapCard: React.FC<{
-  title: string;
-  zones: HeatZone[];
-  backgroundColor?: PanelColorKey;
-  orientation?: Orientation;
-}> = ({ title, zones, backgroundColor, orientation = "landscape" }) => {
+export const HeatMapCard: React.FC<{ data: HeatMapData } & SharedVisualProps> = ({
+  data: { title, zones },
+  backgroundColor,
+  orientation,
+}) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";
-  const boardWidth = isPortrait ? VERTICAL_PITCH_WIDTH : PITCH_WIDTH;
-  const boardHeight = isPortrait ? VERTICAL_PITCH_HEIGHT : PITCH_HEIGHT;
+  const boardWidth = isPortrait ? PERSPECTIVE_PITCH_WIDTH : PITCH_WIDTH;
+  const boardHeight = isPortrait ? PERSPECTIVE_PITCH_HEIGHT : PITCH_HEIGHT;
   // zone.x is the goal-to-goal (length) axis, zone.y the touchline-to-
   // touchline (width) axis — portrait must feed each into the opposite
   // pixel-mapper, not just swap which mapper function is used.
   const project = (px: number, py: number): [number, number] =>
-    isPortrait ? [vpitchX(py), vpitchY(px)] : [pitchX(px), pitchY(py)];
+    isPortrait ? perspectiveProject(px, py) : [pitchX(px), pitchY(py)];
   const titleOpacity = fadeIn(frame, 0, 14);
   const pitchOpacity = fadeIn(frame, 4, 16);
 
@@ -75,10 +67,11 @@ export const HeatMapCard: React.FC<{
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 24 }}>{title}</div>
 
+        <div style={{ width: boardWidth, height: boardHeight, position: "relative" }}>
         <svg width={boardWidth} height={boardHeight} viewBox={`0 0 ${boardWidth} ${boardHeight}`} style={{ overflow: "visible" }}>
           <defs>
             <clipPath id="heatmap-clip">
-              <rect x={0} y={0} width={boardWidth} height={boardHeight} rx={6} />
+              {isPortrait ? <path d={perspectivePitchOutlinePath()} /> : <rect x={0} y={0} width={boardWidth} height={boardHeight} rx={6} />}
             </clipPath>
             <filter id="heatmap-blur" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="26" />
@@ -86,7 +79,7 @@ export const HeatMapCard: React.FC<{
           </defs>
 
           <g opacity={pitchOpacity}>
-            {isPortrait ? <VerticalPitch /> : <Pitch />}
+            {isPortrait ? <PerspectivePitch /> : <Pitch />}
           </g>
 
           <g clipPath="url(#heatmap-clip)" filter="url(#heatmap-blur)">
@@ -112,6 +105,18 @@ export const HeatMapCard: React.FC<{
             })}
           </g>
         </svg>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: boardWidth,
+            height: boardHeight,
+            pointerEvents: "none",
+            background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 46%, rgba(0,0,0,0.5) 100%)",
+          }}
+        />
+        </div>
       </div>
     </SceneFrame>
   );

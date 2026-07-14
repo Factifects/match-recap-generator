@@ -1,20 +1,13 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, TITLE_STYLE, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { Pitch, PITCH_WIDTH, PITCH_HEIGHT, pitchX, pitchY } from "./Pitch";
-import { VerticalPitch, VERTICAL_PITCH_WIDTH, VERTICAL_PITCH_HEIGHT, vpitchX, vpitchY } from "./VerticalPitch";
+import { PerspectivePitch, PERSPECTIVE_PITCH_WIDTH, PERSPECTIVE_PITCH_HEIGHT, perspectiveProject } from "./PerspectivePitch";
 import { fadeIn, scaleSettle } from "../motion";
+import type { SharedVisualProps, ShotMapData } from "../sharedVisualProps";
 
-export type ShotResult = "goal" | "saved" | "blocked" | "off-target";
-
-interface Shot {
-  x: number;
-  y: number;
-  team: "home" | "away";
-  result: ShotResult;
-  xg?: number;
-}
+type Shot = ShotMapData["shots"][number];
 
 const BASE_RADIUS = 8;
 const STAGGER_FRAMES = 4;
@@ -56,22 +49,17 @@ function ShotMarker({
  * for saves, an X for blocks, a faint dashed ring for off-target — optionally
  * sized by xG. For narration about shot quality/quantity/location rather
  * than a single aggregate number. */
-export const ShotMap: React.FC<{ title: string; shots: Shot[]; backgroundColor?: PanelColorKey; orientation?: Orientation }> = ({
-  title,
-  shots,
-  backgroundColor,
-  orientation = "landscape",
-}) => {
+export const ShotMap: React.FC<{ data: ShotMapData } & SharedVisualProps> = ({ data: { title, shots }, backgroundColor, orientation }) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";
-  const boardWidth = isPortrait ? VERTICAL_PITCH_WIDTH : PITCH_WIDTH;
-  const boardHeight = isPortrait ? VERTICAL_PITCH_HEIGHT : PITCH_HEIGHT;
+  const boardWidth = isPortrait ? PERSPECTIVE_PITCH_WIDTH : PITCH_WIDTH;
+  const boardHeight = isPortrait ? PERSPECTIVE_PITCH_HEIGHT : PITCH_HEIGHT;
   // shot.x is the goal-to-goal (length) axis, shot.y the touchline-to-
   // touchline (width) axis — landscape's length axis is pixel-x, portrait's
   // is pixel-y, so portrait must feed each coordinate into the opposite
   // pixel-mapper rather than just swapping which mapper function is used.
   const project = (px: number, py: number): [number, number] =>
-    isPortrait ? [vpitchX(py), vpitchY(px)] : [pitchX(px), pitchY(py)];
+    isPortrait ? perspectiveProject(px, py) : [pitchX(px), pitchY(py)];
   const titleOpacity = fadeIn(frame, 0, 14);
   const pitchOpacity = fadeIn(frame, 4, 16);
 
@@ -80,9 +68,10 @@ export const ShotMap: React.FC<{ title: string; shots: Shot[]; backgroundColor?:
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 24 }}>{title}</div>
 
+        <div style={{ width: boardWidth, height: boardHeight, position: "relative" }}>
         <svg width={boardWidth} height={boardHeight} viewBox={`0 0 ${boardWidth} ${boardHeight}`} style={{ overflow: "visible" }}>
           <g opacity={pitchOpacity}>
-            {isPortrait ? <VerticalPitch /> : <Pitch />}
+            {isPortrait ? <PerspectivePitch /> : <Pitch />}
           </g>
           {shots.map((shot, index) => (
             <ShotMarker
@@ -94,6 +83,18 @@ export const ShotMap: React.FC<{ title: string; shots: Shot[]; backgroundColor?:
             />
           ))}
         </svg>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: boardWidth,
+            height: boardHeight,
+            pointerEvents: "none",
+            background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 46%, rgba(0,0,0,0.5) 100%)",
+          }}
+        />
+        </div>
       </div>
     </SceneFrame>
   );

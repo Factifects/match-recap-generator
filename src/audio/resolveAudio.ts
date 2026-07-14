@@ -4,6 +4,13 @@ import type { TimedSegment } from "../model/Segment";
 
 const CHAPTER_WHOOSH_PROMPT = "short sharp whoosh transition sound effect, cinematic, punchy";
 
+const BACKGROUND_MUSIC_PROMPT =
+  "very low, sparse, mysterious magical orchestral ambience, soft sustained strings and distant celesta, " +
+  "Harry Potter-style underscore, no drums, no percussion, no melody hooks, gentle and unobtrusive, loopable";
+// 22s stays under the sound-generation endpoint's 30s cap; long enough for a
+// low sustained pad to loop under a multi-minute video without an obvious seam.
+const BACKGROUND_MUSIC_DURATION_SECONDS = 22;
+
 export type TtsProvider = "elevenlabs" | "edge";
 
 export interface ResolveAudioOptions {
@@ -43,4 +50,14 @@ export async function resolveSegmentAudio(
     });
   }
   return resolved;
+}
+
+/** A single low, ambient music bed for the whole video (looped in AnalysisVideo.tsx via
+ * Html5Audio's `loop` prop, not regenerated per segment) — same "always on with elevenlabs,
+ * absent with edge" rule as the chapter whoosh above, since edge-tts has no sound-generation
+ * endpoint. Cached by prompt text, same as every other generated asset. */
+export async function generateBackgroundMusic(provider: TtsProvider = "elevenlabs"): Promise<string | undefined> {
+  if (provider !== "elevenlabs") return undefined;
+  const music = await generateSoundEffect(BACKGROUND_MUSIC_PROMPT, BACKGROUND_MUSIC_DURATION_SECONDS);
+  return music.staticFilePath;
 }

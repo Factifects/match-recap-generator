@@ -1,9 +1,10 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE, type PanelColorKey, type Orientation } from "../theme";
+import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { FEATURED_ENTRANCE_FRAMES } from "./BackgroundArt";
 import { fadeIn } from "../motion";
+import type { SharedVisualProps, SingleStatData } from "../sharedVisualProps";
 
 function formatValue(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
@@ -13,16 +14,14 @@ function formatValue(value: number): string {
  * stands alone (an xG total, a distance covered) rather than a two-sided or
  * multi-category comparison. `context` is an optional second line for a
  * contrasting fact the number is measured against (e.g. a frozen scoreline). */
-export const SingleStatCard: React.FC<{
-  title: string;
-  value: number;
-  context?: string;
-  backgroundImage?: string;
-  backgroundImageMode?: "faded" | "featured";
-  backgroundImageSide?: "left" | "right" | "center";
-  backgroundColor?: PanelColorKey;
-  orientation?: Orientation;
-}> = ({ title, value, context, backgroundImage, backgroundImageMode, backgroundImageSide, backgroundColor, orientation = "landscape" }) => {
+export const SingleStatCard: React.FC<{ data: SingleStatData } & SharedVisualProps> = ({
+  data: { title, value, context, prefix, suffix },
+  backgroundImage,
+  backgroundImageMode,
+  backgroundImageSide,
+  backgroundColor,
+  orientation,
+}) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";
 
@@ -55,7 +54,9 @@ export const SingleStatCard: React.FC<{
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", transform: `translateX(${sideShift}px)` }}>
         <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 24 }}>{title}</div>
         <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 200, color: COLORS.accent, lineHeight: 1 }}>
+          {prefix}
           {formatValue(count)}
+          {suffix}
         </div>
         {context && (
           <div
