@@ -1,0 +1,800 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** Some equations solve problems.
+
+Others describe nature.
+
+But one equation has become famous for a completely different reason.
+
+Many mathematicians call it the most beautiful equation ever written.
+
+**Annotation:** "THE MOST BEAUTIFUL EQUATION"
+
+**Animation:** Five glowing symbols drift independently across a dark background: **0**, **1**, **π**, **e**, and **i**. They never touch. The camera slowly pushes in as soft particles connect and disconnect between them.
+
+**Duration:** 7 seconds
+
+**Transition:** Fade In
+
+**Story Beat:** Hook
+
+**Evidence:** High — Source/Reason: Euler's Identity is widely described by mathematicians and science communicators as one of the most beautiful equations in mathematics.
+
+---
+
+### SCENE 2
+
+**Scene Type:** Statement
+
+**Narration:** At first glance...
+
+These five symbols have almost nothing in common.
+
+One describes nothing.
+
+One starts counting.
+
+One belongs to circles.
+
+One appears in continuous growth.
+
+And one shouldn't even exist.
+
+**Panel Color:** Blue
+
+**Annotation:** "FIVE DIFFERENT IDEAS"
+
+**Animation:** Five vertical cards appear one after another.
+
+0 → Nothing
+
+1 → Identity
+
+π → Circles
+
+e → Growth
+
+i → Imaginary
+
+Each card glows briefly before settling into place.
+
+**Duration:** 9 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Question
+
+**Evidence:** High — Source/Reason: Each constant is fundamentally associated with a different branch or concept in mathematics.
+
+---
+
+### SCENE 3
+
+**Scene Type:** HeroMetric
+
+**Narration:** Yet somehow...
+
+These five symbols combine into a single equation.
+
+One that has fascinated mathematicians for centuries.
+
+**Data:** {
+  "label":"Euler's Identity",
+  "prefix":"e^(iπ)+1=",
+  "value":0,
+  "subtext":"Five mathematical constants connected by one equation."
+}
+
+**Animation:** The equation builds itself.
+
+First **e**
+
+then the exponent
+
+then **π**
+
+then **+1**
+
+then
+
+**=0**
+
+Every symbol slides smoothly into position before the entire equation emits a soft glow.
+
+**Duration:** 8 seconds
+
+**Transition:** Wipe Left
+
+**Story Beat:** Reveal
+
+**Evidence:** High — Source/Reason: Euler's Identity is a direct consequence of Euler's Formula.
+
+---
+
+### SCENE 4
+
+**Scene Type:** Statement
+
+**Narration:** It almost looks fake.
+
+How can circles...
+
+Growth...
+
+Imaginary numbers...
+
+Nothing...
+
+And one...
+
+Possibly belong inside the same equation?
+
+**Panel Color:** Orange
+
+**Animation:** Each symbol separates again and drifts apart.
+
+Thin glowing lines attempt to connect them before breaking apart, reinforcing how unrelated they seem.
+
+**Duration:** 8 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Curiosity
+
+**Evidence:** High — Source/Reason: The equation combines concepts from geometry, analysis, algebra and complex numbers.
+
+---
+
+### SCENE 5
+
+**Scene Type:** Grid
+
+**Narration:** Before we can understand the equation...
+
+We need to understand the five symbols hiding inside it.
+
+Let's start with perhaps the most familiar one.
+
+Pi.
+
+**Annotation:** "MEET π"
+
+**Data:** {
+  "title":"The Five Symbols",
+  "items":[
+    {
+      "label":"0",
+      "caption":"Nothing"
+    },
+    {
+      "label":"1",
+      "caption":"Identity"
+    },
+    {
+      "label":"π",
+      "caption":"Geometry"
+    },
+    {
+      "label":"e",
+      "caption":"Growth"
+    },
+    {
+      "label":"i",
+      "caption":"Imaginary Numbers"
+    }
+  ]
+}
+
+**Animation:** As the narration reaches "Pi", the π tile expands while the remaining four tiles shrink slightly into the background.
+
+**Duration:** 8 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Transition
+
+**Evidence:** High — Source/Reason: Introduces the symbols that will be explained in the following scenes.
+
+---
+
+### SCENE 6
+
+**Scene Type:** Statement
+
+**Narration:** Draw a circle.
+
+Now measure its circumference.
+
+Next...
+
+Measure its diameter.
+
+No matter how large or small the circle becomes...
+
+The ratio never changes.
+
+**Annotation:** "THE CONSTANT OF EVERY CIRCLE"
+
+**Animation:** Three circles of different sizes appear.
+
+Each circumference unwraps into a straight line beneath it.
+
+Diameters slide underneath.
+
+A ratio is formed beside each circle.
+
+Large Circle
+
+Circumference ÷ Diameter = 3.14159...
+
+Medium Circle
+
+Circumference ÷ Diameter = 3.14159...
+
+Small Circle
+
+Circumference ÷ Diameter = 3.14159...
+
+The repeated value is highlighted.
+
+**Duration:** 12 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Explanation
+
+**Evidence:** High — Source/Reason: π is defined as the ratio of a circle's circumference to its diameter.
+
+---
+
+### SCENE 7
+
+**Scene Type:** HeroMetric
+
+**Narration:** It doesn't matter whether the circle fits on a coin...
+
+Or surrounds an entire planet.
+
+That ratio...
+
+Will always be exactly the same constant.
+
+Pi.
+
+**Data:** {
+  "label":"π",
+  "value":3.14,
+  "subtext":"The ratio of circumference to diameter for every circle — 3.1415926535... and beyond."
+}
+
+**Animation:** The camera zooms from a tiny coin-sized circle to an enormous planetary circle while the value of π remains locked in the center of the screen, unaffected by the scale.
+
+**Duration:** 9 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Evidence
+
+**Evidence:** High — Source/Reason: π is invariant for all Euclidean circles.
+
+---
+
+### SCENE 8
+
+**Scene Type:** Statement
+
+**Narration:** So that's Pi.
+
+A number born from geometry.
+
+But the next symbol...
+
+Doesn't come from shapes at all.
+
+It comes from growth itself.
+
+**Panel Color:** Green
+
+**Animation:** The π symbol slides to the left side of the screen as a glowing **e** gradually fades into view on the right. Between them, a circle morphs into an upward-curving exponential graph.
+
+**Duration:** 8 seconds
+
+**Transition:** Fade to Black
+
+**Story Beat:** Series Progression
+
+**Evidence:** High — Source/Reason: Transition into the mathematical constant e.
+
+---
+
+### SCENE 9
+
+**Scene Type:** Statement
+
+**Narration:** Unlike Pi...
+
+e isn't about shapes.
+
+It's the number that appears whenever something grows continuously.
+
+Population.
+
+Compound interest.
+
+Radioactive decay.
+
+Even the spread of heat.
+
+**Panel Color:** Green
+
+**Annotation:** "THE NUMBER OF CONTINUOUS GROWTH"
+
+**Animation:** Four animated panels appear side by side.
+
+• Population graph rising.
+
+• Money increasing with compound interest.
+
+• Radioactive atoms decreasing.
+
+• Heat spreading across a metal plate.
+
+Each animation is synchronized to emphasize the same exponential behavior.
+
+**Duration:** 10 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Explanation
+
+**Evidence:** High — Source/Reason: e naturally appears in continuous growth and decay models.
+
+---
+
+### SCENE 10
+
+**Scene Type:** Statement
+
+**Narration:** Different problems.
+
+Different sciences.
+
+The same number.
+
+That's why e appears almost everywhere mathematics models continuous change.
+
+**Annotation:** "ONE CONSTANT. COUNTLESS SYSTEMS."
+
+**Animation:** Every graph morphs into the same exponential curve.
+
+A glowing "e" appears at the center while connection lines link every example.
+
+**Duration:** 9 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Evidence
+
+**Evidence:** High — Source/Reason: Exponential functions are fundamental to differential equations and continuous processes.
+
+---
+
+### SCENE 11
+
+**Scene Type:** Statement
+
+**Narration:** Then there's...
+
+i.
+
+Perhaps the strangest number ever invented.
+
+Square any real number...
+
+It's always positive.
+
+So how could any number possibly satisfy this?
+
+**Annotation:** "√(-1)"
+
+**Animation:** Numbers appear.
+
+2² → 4
+
+−2² → 4
+
+3² → 9
+
+−3² → 9
+
+Everything fades.
+
+Only
+
+√(-1)
+
+remains.
+
+**Duration:** 10 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Curiosity
+
+**Evidence:** High — Source/Reason: i is defined as the square root of negative one.
+
+---
+
+### SCENE 12
+
+**Scene Type:** Statement
+
+**Narration:** Mathematicians stopped thinking about numbers as points on a line.
+
+Instead...
+
+They imagined an entirely new direction.
+
+Welcome...
+
+To the complex plane.
+
+**Annotation:** "REAL + IMAGINARY"
+
+**Animation:** A horizontal number line appears.
+
+A vertical axis grows upward.
+
+The label "Imaginary" fades in.
+
+Points begin moving freely across the plane.
+
+**Duration:** 11 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Reveal
+
+**Evidence:** High — Source/Reason: Complex numbers are represented on the complex plane.
+
+---
+
+### SCENE 13
+
+**Scene Type:** Statement
+
+**Narration:** Here's the incredible part.
+
+Multiplying by i doesn't simply change a number.
+
+It rotates it.
+
+Every multiplication turns the point another ninety degrees.
+
+**Annotation:** "ROTATION"
+
+**Animation:** A point starts at (1,0).
+
+×i
+
+↓
+
+(0,1)
+
+↓
+
+×i
+
+↓
+
+(-1,0)
+
+↓
+
+×i
+
+↓
+
+(0,-1)
+
+↓
+
+×i
+
+↓
+
+(1,0)
+
+A smooth rotating vector connects every position.
+
+**Duration:** 12 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Explanation
+
+**Evidence:** High — Source/Reason: Multiplication by i corresponds to a 90° counter-clockwise rotation in the complex plane.
+
+---
+
+### SCENE 14
+
+**Scene Type:** Statement
+
+**Narration:** Now we're finally ready.
+
+This equation isn't about arithmetic.
+
+It's describing rotation.
+
+**Panel Color:** Blue
+
+**Animation:** Euler's Formula appears.
+
+e^(ix)
+
+As x increases...
+
+The point rotates smoothly around the unit circle.
+
+**Duration:** 9 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Transition
+
+**Evidence:** High — Source/Reason: Euler's Formula links exponential functions with circular motion.
+
+---
+
+### SCENE 15
+
+**Scene Type:** Statement
+
+**Narration:** Watch what happens...
+
+When the angle becomes exactly Pi.
+
+Half a revolution.
+
+One hundred and eighty degrees.
+
+The point lands here.
+
+Negative one.
+
+**Annotation:** "π RADIANS"
+
+**Animation:** The rotating vector sweeps exactly halfway around the unit circle.
+
+The endpoint glows brightly at (-1,0).
+
+A label appears.
+
+e^(iπ)
+
+↓
+
+-1
+
+**Duration:** 12 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Reveal
+
+**Evidence:** High — Source/Reason: Euler's Formula gives e^(iπ)=−1 when x=π.
+
+---
+
+### SCENE 16
+
+**Scene Type:** HeroMetric
+
+**Narration:** Add one...
+
+And suddenly...
+
+The impossible becomes beautifully simple.
+
+**Data:** {
+  "label":"Euler's Identity",
+  "prefix":"e^(iπ)+1=",
+  "value":0,
+  "subtext":"One of the most celebrated equations in mathematics."
+}
+
+**Animation:** The equation builds itself one symbol at a time.
+
+e^(iπ)
+
+↓
+
+-1
+
+↓
+
++1
+
+↓
+
+0
+
+The final equation glows softly as particles converge toward it.
+
+**Duration:** 11 seconds
+
+**Transition:** Wipe Left
+
+**Story Beat:** Payoff
+
+**Evidence:** High — Source/Reason: Direct consequence of Euler's Formula.
+
+---
+
+### SCENE 17
+
+**Scene Type:** Grid
+
+**Narration:** But here's what makes this equation extraordinary.
+
+It isn't simply correct.
+
+It's what each symbol represents.
+
+Every one of them comes from a completely different corner of mathematics.
+
+And yet...
+
+They all meet here.
+
+**Annotation:** "FIVE BRANCHES. ONE EQUATION."
+
+**Data:** {
+  "title":"Every Symbol Represents A Different World",
+  "items":[
+    {
+      "label":"0",
+      "caption":"Nothing & Additive Identity"
+    },
+    {
+      "label":"1",
+      "caption":"Multiplicative Identity"
+    },
+    {
+      "label":"π",
+      "caption":"Geometry & Trigonometry"
+    },
+    {
+      "label":"e",
+      "caption":"Calculus & Continuous Growth"
+    },
+    {
+      "label":"i",
+      "caption":"Complex Numbers"
+    }
+  ]
+}
+
+**Animation:** Each card appears individually before thin glowing lines begin connecting them together. As the final connection is made, the cards slowly move toward the center of the screen.
+
+**Duration:** 11 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Reflection
+
+**Evidence:** High — Source/Reason: Each constant is fundamental to a different branch of mathematics.
+
+---
+
+### SCENE 18
+
+**Scene Type:** Statement
+
+**Narration:** And that's why this equation surprises mathematicians.
+
+Not because the symbols exist...
+
+But because they have absolutely no reason to belong together.
+
+Geometry doesn't usually talk to exponential growth.
+
+Imaginary numbers don't usually explain circles.
+
+Yet somehow...
+
+This equation makes them all speak the same language.
+
+**Annotation:** "WHY IT'S BEAUTIFUL"
+
+**Animation:** Five glowing spheres labeled 0, 1, π, e and i orbit independently.
+
+As the narration progresses, invisible attraction lines appear.
+
+The spheres slowly spiral toward each other before stopping just short of forming the equation.
+
+Everything freezes.
+
+Only a bright question mark remains in the center.
+
+**Duration:** 13 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Resolution
+
+**Evidence:** High — Source/Reason: Euler's Identity is celebrated for unifying concepts from several branches of mathematics.
+
+---
+
+### SCENE 19
+
+**Scene Type:** HeroMetric
+
+**Narration:** Every symbol in this equation could fill an entire university course.
+
+Zero.
+
+One.
+
+Pi.
+
+e.
+
+i.
+
+Five ideas.
+
+Five different worlds.
+
+One extraordinary equation.
+
+Perhaps that's why, after almost three centuries...
+
+Mathematicians still call it the most beautiful equation ever written.
+
+**Data:** {
+  "label":"Euler's Identity",
+  "prefix":"e^(iπ)+1=",
+  "value":0,
+  "subtext":"Five fundamental constants. One remarkable connection."
+}
+
+**Animation:** The five glowing symbols finally move together.
+
+One by one they lock into position.
+
+e
+
+↓
+
+e^(i)
+
+↓
+
+e^(iπ)
+
+↓
+
+e^(iπ)+1
+
+↓
+
+e^(iπ)+1=0
+
+As the final equation settles, the background darkens.
+
+Tiny mathematical symbols fade into the distance while the camera slowly pushes toward the equation.
+
+Hold for three seconds before fading to black.
+
+**Duration:** 15 seconds
+
+**Transition:** Fade to Black
+
+**Story Beat:** Reflection
+
+**Evidence:** High — Source/Reason: Euler's Identity is widely regarded as one of mathematics' most elegant and celebrated equations.

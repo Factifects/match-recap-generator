@@ -2,7 +2,14 @@ import React from "react";
 import { staticFile, useCurrentFrame } from "remotion";
 import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { PerspectivePitch, PERSPECTIVE_PITCH_WIDTH, PERSPECTIVE_PITCH_HEIGHT, perspectiveProject } from "./PerspectivePitch";
+import {
+  PerspectivePitch,
+  PERSPECTIVE_PITCH_WIDTH,
+  PERSPECTIVE_PITCH_HEIGHT,
+  PERSPECTIVE_PITCH_WIDTH_LANDSCAPE,
+  PERSPECTIVE_PITCH_HEIGHT_LANDSCAPE,
+  perspectiveProject,
+} from "./PerspectivePitch";
 import { JerseyDisc } from "./JerseyDisc";
 import { fadeIn, drawIn } from "../motion";
 import { FORMATION_TEMPLATES } from "../formations";
@@ -66,8 +73,13 @@ export const Formation: React.FC<{ data: FormationData } & SharedVisualProps> = 
   boardPosition = "center",
 }) => {
   const frame = useCurrentFrame();
-  const boardWidth = PERSPECTIVE_PITCH_WIDTH;
-  const boardHeight = PERSPECTIVE_PITCH_HEIGHT;
+  // Same reasoning as TacticalBoard's boardWidth/boardHeight: a landscape
+  // (16:9) frame has far more spare horizontal room than the 1080px-wide
+  // portrait frame the base board size was tuned for, and reusing that
+  // narrow size in landscape is what caused player labels to overlap for a
+  // formation with several players close together (e.g. a midfield three).
+  const boardWidth = orientation === "portrait" ? PERSPECTIVE_PITCH_WIDTH : PERSPECTIVE_PITCH_WIDTH_LANDSCAPE;
+  const boardHeight = orientation === "portrait" ? PERSPECTIVE_PITCH_HEIGHT : PERSPECTIVE_PITCH_HEIGHT_LANDSCAPE;
   const titleOpacity = fadeIn(frame, 0, 14);
   const pitchOpacity = fadeIn(frame, 4, 16);
   const singleSide = sides.length < 2;
@@ -83,13 +95,14 @@ export const Formation: React.FC<{ data: FormationData } & SharedVisualProps> = 
   // (100 - widthCoord) or "right"-labeled players render on the screen's
   // left — same fix as TacticalBoard's `project`, confirmed via an actual
   // rendered still (see feedback_formation_slot_order_bug in memory).
-  const project = (lengthCoord: number, widthCoord: number): [number, number] => perspectiveProject(lengthCoord, 100 - widthCoord);
+  const project = (lengthCoord: number, widthCoord: number): [number, number] =>
+    perspectiveProject(lengthCoord, 100 - widthCoord, boardWidth, boardHeight);
 
   const boardBlock = (
     <div style={{ width: boardWidth, height: boardHeight, position: "relative" }}>
         <svg width={boardWidth} height={boardHeight} viewBox={`0 0 ${boardWidth} ${boardHeight}`} style={{ overflow: "visible" }}>
           <g opacity={pitchOpacity}>
-            <PerspectivePitch />
+            <PerspectivePitch width={boardWidth} height={boardHeight} />
           </g>
 
           {sides.map((formationSide, sideIndex) => {

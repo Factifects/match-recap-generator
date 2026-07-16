@@ -62,31 +62,34 @@ function resolveFocusPointVertical(focus: CameraFocus): { x: number; y: number }
  * ends of the pitch length, not literal screen sides), but resolved through
  * perspectiveProject so a zoom actually centers on where a focus point
  * visually ends up after the perspective warp, not where it would sit on
- * the flat board. */
-function resolveFocusPointPerspective(focus: CameraFocus): { x: number; y: number } {
+ * the flat board. `width`/`height` default to the portrait board's own
+ * constants but TacticalBoard passes its actual (possibly wider, landscape)
+ * board size so the focus point resolves against the SAME dimensions the
+ * board itself renders at. */
+function resolveFocusPointPerspective(focus: CameraFocus, width?: number, height?: number): { x: number; y: number } {
   if (typeof focus === "object") {
-    const [x, y] = perspectiveProject(focus.x, focus.y);
+    const [x, y] = perspectiveProject(focus.x, focus.y, width, height);
     return { x, y };
   }
   switch (focus) {
     case "full": {
-      const [x, y] = perspectiveProject(50, 50);
+      const [x, y] = perspectiveProject(50, 50, width, height);
       return { x, y };
     }
     case "left-half": {
-      const [x, y] = perspectiveProject(50, 25);
+      const [x, y] = perspectiveProject(50, 25, width, height);
       return { x, y };
     }
     case "right-half": {
-      const [x, y] = perspectiveProject(50, 75);
+      const [x, y] = perspectiveProject(50, 75, width, height);
       return { x, y };
     }
     case "box-left": {
-      const [x, y] = perspectiveProject(8, 50);
+      const [x, y] = perspectiveProject(8, 50, width, height);
       return { x, y };
     }
     case "box-right": {
-      const [x, y] = perspectiveProject(92, 50);
+      const [x, y] = perspectiveProject(92, 50, width, height);
       return { x, y };
     }
   }
@@ -165,7 +168,25 @@ export function getCameraTransformVertical(stages: CameraStage[], frame: number,
 }
 
 /** Perspective-board counterpart to getCameraTransformVertical, for
- * PerspectivePitch instead of VerticalPitch. */
-export function getCameraTransformPerspective(stages: CameraStage[], frame: number, durationInFrames: number): string {
-  return cameraTransform(stages, frame, durationInFrames, resolveFocusPointPerspective, PERSPECTIVE_PITCH_WIDTH, PERSPECTIVE_PITCH_HEIGHT);
+ * PerspectivePitch instead of VerticalPitch. `boardWidth`/`boardHeight`
+ * default to the portrait board's own size but TacticalBoard passes its
+ * actual (possibly wider, landscape) board dimensions — both the focus-point
+ * resolution and the pan/zoom clamp math need to agree with whatever size
+ * the board itself is actually rendered at, or a zoom computes against the
+ * wrong frame and misaligns. */
+export function getCameraTransformPerspective(
+  stages: CameraStage[],
+  frame: number,
+  durationInFrames: number,
+  boardWidth: number = PERSPECTIVE_PITCH_WIDTH,
+  boardHeight: number = PERSPECTIVE_PITCH_HEIGHT,
+): string {
+  return cameraTransform(
+    stages,
+    frame,
+    durationInFrames,
+    (focus) => resolveFocusPointPerspective(focus, boardWidth, boardHeight),
+    boardWidth,
+    boardHeight,
+  );
 }

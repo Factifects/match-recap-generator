@@ -1,9 +1,11 @@
 import React from "react";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
 import { DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE, colorForCharacter } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, scaleSettle } from "../motion";
+import { fadeIn, scaleSettle, pulse, resolveRevealOrder } from "../motion";
 import type { SharedVisualProps, PackedCirclesData } from "../sharedVisualProps";
+
+const CIRCLE_STAGGER_FRAMES = 6;
 
 interface PlacedCircle {
   label: string;
@@ -60,11 +62,16 @@ export const PackedCirclesCard: React.FC<{ data: PackedCirclesData } & SharedVis
   data: { title, circles, prefix, suffix },
   backgroundColor,
   orientation,
+  animation,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const isPortrait = orientation === "portrait";
   const maxRadius = isPortrait ? MAX_RADIUS.portrait : MAX_RADIUS.landscape;
   const titleOpacity = fadeIn(frame, 0, 10);
+  const staggerFrames =
+    animation?.staggerSeconds !== undefined ? Math.round(animation.staggerSeconds * fps) : CIRCLE_STAGGER_FRAMES;
+  const revealOrder = animation?.focusOrder ? resolveRevealOrder(animation.focusOrder, circles.length) : null;
 
   const placed = packCircles(circles, maxRadius);
   const minX = Math.min(...placed.map((p) => p.x - p.r));
@@ -79,10 +86,17 @@ export const PackedCirclesCard: React.FC<{ data: PackedCirclesData } & SharedVis
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
         {title && <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 36 }}>{title}</div>}
         <div style={{ position: "relative", width, height }}>
-          {placed.map((circle, index) => {
-            const start = 12 + index * 6;
+          {placed.map((circle) => {
+            // packCircles re-sorts by radius (largest first), so the reveal
+            // order/stagger must key off each circle's ORIGINAL position in
+            // the authored `circles` array (what a script's focusOrder
+            // actually refers to), not its position in this re-sorted list.
+            const originalIndex = circles.findIndex((c) => c.label === circle.label);
+            const revealPosition = revealOrder ? revealOrder[originalIndex] : originalIndex;
+            const start = 12 + revealPosition * staggerFrames;
             const opacity = fadeIn(frame, start, 14);
-            const scale = scaleSettle(frame, start, 18, 0.7);
+            const settledScale = scaleSettle(frame, start, 18, 0.7);
+            const scale = animation?.pulse ? settledScale * pulse(frame, 90, 0.97, 1.03, originalIndex * 0.6) : settledScale;
             const color = colorForCharacter(circle.label);
             const valueFontSize = Math.max(18, circle.r * 0.34);
             const labelFontSize = Math.max(12, circle.r * 0.16);

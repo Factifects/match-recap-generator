@@ -26,6 +26,15 @@ export interface SharedVisualProps {
   // instead of overlaying/sitting above the board; ignored in portrait
   // (the board already fills the frame there).
   boardPosition?: "left" | "right" | "center";
+  // Cross-visual reveal control (stagger/focusOrder/pulse) — read by every
+  // array-based card (Grid, BarChart, LeagueTable, TierCards, Funnel,
+  // PackedCircles, KpiPanel, Treemap, MomentumTimeline, Radar); every other
+  // card safely ignores it.
+  animation?: {
+    staggerSeconds?: number;
+    focusOrder?: number[];
+    pulse?: boolean;
+  };
 }
 
 /** One data-shape alias per visual kind, each just `Extract<Visual, {kind:
@@ -61,3 +70,4 @@ export type SequenceData = Extract<Visual, { kind: "sequence" }>;
 export type QuoteData = Extract<Visual, { kind: "quote" }>;
 export type CareerPathData = Extract<Visual, { kind: "career-path" }>;
 export type IconData = Extract<Visual, { kind: "icon" }>;
+export type CanvasData = Extract<Visual, { kind: "canvas" }>;

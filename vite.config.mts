@@ -13,10 +13,13 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      "/parse": API_SERVER,
       "/generate": API_SERVER,
       "/progress": API_SERVER,
       "/news": API_SERVER,
       "/output": API_SERVER,
+      "/timeline": API_SERVER,
+      "/uploads": API_SERVER,
     },
   },
 });

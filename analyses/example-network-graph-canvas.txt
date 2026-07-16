@@ -1,0 +1,83 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Annotation:** How The Internet Routes Your Data
+
+**Narration:** Every time you load a page, your request doesn't travel in a straight line. It hops between machines, each one deciding where to send it next.
+
+**Duration:** 6 seconds
+
+**Story Beat:** hook
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** Your laptop talks to a router in your home. The router hands the request to your internet provider. From there, it's routed to whichever data center can actually answer it. Watch the request make that exact journey.
+
+**Data:** {
+  "title": "One Request, Four Hops",
+  "objects": [
+    {"id": "laptop", "type": "dot", "x": 10, "y": 50, "label": "Your Laptop"},
+    {"id": "router", "type": "dot", "x": 32, "y": 50, "label": "Home Router"},
+    {"id": "isp", "type": "dot", "x": 55, "y": 30, "label": "ISP"},
+    {"id": "dcA", "type": "dot", "x": 80, "y": 15, "label": "Data Center A"},
+    {"id": "dcB", "type": "dot", "x": 80, "y": 65, "label": "Data Center B"},
+    {"id": "packet", "type": "dot", "x": 10, "y": 50, "color": "#ffd54f", "trail": true}
+  ],
+  "arrows": [
+    {"from": "laptop", "to": "router"},
+    {"from": "router", "to": "isp"},
+    {"from": "isp", "to": "dcA", "style": "dashed"},
+    {"from": "isp", "to": "dcB", "style": "dashed"}
+  ],
+  "phases": [
+    {
+      "objects": [
+        {"id": "laptop", "type": "dot", "x": 10, "y": 50, "label": "Your Laptop"},
+        {"id": "router", "type": "dot", "x": 32, "y": 50, "label": "Home Router"},
+        {"id": "isp", "type": "dot", "x": 55, "y": 30, "label": "ISP"},
+        {"id": "dcA", "type": "dot", "x": 80, "y": 15, "label": "Data Center A"},
+        {"id": "dcB", "type": "dot", "x": 80, "y": 65, "label": "Data Center B"},
+        {"id": "packet", "type": "dot", "x": 32, "y": 50, "color": "#ffd54f", "trail": true}
+      ]
+    },
+    {
+      "objects": [
+        {"id": "laptop", "type": "dot", "x": 10, "y": 50, "label": "Your Laptop"},
+        {"id": "router", "type": "dot", "x": 32, "y": 50, "label": "Home Router"},
+        {"id": "isp", "type": "dot", "x": 55, "y": 30, "label": "ISP"},
+        {"id": "dcA", "type": "dot", "x": 80, "y": 15, "label": "Data Center A"},
+        {"id": "dcB", "type": "dot", "x": 80, "y": 65, "label": "Data Center B"},
+        {"id": "packet", "type": "dot", "x": 55, "y": 30, "color": "#ffd54f", "trail": true}
+      ]
+    },
+    {
+      "objects": [
+        {"id": "laptop", "type": "dot", "x": 10, "y": 50, "label": "Your Laptop"},
+        {"id": "router", "type": "dot", "x": 32, "y": 50, "label": "Home Router"},
+        {"id": "isp", "type": "dot", "x": 55, "y": 30, "label": "ISP"},
+        {"id": "dcA", "type": "dot", "x": 80, "y": 15, "label": "Data Center A"},
+        {"id": "dcB", "type": "dot", "x": 80, "y": 65, "label": "Data Center B"},
+        {"id": "packet", "type": "dot", "x": 80, "y": 15, "color": "#ffd54f", "trail": true}
+      ]
+    }
+  ]
+}
+
+**Duration:** 14 seconds
+
+**Transition:** Cross Dissolve
+
+---
+
+### SCENE 3
+
+**Scene Type:** Statement
+
+**Narration:** All of that happens in well under a second, every single time you click a link.
+
+**Duration:** 5 seconds

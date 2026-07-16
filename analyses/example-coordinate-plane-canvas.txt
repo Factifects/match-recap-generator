@@ -1,0 +1,70 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Annotation:** Why A Thrown Ball Traces A Curve
+
+**Narration:** Throw a ball, and gravity doesn't slow it down evenly. It bends the ball's path into one exact shape, every time.
+
+**Duration:** 6 seconds
+
+**Story Beat:** hook
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** Plot the ball's height against time, and the same curve appears no matter how hard you throw it. It rises, slows, and falls back down in a perfect arc. Watch what happens right at the very top.
+
+**Data:** {
+  "title": "Height Over Time",
+  "objects": [
+    {"id": "xaxis", "type": "line", "x": 10, "y": 85, "width": 80, "rotation": 0, "color": "#b0bec5"},
+    {"id": "yaxis", "type": "line", "x": 10, "y": 85, "width": 70, "rotation": 270, "color": "#b0bec5"},
+    {"id": "ball", "type": "dot", "x": 15, "y": 80, "label": "Ball", "trail": true, "color": "#ffd54f"}
+  ],
+  "camera": {"x": 50, "y": 50, "zoom": 1},
+  "phases": [
+    {
+      "objects": [
+        {"id": "xaxis", "type": "line", "x": 10, "y": 85, "width": 80, "rotation": 0, "color": "#b0bec5"},
+        {"id": "yaxis", "type": "line", "x": 10, "y": 85, "width": 70, "rotation": 270, "color": "#b0bec5"},
+        {"id": "ball", "type": "dot", "x": 35, "y": 35, "label": "Ball", "trail": true, "color": "#ffd54f"}
+      ],
+      "camera": {"x": 35, "y": 35, "zoom": 1.4}
+    },
+    {
+      "objects": [
+        {"id": "xaxis", "type": "line", "x": 10, "y": 85, "width": 80, "rotation": 0, "color": "#b0bec5"},
+        {"id": "yaxis", "type": "line", "x": 10, "y": 85, "width": 70, "rotation": 270, "color": "#b0bec5"},
+        {"id": "ball", "type": "dot", "x": 50, "y": 20, "label": "Ball", "trail": true, "color": "#ffd54f"},
+        {"id": "peak", "type": "label", "x": 50, "y": 10, "label": "Zero Vertical Speed", "enter": "fade"}
+      ],
+      "camera": {"x": 50, "y": 20, "zoom": 2.2}
+    },
+    {
+      "objects": [
+        {"id": "xaxis", "type": "line", "x": 10, "y": 85, "width": 80, "rotation": 0, "color": "#b0bec5"},
+        {"id": "yaxis", "type": "line", "x": 10, "y": 85, "width": 70, "rotation": 270, "color": "#b0bec5"},
+        {"id": "ball", "type": "dot", "x": 85, "y": 80, "label": "Ball", "trail": true, "color": "#ffd54f"}
+      ],
+      "camera": {"x": 50, "y": 50, "zoom": 1}
+    }
+  ]
+}
+
+**Duration:** 15 seconds
+
+**Transition:** Cross Dissolve
+
+---
+
+### SCENE 3
+
+**Scene Type:** Statement
+
+**Narration:** That single instant, where it isn't rising or falling, is the exact peak of the throw.
+
+**Duration:** 5 seconds

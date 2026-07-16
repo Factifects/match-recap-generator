@@ -1,8 +1,8 @@
 import React from "react";
-import { interpolate, useCurrentFrame } from "remotion";
+import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, scaleSettle } from "../motion";
+import { fadeIn, scaleSettle, pulse, resolveRevealOrder } from "../motion";
 import type { SharedVisualProps, FunnelData } from "../sharedVisualProps";
 
 const MAX_WIDTH = 1100;
@@ -20,13 +20,18 @@ export const FunnelCard: React.FC<{ data: FunnelData } & SharedVisualProps> = ({
   data: { title, stages, shape },
   backgroundColor,
   orientation,
+  animation,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const isPortrait = orientation === "portrait";
   const maxWidth = isPortrait ? MAX_WIDTH_PORTRAIT : MAX_WIDTH;
   const maxValue = Math.max(...stages.map((s) => s.value), 1);
   const titleOpacity = fadeIn(frame, 0, 10);
   const isPyramid = shape === "pyramid";
+  const staggerFrames =
+    animation?.staggerSeconds !== undefined ? Math.round(animation.staggerSeconds * fps) : STAGE_STAGGER_FRAMES;
+  const revealOrder = animation?.focusOrder ? resolveRevealOrder(animation.focusOrder, stages.length) : null;
 
   const widths = stages.map((s) => Math.max(0.12, s.value / maxValue) * maxWidth);
 
@@ -36,9 +41,11 @@ export const FunnelCard: React.FC<{ data: FunnelData } & SharedVisualProps> = ({
         {title && <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 40 }}>{title}</div>}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: isPyramid ? 14 : 0 }}>
           {stages.map((stage, index) => {
-            const start = 12 + index * STAGE_STAGGER_FRAMES;
+            const revealPosition = revealOrder ? revealOrder[index] : index;
+            const start = 12 + revealPosition * staggerFrames;
             const opacity = fadeIn(frame, start, 14);
-            const growth = scaleSettle(frame, start, 18, 0.85);
+            const settledGrowth = scaleSettle(frame, start, 18, 0.85);
+            const growth = animation?.pulse ? settledGrowth * pulse(frame, 90, 0.99, 1.01, index * 0.6) : settledGrowth;
             const width = widths[index];
             const nextWidth = widths[index + 1] ?? width;
 

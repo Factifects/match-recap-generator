@@ -1,9 +1,11 @@
 import React from "react";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
 import { DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE, colorForCharacter } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, scaleSettle } from "../motion";
+import { fadeIn, scaleSettle, pulse, resolveRevealOrder } from "../motion";
 import type { SharedVisualProps, TreemapData } from "../sharedVisualProps";
+
+const RECT_STAGGER_FRAMES = 6;
 
 interface Segment {
   label: string;
@@ -73,24 +75,37 @@ export const TreemapCard: React.FC<{ data: TreemapData } & SharedVisualProps> = 
   data: { title, segments, prefix, suffix },
   backgroundColor,
   orientation,
+  animation,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const isPortrait = orientation === "portrait";
   const { width, height } = isPortrait ? CONTAINER.portrait : CONTAINER.landscape;
 
   const sorted = [...segments].sort((a, b) => b.value - a.value);
   const rects = layoutTreemap(sorted, 0, 0, width, height, width >= height);
   const titleOpacity = fadeIn(frame, 0, 10);
+  const staggerFrames =
+    animation?.staggerSeconds !== undefined ? Math.round(animation.staggerSeconds * fps) : RECT_STAGGER_FRAMES;
+  const revealOrder = animation?.focusOrder ? resolveRevealOrder(animation.focusOrder, segments.length) : null;
 
   return (
     <SceneFrame backgroundColor={backgroundColor} orientation={orientation}>
       <div>
         {title && <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 36 }}>{title}</div>}
         <div style={{ position: "relative", width, height }}>
-          {rects.map((rect, index) => {
-            const start = 12 + index * 6;
+          {rects.map((rect) => {
+            // rects come out of layoutTreemap sorted by value (largest
+            // first), so reveal order/stagger must key off each segment's
+            // ORIGINAL position in the authored `segments` array — what a
+            // script's focusOrder actually refers to — not its position
+            // here.
+            const originalIndex = segments.findIndex((s) => s.label === rect.label);
+            const revealPosition = revealOrder ? revealOrder[originalIndex] : originalIndex;
+            const start = 12 + revealPosition * staggerFrames;
             const opacity = fadeIn(frame, start, 14);
-            const scale = scaleSettle(frame, start, 16, 0.9);
+            const settledScale = scaleSettle(frame, start, 16, 0.9);
+            const scale = animation?.pulse ? settledScale * pulse(frame, 90, 0.97, 1.03, originalIndex * 0.6) : settledScale;
             const color = colorForCharacter(rect.label);
             const area = rect.width * rect.height;
             const valueFontSize = Math.max(24, Math.min(56, Math.sqrt(area) * 0.22));

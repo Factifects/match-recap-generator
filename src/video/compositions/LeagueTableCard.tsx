@@ -1,8 +1,8 @@
 import React from "react";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
 import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, slideIn } from "../motion";
+import { fadeIn, slideIn, pulse, resolveRevealOrder } from "../motion";
 import type { SharedVisualProps, LeagueTableData } from "../sharedVisualProps";
 
 const ROW_HEIGHT = 88;
@@ -27,9 +27,14 @@ export const LeagueTableCard: React.FC<{ data: LeagueTableData } & SharedVisualP
   data: { title, columnLabel, columnLabels, rowLabel = "Team", rows },
   backgroundColor,
   orientation,
+  animation,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const titleOpacity = fadeIn(frame, 0, 10);
+  const staggerFrames =
+    animation?.staggerSeconds !== undefined ? Math.round(animation.staggerSeconds * fps) : ROW_STAGGER_FRAMES;
+  const revealOrder = animation?.focusOrder ? resolveRevealOrder(animation.focusOrder, rows.length) : null;
   const headerOpacity = fadeIn(frame, 6, 10);
   const isPortrait = orientation === "portrait";
   // Real standings (MP/W/D/L/GD/Pts) or a multi-stat leaderboard (Goals/
@@ -83,9 +88,11 @@ export const LeagueTableCard: React.FC<{ data: LeagueTableData } & SharedVisualP
         </div>
 
         {rows.map((row, index) => {
-          const start = 14 + index * ROW_STAGGER_FRAMES;
+          const revealPosition = revealOrder ? revealOrder[index] : index;
+          const start = 14 + revealPosition * staggerFrames;
           const opacity = fadeIn(frame, start, 12);
           const x = slideIn(frame, start, 12, 24);
+          const rowScale = animation?.pulse ? pulse(frame, 90, 0.985, 1.015, index * 0.6) : 1;
           const color = row.highlight ? COLORS.highlight : COLORS.text;
           const columns = row.columns ?? [row.value];
 
@@ -94,7 +101,7 @@ export const LeagueTableCard: React.FC<{ data: LeagueTableData } & SharedVisualP
               key={row.rank}
               style={{
                 opacity,
-                transform: `translateX(${x}px)`,
+                transform: `translateX(${x}px) scale(${rowScale})`,
                 height: ROW_HEIGHT,
                 display: "flex",
                 alignItems: "center",

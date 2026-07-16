@@ -44,6 +44,39 @@ export const segmentSchema = z.discriminatedUnion("type", [
 
 export type Segment = z.infer<typeof segmentSchema>;
 
+// A user-placed audio clip (sound effect or music) on the whole-video
+// timeline — independent of any single segment, so the same uploaded file
+// can be trimmed to a chosen length and placed at more than one point in the
+// video (copy/paste, CapCut-style), rather than being bound to one scene.
+// Lives alongside `backgroundMusicPath` as a composition-level prop, not a
+// TimedSegment field — see AnalysisVideo.tsx's rendering and the timeline
+// editor (EditPage.tsx) for how placements are authored.
+export interface AudioClipPlacement {
+  id: string;
+  staticPath: string;
+  /** Where in the OVERALL video timeline (seconds from the very start) this
+   * instance starts playing — not relative to any segment. */
+  startSeconds: number;
+  /** How long this instance plays for — the "length the user controls",
+   * independent of the source file's own full length. */
+  durationSeconds: number;
+  /** Offset into the source file to start playback from, so the same
+   * uploaded file can be trimmed differently at each placement. */
+  trimStartSeconds?: number;
+  /** 0-1. Defaults to 1 (full volume) when absent. */
+  volume?: number;
+  /** The uploaded source file's own full length — not used by the renderer
+   * (only startSeconds/durationSeconds/trimStartSeconds matter there), just
+   * lets the timeline-editor UI clamp trim-handle dragging to the file's
+   * actual length instead of letting a drag run past the real audio. */
+  sourceDurationSeconds?: number;
+  /** UI grouping only (the renderer treats every clip identically) — keeps
+   * background music and sound effects in separate lanes/upload buttons
+   * even though they share the same drag/trim/volume mechanics. Missing on
+   * older sidecar JSON predates this field; treated as "sfx". */
+  kind?: "music" | "sfx";
+}
+
 // Camera framing for pitch-based visuals (TacticalBoard/Formation/ShotMap/
 // GoalSequence) — presentation metadata, not visual data, so it lives outside
 // the zod visual schema. One stage holds a static framing for the scene; two
@@ -55,8 +88,21 @@ export interface CameraStage {
 
 export type TimedSegment = Segment & {
   durationSeconds: number;
+  /** Set when a user explicitly picked this scene's duration in the
+   * pre-generation timeline preview (GeneratePage.tsx, before narration
+   * exists) — resolveSegmentAudio must not overwrite `durationSeconds` with
+   * the real narration length or the visualMinDurationSeconds floor the way
+   * it does for every other, unedited segment. Narration audio is still
+   * generated and attached as usual; only which duration wins changes. */
+  manualDurationOverride?: boolean;
   /** Set once ElevenLabs generation has run; absent means duration is still a word-count estimate. */
   audioStaticPath?: string;
+  /** This scene's narration volume. Defaults to 1 (the recorded level).
+   * Unlike a plain HTML5 `<audio>` element, values above 1 are meaningful
+   * here — Remotion mixes the final audio track itself (via its renderer,
+   * not literal browser playback), so amplifying narration past its
+   * original level actually takes effect in the rendered mp4. */
+  narrationVolume?: number;
   /** Chapter beats only: a short whoosh layered under the swoosh-wipe transition. */
   sfxStaticPath?: string;
   /** Pitch-based visuals only; ignored by non-pitch components. */
@@ -117,4 +163,19 @@ export type TimedSegment = Segment & {
    * panel instead of overlaying/sitting above the board. Defaults to
    * "center" (today's behavior) when absent; ignored in portrait. */
   boardPosition?: "left" | "right" | "center";
+  /** Cross-visual reveal control — how existing Data gets animated in, not
+   * what the Data itself contains. Wired into every array-based card (Grid,
+   * BarChart, LeagueTable, TierCards, Funnel, PackedCircles, KpiPanel,
+   * Treemap, MomentumTimeline, Radar); other visual kinds simply ignore it.
+   * Absent means every current default (hardcoded per-component stagger,
+   * natural array order, no pulse) stays exactly as today. */
+  animation?: {
+    staggerSeconds?: number;
+    focusOrder?: number[];
+    pulse?: boolean;
+  };
+  /** An independent sequence of on-screen captions playing over the scene's
+   * own duration, on top of whichever visual is showing — works identically
+   * regardless of visual kind (rendered as a sibling overlay, not per-card). */
+  phases?: { caption: string; startSeconds?: number }[];
 };

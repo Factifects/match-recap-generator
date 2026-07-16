@@ -1,5 +1,5 @@
 import React from "react";
-import { Html5Audio, staticFile, useVideoConfig } from "remotion";
+import { Html5Audio, Sequence, staticFile, useVideoConfig } from "remotion";
 import { TransitionSeries, linearTiming, type TransitionPresentation } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { none } from "@remotion/transitions/none";
@@ -7,9 +7,10 @@ import { slide } from "@remotion/transitions/slide";
 import { zoomIn, zoomOut } from "../transitions";
 import { ChapterCard } from "./ChapterCard";
 import { StatementCard } from "./StatementCard";
+import { PhaseCaptionOverlay } from "./PhaseCaptionOverlay";
 import { VISUAL_COMPONENTS } from "../visualComponents";
 import type { SharedVisualProps } from "../sharedVisualProps";
-import type { TimedSegment, AspectRatio, Visual } from "../../model/Segment";
+import type { TimedSegment, AspectRatio, Visual, AudioClipPlacement } from "../../model/Segment";
 import type { Orientation } from "../theme";
 
 export const TRANSITION_FRAMES = 15; // ~0.5s crossfade at 30fps between segments
@@ -72,13 +73,31 @@ export const AnalysisVideo: React.FC<{
    * duration at a low, unobtrusive volume — independent of any segment's own
    * audio/sfx, so it isn't affected by segment count or per-scene transitions. */
   backgroundMusicPath?: string;
-}> = ({ segments, backgroundMusicPath }) => {
+  /** User-placed sound-effect/music clips — each positioned and trimmed
+   * independently of segment boundaries, so the same uploaded file can
+   * appear more than once at different points in the video. See
+   * AudioClipPlacement's docstring in model/Segment.ts. */
+  audioClips?: AudioClipPlacement[];
+}> = ({ segments, backgroundMusicPath, audioClips }) => {
   const { fps, width, height } = useVideoConfig();
   const orientation: Orientation = height > width ? "portrait" : "landscape";
 
   return (
     <>
       {backgroundMusicPath && <Html5Audio src={staticFile(backgroundMusicPath)} loop volume={0.06} />}
+      {audioClips?.map((clip) => (
+        <Sequence
+          key={clip.id}
+          from={Math.round(clip.startSeconds * fps)}
+          durationInFrames={Math.max(1, Math.round(clip.durationSeconds * fps))}
+        >
+          <Html5Audio
+            src={staticFile(clip.staticPath)}
+            startFrom={Math.round((clip.trimStartSeconds ?? 0) * fps)}
+            volume={clip.volume ?? 1}
+          />
+        </Sequence>
+      ))}
       <TransitionSeries>
       {segments.map((segment, index) => {
         // Pad only by exactly what the outgoing transition consumes (15 frames for a
@@ -117,10 +136,16 @@ export const AnalysisVideo: React.FC<{
                     iconImage: segment.iconImage,
                     jerseyImages: segment.jerseyImages,
                     boardPosition: segment.boardPosition,
+                    animation: segment.animation,
                   };
                   return <Component data={segment.visual} {...shared} />;
                 })()}
-              {segment.audioStaticPath && <Html5Audio src={staticFile(segment.audioStaticPath)} />}
+              {segment.phases && segment.phases.length > 0 && (
+                <PhaseCaptionOverlay phases={segment.phases} durationInFrames={durationInFrames} />
+              )}
+              {segment.audioStaticPath && (
+                <Html5Audio src={staticFile(segment.audioStaticPath)} volume={segment.narrationVolume ?? 1} />
+              )}
               {segment.sfxStaticPath && <Html5Audio src={staticFile(segment.sfxStaticPath)} volume={0.5} />}
             </TransitionSeries.Sequence>
             {index < segments.length - 1 && (

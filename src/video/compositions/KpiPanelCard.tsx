@@ -1,8 +1,8 @@
 import React from "react";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
 import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, slideIn } from "../motion";
+import { fadeIn, slideIn, pulse, resolveRevealOrder } from "../motion";
 import type { SharedVisualProps, KpiPanelData } from "../sharedVisualProps";
 
 // Sized against BarChartCard's own scale (68px values, 480px-tall bars) —
@@ -55,12 +55,17 @@ export const KpiPanelCard: React.FC<{ data: KpiPanelData } & SharedVisualProps> 
   data: { title, stats },
   backgroundColor,
   orientation,
+  animation,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const titleOpacity = fadeIn(frame, 0, 10);
   const isPortrait = orientation === "portrait";
   const tileWidth = isPortrait ? TILE_WIDTH_PORTRAIT : TILE_WIDTH;
   const maxWidth = isPortrait ? 980 : 1760;
+  const staggerFrames =
+    animation?.staggerSeconds !== undefined ? Math.round(animation.staggerSeconds * fps) : TILE_STAGGER_FRAMES;
+  const revealOrder = animation?.focusOrder ? resolveRevealOrder(animation.focusOrder, stats.length) : null;
 
   return (
     <SceneFrame backgroundColor={backgroundColor} orientation={orientation}>
@@ -68,9 +73,11 @@ export const KpiPanelCard: React.FC<{ data: KpiPanelData } & SharedVisualProps> 
         <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 48, textAlign: "left" }}>{title}</div>
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap", justifyContent: "center" }}>
           {stats.map((stat, index) => {
-            const start = 10 + index * TILE_STAGGER_FRAMES;
+            const revealPosition = revealOrder ? revealOrder[index] : index;
+            const start = 10 + revealPosition * staggerFrames;
             const opacity = fadeIn(frame, start, 14);
             const y = slideIn(frame, start, 14, 20);
+            const tileScale = animation?.pulse ? pulse(frame, 90, 0.98, 1.02, index * 0.6) : 1;
             const color = COLORS.accent;
 
             return (
@@ -78,7 +85,7 @@ export const KpiPanelCard: React.FC<{ data: KpiPanelData } & SharedVisualProps> 
                 key={stat.label}
                 style={{
                   opacity,
-                  transform: `translateY(${y}px)`,
+                  transform: `translateY(${y}px) scale(${tileScale})`,
                   width: tileWidth,
                   background: COLORS.panel,
                   border: `1px solid ${COLORS.border}`,

@@ -1,8 +1,8 @@
 import React from "react";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
 import { COLORS, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, drawIn } from "../motion";
+import { fadeIn, drawIn, resolveRevealOrder } from "../motion";
 import type { SharedVisualProps, MomentumTimelineData } from "../sharedVisualProps";
 
 const TIMELINE_WIDTH = 720;
@@ -30,12 +30,20 @@ export const MomentumTimeline: React.FC<{ data: MomentumTimelineData } & SharedV
   data: { title, matchMinutes, phases },
   backgroundColor,
   orientation,
+  animation,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const isPortrait = orientation === "portrait";
   const titleOpacity = fadeIn(frame, 0, 14);
   const axisOpacity = fadeIn(frame, 4, 16);
-  const pulse = 1 + Math.sin(frame / 9) * 0.12;
+  // Every marker already breathes continuously regardless of `animation` —
+  // this pre-dates the generic animation layer, so `animation.pulse` isn't
+  // additionally wired here to avoid a redundant/conflicting second pulse.
+  const markerPulse = 1 + Math.sin(frame / 9) * 0.12;
+  const staggerFrames =
+    animation?.staggerSeconds !== undefined ? Math.round(animation.staggerSeconds * fps) : PHASE_STAGGER_FRAMES;
+  const revealOrder = animation?.focusOrder ? resolveRevealOrder(animation.focusOrder, phases.length) : null;
 
   if (isPortrait) {
     return (
@@ -66,8 +74,9 @@ export const MomentumTimeline: React.FC<{ data: MomentumTimelineData } & SharedV
             </g>
 
             {phases.map((phase, index) => {
-              const start = 20 + index * PHASE_STAGGER_FRAMES;
-              const sweepProgress = drawIn(frame, start, PHASE_STAGGER_FRAMES);
+              const revealPosition = revealOrder ? revealOrder[index] : index;
+              const start = 20 + revealPosition * staggerFrames;
+              const sweepProgress = drawIn(frame, start, staggerFrames);
               const labelOpacity = fadeIn(frame, start + 16, 8);
               const markerOpacity = fadeIn(frame, start, 14);
 
@@ -107,8 +116,8 @@ export const MomentumTimeline: React.FC<{ data: MomentumTimelineData } & SharedV
                   >
                     {phase.label}
                   </text>
-                  <circle cx={BASELINE_X_PORTRAIT} cy={startY} r={5 * pulse} fill={color} opacity={markerOpacity} />
-                  <circle cx={BASELINE_X_PORTRAIT} cy={endY} r={5 * pulse} fill={color} opacity={markerOpacity} />
+                  <circle cx={BASELINE_X_PORTRAIT} cy={startY} r={5 * markerPulse} fill={color} opacity={markerOpacity} />
+                  <circle cx={BASELINE_X_PORTRAIT} cy={endY} r={5 * markerPulse} fill={color} opacity={markerOpacity} />
                 </g>
               );
             })}
@@ -146,8 +155,9 @@ export const MomentumTimeline: React.FC<{ data: MomentumTimelineData } & SharedV
           </g>
 
           {phases.map((phase, index) => {
-            const start = 20 + index * PHASE_STAGGER_FRAMES;
-            const sweepProgress = drawIn(frame, start, PHASE_STAGGER_FRAMES);
+            const revealPosition = revealOrder ? revealOrder[index] : index;
+            const start = 20 + revealPosition * staggerFrames;
+            const sweepProgress = drawIn(frame, start, staggerFrames);
             const labelOpacity = fadeIn(frame, start + 16, 8);
             const markerOpacity = fadeIn(frame, start, 14);
 
@@ -186,8 +196,8 @@ export const MomentumTimeline: React.FC<{ data: MomentumTimelineData } & SharedV
                 >
                   {phase.label}
                 </text>
-                <circle cx={startX} cy={BASELINE_Y} r={5 * pulse} fill={color} opacity={markerOpacity} />
-                <circle cx={endX} cy={BASELINE_Y} r={5 * pulse} fill={color} opacity={markerOpacity} />
+                <circle cx={startX} cy={BASELINE_Y} r={5 * markerPulse} fill={color} opacity={markerOpacity} />
+                <circle cx={endX} cy={BASELINE_Y} r={5 * markerPulse} fill={color} opacity={markerOpacity} />
               </g>
             );
           })}

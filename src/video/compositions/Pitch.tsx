@@ -50,7 +50,6 @@ const EDGE_LABEL_STYLE = {
 const DIRECTION_LABEL_STYLE = {
   ...EDGE_LABEL_STYLE,
   fontSize: 13,
-  textAnchor: "middle" as const,
 };
 const GOAL_BOX_HALF_HEIGHT = 90;
 const DIRECTION_LABEL_Y = PITCH_HEIGHT / 2 + GOAL_BOX_HALF_HEIGHT + 22;
@@ -80,8 +79,8 @@ export const Pitch: React.FC<{ opacity?: number }> = ({ opacity = 1 }) => {
       <rect x={PITCH_WIDTH - 80} y={PITCH_HEIGHT / 2 - 90} width={80} height={180} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} />
       <text x={16} y={26} style={EDGE_LABEL_STYLE}>Right Side</text>
       <text x={16} y={PITCH_HEIGHT - 14} style={EDGE_LABEL_STYLE}>Left Side</text>
-      <text x={40} y={DIRECTION_LABEL_Y} style={DIRECTION_LABEL_STYLE}>Home Attacks →</text>
-      <text x={PITCH_WIDTH - 40} y={DIRECTION_LABEL_Y} style={DIRECTION_LABEL_STYLE}>← Away Attacks</text>
+      <text x={6} y={DIRECTION_LABEL_Y} textAnchor="start" style={DIRECTION_LABEL_STYLE}>Home Attacks →</text>
+      <text x={PITCH_WIDTH - 6} y={DIRECTION_LABEL_Y} textAnchor="end" style={DIRECTION_LABEL_STYLE}>← Away Attacks</text>
     </svg>
   );
 };

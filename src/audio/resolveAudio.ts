@@ -39,9 +39,15 @@ export async function resolveSegmentAudio(
   for (const segment of segments) {
     const speech =
       provider === "edge" ? await generateSpeechEdge(segment.text, options.edgeVoice) : await generateSpeech(segment.text);
-    const durationSeconds = segment.visualMinDurationSeconds
-      ? Math.max(speech.durationSeconds, segment.visualMinDurationSeconds)
-      : speech.durationSeconds;
+    // A duration the user explicitly set in the pre-generation timeline
+    // preview wins outright — narration audio still gets attached below (so
+    // it plays), but its real length no longer dictates on-screen duration
+    // the way it does for every other, unedited segment.
+    const durationSeconds = segment.manualDurationOverride
+      ? segment.durationSeconds
+      : segment.visualMinDurationSeconds
+        ? Math.max(speech.durationSeconds, segment.visualMinDurationSeconds)
+        : speech.durationSeconds;
     resolved.push({
       ...segment,
       durationSeconds,

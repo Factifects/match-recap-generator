@@ -1,0 +1,243 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** Breaking News
+
+**Annotation:** "BREAKING NEWS"
+
+**Duration:** 3 seconds
+
+**Transition:** Fade In
+
+**Story Beat:** Hook
+
+**Evidence:** High — Source/Reason: bulletin title card, not a factual claim.
+
+---
+
+### SCENE 2
+
+**Scene Type:** Statement
+
+**Narration:** Manchester United have completed a major midfield signing.
+
+**Panel Color:** Red
+
+**Duration:** 4 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Reveal
+
+**Evidence:** High — Source/Reason: The Guardian Football RSS, "Youri Tielemans targets 'biggest trophies' after joining Manchester United," 2026-07-14.
+
+---
+
+### SCENE 3
+
+**Scene Type:** HeroMetric
+
+**Narration:** Youri Tielemans arrives from Aston Villa for around thirty-five million pounds.
+
+**Data:** {"label":"Transfer Fee","value":35,"prefix":"£","suffix":"m","subtext":"Youri Tielemans — Aston Villa to Manchester United"}
+
+**Duration:** 5 seconds
+
+**Transition:** Wipe Left
+
+**Story Beat:** Evidence
+
+**Evidence:** High — Source/Reason: BBC Sport Football RSS, "Man Utd sign Tielemans for £35m from Aston Villa," 2026-07-14.
+
+---
+
+### SCENE 4
+
+**Scene Type:** KpiPanel
+
+**Narration:** A five-year deal for a proven Premier League midfielder.
+
+**Annotation:** "THE DEAL, IN NUMBERS"
+
+**Data:** {"stats":[{"label":"Contract Length","value":"5 Years"},{"label":"Position","value":"Central Midfielder"},{"label":"Previous Club","value":"Aston Villa"}]}
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Explanation
+
+**Evidence:** High — Source/Reason: The Guardian Football RSS, same article, 2026-07-14.
+
+---
+
+### SCENE 5
+
+**Scene Type:** Statement
+
+**Narration:** And Fabrizio Romano says United aren't stopping there.
+
+**Panel Color:** Red
+
+**Duration:** 4 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Escalation
+
+**Evidence:** High — Source/Reason: CaughtOffside RSS, "Fabrizio Romano reveals Manchester United 'made a call' to star's agent over surprise transfer," 2026-07-14.
+
+---
+
+### SCENE 6
+
+**Scene Type:** Grid
+
+**Narration:** United have made contact over Roma's Manu Koné — a possible third midfield addition this summer.
+
+**Annotation:** "UNITED'S THIRD MIDFIELD SIGNING?"
+
+**Data:** {"items":[{"label":"Player","caption":"Manu Koné"},{"label":"Current Club","caption":"AS Roma"},{"label":"Position","caption":"Defensive Midfielder"},{"label":"Status","caption":"Agent contacted by Man Utd, per Fabrizio Romano"}]}
+
+**Duration:** 7 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Evidence
+
+**Evidence:** Medium — Source/Reason: CaughtOffside RSS, same Romano-sourced report, 2026-07-14 — contact reported, not a completed deal.
+
+---
+
+### SCENE 7
+
+**Scene Type:** Statement
+
+**Narration:** Meanwhile, in north London — Romano confirms a first-team defender is already on his way out.
+
+**Panel Color:** Blue
+
+**Duration:** 5 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Question
+
+**Evidence:** High — Source/Reason: CaughtOffside RSS, "Fabrizio Romano confirms Cristian Romero is leaving Tottenham, names two transfer suitors," 2026-07-14.
+
+---
+
+### SCENE 8
+
+**Scene Type:** Grid
+
+**Narration:** Cristian Romero is leaving Tottenham. Inter Milan and Barcelona are both interested.
+
+**Annotation:** "ROMERO SET FOR SPURS EXIT"
+
+**Data:** {"items":[{"label":"Player","caption":"Cristian Romero"},{"label":"Position","caption":"Centre-Back"},{"label":"Suitor — Serie A","caption":"Inter Milan"},{"label":"Suitor — La Liga","caption":"Barcelona"}]}
+
+**Duration:** 7 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Evidence
+
+**Evidence:** High — Source/Reason: CaughtOffside RSS, same Romano-sourced report, 2026-07-14.
+
+---
+
+### SCENE 9
+
+**Scene Type:** Statement
+
+**Narration:** And in the biggest World Cup story of the week — Didier Deschamps' long reign as France manager is coming to an end.
+
+**Panel Color:** Blue
+
+**Duration:** 5 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Reveal
+
+**Evidence:** High — Source/Reason: BBC Sport Football RSS, "'Extremely happy' Deschamps gets the farewell game no-one wants," 2026-07-14; The Guardian Football RSS, "Didier Deschamps pays price for breaking free from the shackles that led him to glory," 2026-07-14 — France lost 2-0 to Spain in the semi-final.
+
+---
+
+### SCENE 10
+
+**Scene Type:** KpiPanel
+
+**Narration:** Thirteen years in charge. One World Cup. Now, one final game.
+
+**Annotation:** "THE DESCHAMPS ERA, BY NUMBERS"
+
+**Data:** {"stats":[{"label":"Years In Charge","value":"13 (Since 2012)"},{"label":"World Cup Titles","value":"1 (2018)"},{"label":"Final Game","value":"Saturday's 3rd-Place Play-off"}]}
+
+**Duration:** 6 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Explanation
+
+**Evidence:** High — Source/Reason: Deschamps has managed France since July 2012 and won the 2018 World Cup — established record; the third-place play-off as his final game per BBC Sport Football RSS, 2026-07-14.
+
+---
+
+### SCENE 11
+
+**Scene Type:** Statement
+
+**Narration:** And at the World Cup — Sunday's final will feel a little different.
+
+**Panel Color:** Neutral
+
+**Duration:** 4 seconds
+
+**Transition:** Cross Dissolve
+
+**Story Beat:** Question
+
+**Evidence:** High — Source/Reason: BBC Sport Football RSS, "World Cup final half-time to last up to 25 minutes," 2026-07-14.
+
+---
+
+### SCENE 12
+
+**Scene Type:** HeroMetric
+
+**Narration:** Half-time has been extended to as long as twenty-five minutes — ten minutes longer than usual.
+
+**Data:** {"label":"World Cup Final Half-Time","value":25,"suffix":" min","subtext":"Extended from the usual 15 minutes — the break is expected to run between 20 and 25 minutes."}
+
+**Duration:** 6 seconds
+
+**Transition:** Wipe Left
+
+**Story Beat:** Payoff
+
+**Evidence:** High — Source/Reason: BBC Sport Football RSS, same article, 2026-07-14.
+
+---
+
+### SCENE 13
+
+**Scene Type:** Statement
+
+**Narration:** That's today's biggest headlines.
+
+Follow for more.
+
+**Panel Color:** Neutral
+
+**Duration:** 4 seconds
+
+**Transition:** Fade to Black
+
+**Story Beat:** Reflection
+
+**Evidence:** N/A — closing sign-off, not a factual claim.
+
+---

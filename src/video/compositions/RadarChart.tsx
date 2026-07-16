@@ -1,9 +1,11 @@
 import React from "react";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
 import { COLORS, FONT_FAMILY, TITLE_STYLE, colorForCharacter } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, scaleSettle } from "../motion";
+import { fadeIn, scaleSettle, pulse, resolveRevealOrder } from "../motion";
 import type { SharedVisualProps, RadarData } from "../sharedVisualProps";
+
+const SERIES_STAGGER_FRAMES = 10;
 
 const SIZE = 640;
 const CENTER = SIZE / 2;
@@ -28,11 +30,19 @@ function polygonPoints(values: number[]): string {
  * single number or a two-value comparison. Each series' polygon grows in
  * from the center (a quiet scale settle, not a spring pop), and the grid/
  * axis labels fade in first so the scale reads before the data does. */
-export const RadarChart: React.FC<{ data: RadarData } & SharedVisualProps> = ({ data: { title, axes, series }, backgroundColor }) => {
+export const RadarChart: React.FC<{ data: RadarData } & SharedVisualProps> = ({
+  data: { title, axes, series },
+  backgroundColor,
+  animation,
+}) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const titleOpacity = fadeIn(frame, 0, 14);
   const gridOpacity = fadeIn(frame, 6, 16);
   const labelOpacity = fadeIn(frame, 14, 14);
+  const staggerFrames =
+    animation?.staggerSeconds !== undefined ? Math.round(animation.staggerSeconds * fps) : SERIES_STAGGER_FRAMES;
+  const revealOrder = animation?.focusOrder ? resolveRevealOrder(animation.focusOrder, series.length) : null;
 
   return (
     <SceneFrame backgroundColor={backgroundColor}>
@@ -78,8 +88,10 @@ export const RadarChart: React.FC<{ data: RadarData } & SharedVisualProps> = ({ 
 
           {series.map((s, index) => {
             const color = s.color ?? (index === 0 ? COLORS.accent : colorForCharacter(s.label));
-            const start = 24 + index * 10;
-            const scale = scaleSettle(frame, start, 20, 0.4);
+            const revealPosition = revealOrder ? revealOrder[index] : index;
+            const start = 24 + revealPosition * staggerFrames;
+            const settledScale = scaleSettle(frame, start, 20, 0.4);
+            const scale = animation?.pulse ? settledScale * pulse(frame, 90, 0.98, 1.02, index * 0.6) : settledScale;
             const opacity = fadeIn(frame, start, 16);
             return (
               <polygon

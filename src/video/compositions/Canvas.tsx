@@ -1,0 +1,509 @@
+import React from "react";
+import { useCurrentFrame } from "remotion";
+import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter } from "../theme";
+import { SceneFrame } from "./SceneFrame";
+import { fadeIn, drawIn, slideIn, type EasingName } from "../motion";
+import type { SharedVisualProps, CanvasData } from "../sharedVisualProps";
+
+const CANVAS_SIZE = { landscape: { width: 1400, height: 820 }, portrait: { width: 900, height: 1200 } };
+const DOT_RADIUS = 16;
+
+// How long each phase of a multi-phase diagram holds the screen — exported so
+// parseSceneScript.ts's computeVisualMinDurationSeconds can reserve a real
+// floor for a multi-phase Canvas scene, same convention as TacticalBoard's
+// own PHASE_DURATION_FRAMES. Shorter than TacticalBoard's (135 frames) since
+// Canvas has no arrow-follow second stage to fit inside a phase's slot — a
+// glide plus a beat to read the result is enough.
+export const CANVAS_PHASE_DURATION_FRAMES = 90;
+const CANVAS_GLIDE_DURATION_FRAMES = 20;
+// How long an enter/exit lifecycle animation (fade/scale/slide) takes —
+// separate constant from the glide duration even though it's the same
+// number today, since these represent conceptually different motions.
+const LIFECYCLE_DURATION_FRAMES = 12;
+// Ghost trail behind a gliding object with `trail: true` — same technique as
+// TacticalBoard's GHOST_TRAIL (src/video/compositions/TacticalBoard.tsx),
+// simplified to a plain faint dot regardless of the object's own shape.
+const GHOST_TRAIL = [
+  { lag: 0.6, opacity: 0.12 },
+  { lag: 0.35, opacity: 0.22 },
+  { lag: 0.15, opacity: 0.34 },
+];
+
+type CanvasObjectT = CanvasData["objects"][number];
+type CanvasCameraT = NonNullable<CanvasData["camera"]>;
+
+const ANIMATABLE_KEYS = ["x", "y", "radius", "width", "height", "rotation", "scale", "opacity"] as const;
+type AnimatableKey = (typeof ANIMATABLE_KEYS)[number];
+const ANIMATABLE_DEFAULTS: Record<AnimatableKey, number> = {
+  x: 0,
+  y: 0,
+  radius: 0,
+  width: 0,
+  height: 0,
+  rotation: 0,
+  scale: 1,
+  opacity: 1,
+};
+
+const DEFAULT_CAMERA: CanvasCameraT = { x: 50, y: 50, zoom: 1 };
+
+interface ResolvedPhase {
+  objects: CanvasData["objects"];
+  arrows: CanvasData["arrows"];
+  camera: CanvasCameraT | undefined;
+}
+
+/** Every animatable property (x/y/radius/width/height/rotation/scale/
+ * opacity) glides from `previous`'s value to `object`'s own value over
+ * `localFrame` — the direct generalization of TacticalBoard's `positionAt`,
+ * just looped over a fixed key set instead of duplicated per field. Absent
+ * `previous` (phase 0, or an object new to this phase) means no glide: the
+ * object simply IS its own target values (t is irrelevant since entry===
+ * target), which is what makes phase 0 render with zero movement. */
+function resolveAnimatedProps(
+  object: CanvasObjectT,
+  previous: CanvasObjectT | undefined,
+  localFrame: number,
+  easing: EasingName,
+): Record<AnimatableKey, number> {
+  const t = previous ? drawIn(localFrame, 0, CANVAS_GLIDE_DURATION_FRAMES, easing) : 1;
+  const props = {} as Record<AnimatableKey, number>;
+  for (const key of ANIMATABLE_KEYS) {
+    const targetVal = (object[key] as number | undefined) ?? ANIMATABLE_DEFAULTS[key];
+    const entryVal = previous ? ((previous[key] as number | undefined) ?? ANIMATABLE_DEFAULTS[key]) : targetVal;
+    props[key] = entryVal + (targetVal - entryVal) * t;
+  }
+  return props;
+}
+
+function resolveCamera(phase: ResolvedPhase | undefined): CanvasCameraT {
+  return phase?.camera ?? DEFAULT_CAMERA;
+}
+
+/** A generic 2D diagram: freely positioned objects (dot/circle/label/
+ * rectangle/roundedRectangle/ellipse/line/polygon) connected by arrows or
+ * object-tracking connectors, for spatial/systems explanations a pitch or
+ * chart visual can't express (two planes converging, a radar bubble growing
+ * until it touches another, a supply chain, a network). Not football-
+ * specific and not a pitch projection — a flat percent-of-canvas coordinate
+ * plane with an optional pan/zoom camera.
+ *
+ * When `phases` is given, every animatable property glides (id-matched,
+ * like TacticalBoard's players) from its previous phase's value to this
+ * phase's; an object with no match in the previous phase plays its `enter`
+ * animation instead (fade/scale/slide/none), and one absent from THIS phase
+ * but present in the previous one plays its `exit` animation (default
+ * "none" — it simply disappears, exactly like v1). Phase 0 is always the
+ * top-level `objects`/`arrows`/`camera`. On-screen captions are NOT part of
+ * this schema — pair a Canvas scene's `Data.phases` (choreography) with the
+ * shared script-level `Phases:` field (works across every visual kind) for
+ * narration captions; since Canvas's phases are fixed-length slots
+ * independent of the scene's real duration, give a caption an explicit
+ * `startSeconds` to align it to a specific phase. */
+export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
+  data: { title, objects, arrows = [], phases: dataPhases, camera: topCamera, snap },
+  backgroundColor,
+  backgroundImage,
+  backgroundImageMode,
+  backgroundImageSide,
+  orientation,
+}) => {
+  const frame = useCurrentFrame();
+  const isPortrait = orientation === "portrait";
+  const { width: canvasWidth, height: canvasHeight } = isPortrait ? CANVAS_SIZE.portrait : CANVAS_SIZE.landscape;
+
+  const allPhases: ResolvedPhase[] = [
+    { objects, arrows, camera: topCamera },
+    ...(dataPhases ?? []).map((phase) => ({ objects: phase.objects, arrows: phase.arrows ?? [], camera: phase.camera })),
+  ];
+  const phaseIndex = Math.min(allPhases.length - 1, Math.floor(frame / CANVAS_PHASE_DURATION_FRAMES));
+  const phaseLocalFrame = frame - phaseIndex * CANVAS_PHASE_DURATION_FRAMES;
+  const currentPhase = allPhases[phaseIndex];
+  const previousPhase = phaseIndex > 0 ? allPhases[phaseIndex - 1] : undefined;
+
+  const titleOpacity = fadeIn(frame, 0, 10);
+
+  // Camera: glides the same generalized way as any object's properties.
+  // Absent everywhere (today's only case) resolves to {50,50,1} at every
+  // phase, so Tx/Ty below come out to exactly 0 and scale to exactly 1 —
+  // an identity transform, byte-for-byte the same as having no camera code
+  // at all.
+  const targetCamera = resolveCamera(currentPhase);
+  const entryCamera = phaseIndex === 0 ? targetCamera : resolveCamera(previousPhase);
+  const cameraT = phaseIndex === 0 ? 1 : drawIn(phaseLocalFrame, 0, CANVAS_GLIDE_DURATION_FRAMES, "easeInOut");
+  const camX = entryCamera.x + (targetCamera.x - entryCamera.x) * cameraT;
+  const camY = entryCamera.y + (targetCamera.y - entryCamera.y) * cameraT;
+  const camZoom = entryCamera.zoom + (targetCamera.zoom - entryCamera.zoom) * cameraT;
+  const cameraTransform = `translate(${canvasWidth / 2 - (camX / 100) * canvasWidth * camZoom}px, ${
+    canvasHeight / 2 - (camY / 100) * canvasHeight * camZoom
+  }px) scale(${camZoom})`;
+
+  const project = (x: number, y: number): [number, number] => {
+    const snappedX = snap ? Math.round(x / snap) * snap : x;
+    const snappedY = snap ? Math.round(y / snap) * snap : y;
+    return [(snappedX / 100) * canvasWidth, (snappedY / 100) * canvasHeight];
+  };
+  const projectRadius = (radius: number) => (radius / 100) * canvasWidth;
+
+  const resolvedObjects = currentPhase.objects.map((object, index) => {
+    const previous = previousPhase?.objects.find((o) => o.id === object.id);
+    const isNew = phaseIndex > 0 && !previous;
+    const props = resolveAnimatedProps(object, previous, phaseLocalFrame, object.easing);
+
+    // Entrance: phase 0 fades every object in fresh, staggered by index
+    // (today's exact behavior). A later phase only plays an entrance for a
+    // genuinely new object — one continuing from the previous phase is
+    // already fully visible and just glides via `props` above.
+    const entranceActive = phaseIndex === 0 || isNew;
+    const entranceStart = phaseIndex === 0 ? 10 + index * 4 : 0;
+    const entranceFrame = phaseIndex === 0 ? frame : phaseLocalFrame;
+    let entranceOpacity = 1;
+    let entranceScale = 1;
+    let entranceSlideY = 0;
+    if (entranceActive && object.enter !== "none") {
+      entranceOpacity = fadeIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
+      if (object.enter === "scale") entranceScale = drawIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
+      if (object.enter === "slide") entranceSlideY = slideIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, 30, object.easing);
+    } else if (entranceActive) {
+      entranceOpacity = 1; // enter: "none" — appears immediately, no animation
+    }
+
+    return {
+      object,
+      x: props.x,
+      y: props.y,
+      radius: props.radius,
+      width: props.width,
+      height: props.height,
+      rotation: props.rotation,
+      scale: props.scale * entranceScale,
+      opacity: props.opacity * entranceOpacity,
+      slideYOffset: entranceSlideY,
+      isExiting: false,
+    };
+  });
+
+  // Objects present in the previous phase but absent from this one — v1
+  // simply stopped rendering these the instant the phase changed. `exit:
+  // "none"` (the default) reproduces that exactly; any other exit style
+  // keeps rendering them, animating out, for the first LIFECYCLE_DURATION_
+  // FRAMES of the new phase.
+  const exitingObjects =
+    phaseIndex > 0 && previousPhase
+      ? previousPhase.objects
+          .filter((o) => o.exit !== "none" && !currentPhase.objects.some((c) => c.id === o.id))
+          .filter(() => phaseLocalFrame < LIFECYCLE_DURATION_FRAMES)
+          .map((object) => {
+            const exitProgress = fadeIn(phaseLocalFrame, 0, LIFECYCLE_DURATION_FRAMES, object.easing);
+            const baseOpacity = object.opacity ?? 1;
+            let opacity = baseOpacity;
+            let scale = object.scale ?? 1;
+            let slideYOffset = 0;
+            if (object.exit === "fade") opacity = baseOpacity * (1 - exitProgress);
+            if (object.exit === "scale") {
+              scale = (object.scale ?? 1) * (1 - exitProgress);
+              opacity = baseOpacity * (1 - exitProgress * 0.5);
+            }
+            if (object.exit === "slide") {
+              opacity = baseOpacity * (1 - exitProgress);
+              slideYOffset = -exitProgress * 30;
+            }
+            return {
+              object,
+              x: object.x,
+              y: object.y,
+              radius: object.radius ?? 0,
+              width: object.width ?? 0,
+              height: object.height ?? 0,
+              rotation: object.rotation,
+              scale,
+              opacity,
+              slideYOffset,
+              isExiting: true,
+            };
+          })
+      : [];
+
+  const renderObjects = [...resolvedObjects, ...exitingObjects].sort((a, b) => a.object.layer - b.object.layer);
+
+  const objectPosition = (id: string): [number, number] | null => {
+    const resolved = renderObjects.find((r) => r.object.id === id && !r.isExiting);
+    return resolved ? project(resolved.x, resolved.y) : null;
+  };
+
+  return (
+    <SceneFrame
+      backgroundColor={backgroundColor}
+      backgroundImage={backgroundImage}
+      backgroundImageMode={backgroundImageMode}
+      backgroundImageSide={backgroundImageSide}
+      orientation={orientation}
+    >
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        {title && <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 24 }}>{title}</div>}
+        <div style={{ width: canvasWidth, height: canvasHeight, overflow: "hidden", position: "relative" }}>
+          <svg
+            width={canvasWidth}
+            height={canvasHeight}
+            viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
+            style={{ overflow: "visible", transform: cameraTransform, transformOrigin: "0 0", position: "absolute", top: 0, left: 0 }}
+          >
+            {currentPhase.arrows?.map((arrow, index) => {
+              const from = objectPosition(arrow.from);
+              if (!from) return null;
+              const to = typeof arrow.to === "string" ? objectPosition(arrow.to) : project(arrow.to.x, arrow.to.y);
+              if (!to) return null;
+              const [toX, toY] = to;
+              const progress = drawIn(phaseLocalFrame, 10 + index * 6, 18);
+              const [fromX, fromY] = from;
+              const currentX = fromX + (toX - fromX) * progress;
+              const currentY = fromY + (toY - fromY) * progress;
+              const angle = Math.atan2(toY - fromY, toX - fromX);
+              const headLength = 14;
+              const headAngle = Math.PI / 7;
+              const color = arrow.color ?? COLORS.movement;
+              const strokeWidth = arrow.strokeWidth ?? 3;
+              const dashArray =
+                arrow.style === "dashed" ? "10 8" : arrow.style === "dotted" ? "2 6" : undefined;
+              const perpAngle = angle + Math.PI / 2;
+              const doubleOffset = 3;
+              const midX = (fromX + currentX) / 2;
+              const midY = (fromY + currentY) / 2;
+              return (
+                <g key={index} opacity={progress}>
+                  {arrow.style === "double" ? (
+                    <>
+                      <line
+                        x1={fromX + Math.cos(perpAngle) * doubleOffset}
+                        y1={fromY + Math.sin(perpAngle) * doubleOffset}
+                        x2={currentX + Math.cos(perpAngle) * doubleOffset}
+                        y2={currentY + Math.sin(perpAngle) * doubleOffset}
+                        stroke={color}
+                        strokeWidth={strokeWidth}
+                      />
+                      <line
+                        x1={fromX - Math.cos(perpAngle) * doubleOffset}
+                        y1={fromY - Math.sin(perpAngle) * doubleOffset}
+                        x2={currentX - Math.cos(perpAngle) * doubleOffset}
+                        y2={currentY - Math.sin(perpAngle) * doubleOffset}
+                        stroke={color}
+                        strokeWidth={strokeWidth}
+                      />
+                    </>
+                  ) : (
+                    <line x1={fromX} y1={fromY} x2={currentX} y2={currentY} stroke={color} strokeWidth={strokeWidth} strokeDasharray={dashArray} />
+                  )}
+                  <polygon
+                    points={`${currentX},${currentY} ${currentX - headLength * Math.cos(angle - headAngle)},${currentY - headLength * Math.sin(angle - headAngle)} ${currentX - headLength * Math.cos(angle + headAngle)},${currentY - headLength * Math.sin(angle + headAngle)}`}
+                    fill={color}
+                  />
+                  {arrow.label && (
+                    <text
+                      x={midX}
+                      y={midY - 12}
+                      textAnchor="middle"
+                      fontFamily={FONT_FAMILY}
+                      fontWeight={600}
+                      fontSize={18}
+                      fill={COLORS.text}
+                      style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
+                    >
+                      {arrow.label}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+
+            {renderObjects.map(({ object, x, y, radius, width, height, rotation, scale, opacity, slideYOffset }) => {
+              const [rawPx, rawPy] = project(x, y);
+              const px = rawPx;
+              const py = rawPy + slideYOffset;
+              const color = object.color ?? colorForCharacter(object.label ?? object.id);
+              const transformStyle: React.CSSProperties =
+                rotation !== 0 || scale !== 1
+                  ? { transform: `rotate(${rotation}deg) scale(${scale})`, transformOrigin: `${px}px ${py}px` }
+                  : {};
+
+              // Faint trail of earlier positions while this object is
+              // mid-glide (skipped for phase 0 / exiting objects — there's
+              // no "previous" position to trail from). Rendered as plain
+              // dots regardless of the object's own shape, same convention
+              // as TacticalBoard's ghost trail.
+              const previous = previousPhase?.objects.find((o) => o.id === object.id);
+              const trailNodes =
+                object.trail && previous && phaseIndex > 0
+                  ? GHOST_TRAIL.map(({ lag, opacity: trailOpacity }, trailIndex) => {
+                      const ghostLocalFrame = phaseLocalFrame - Math.round(lag * CANVAS_GLIDE_DURATION_FRAMES);
+                      if (ghostLocalFrame <= 0) return null;
+                      const ghostProps = resolveAnimatedProps(object, previous, ghostLocalFrame, object.easing);
+                      const [gx, gy] = project(ghostProps.x, ghostProps.y);
+                      return <circle key={trailIndex} cx={gx} cy={gy} r={DOT_RADIUS * 0.6} fill={color} opacity={trailOpacity * opacity} />;
+                    })
+                  : null;
+
+              if (object.type === "circle") {
+                return (
+                  <React.Fragment key={object.id}>
+                    {trailNodes}
+                    <circle
+                      cx={px}
+                      cy={py}
+                      r={projectRadius(radius)}
+                      fill={color}
+                      fillOpacity={(object.fillOpacity ?? 0.18) * opacity}
+                      stroke={color}
+                      strokeWidth={object.strokeWidth ?? 2.5}
+                      opacity={opacity}
+                      style={transformStyle}
+                    />
+                  </React.Fragment>
+                );
+              }
+
+              if (object.type === "ellipse") {
+                return (
+                  <React.Fragment key={object.id}>
+                    {trailNodes}
+                    <ellipse
+                      key={object.id}
+                      cx={px}
+                      cy={py}
+                      rx={(width / 100) * canvasWidth / 2}
+                      ry={(height / 100) * canvasHeight / 2}
+                      fill={object.filled ? color : "none"}
+                      fillOpacity={(object.fillOpacity ?? 1) * opacity}
+                      stroke={color}
+                      strokeWidth={object.strokeWidth ?? 2.5}
+                      opacity={opacity}
+                      style={transformStyle}
+                    />
+                  </React.Fragment>
+                );
+              }
+
+              if (object.type === "rectangle" || object.type === "roundedRectangle") {
+                const w = (width / 100) * canvasWidth;
+                const h = (height / 100) * canvasHeight;
+                return (
+                  <React.Fragment key={object.id}>
+                    {trailNodes}
+                    <rect
+                      key={object.id}
+                      x={px - w / 2}
+                      y={py - h / 2}
+                      width={w}
+                      height={h}
+                      rx={object.type === "roundedRectangle" ? projectRadius(radius) : 0}
+                      fill={object.filled ? color : "none"}
+                      fillOpacity={(object.fillOpacity ?? 1) * opacity}
+                      stroke={color}
+                      strokeWidth={object.strokeWidth ?? 2.5}
+                      opacity={opacity}
+                      style={transformStyle}
+                    />
+                  </React.Fragment>
+                );
+              }
+
+              if (object.type === "line") {
+                const lengthPx = (width / 100) * canvasWidth;
+                const rad = (rotation * Math.PI) / 180;
+                const x2 = px + lengthPx * Math.cos(rad);
+                const y2 = py + lengthPx * Math.sin(rad);
+                return (
+                  <line
+                    key={object.id}
+                    x1={px}
+                    y1={py}
+                    x2={x2}
+                    y2={y2}
+                    stroke={color}
+                    strokeWidth={object.strokeWidth ?? 2.5}
+                    opacity={opacity}
+                    style={{ transform: scale !== 1 ? `scale(${scale})` : undefined, transformOrigin: `${px}px ${py}px` }}
+                  />
+                );
+              }
+
+              if (object.type === "polygon") {
+                const points = (object.points ?? [])
+                  .map((p) => {
+                    const [ox, oy] = project(x + p.x, y + p.y);
+                    return `${ox},${oy}`;
+                  })
+                  .join(" ");
+                return (
+                  <React.Fragment key={object.id}>
+                    {trailNodes}
+                    <polygon
+                      key={object.id}
+                      points={points}
+                      fill={object.filled ? color : "none"}
+                      fillOpacity={(object.fillOpacity ?? 1) * opacity}
+                      stroke={color}
+                      strokeWidth={object.strokeWidth ?? 2.5}
+                      opacity={opacity}
+                      style={transformStyle}
+                    />
+                  </React.Fragment>
+                );
+              }
+
+              if (object.type === "label") {
+                return (
+                  <text
+                    key={object.id}
+                    x={px}
+                    y={py}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontFamily={FONT_FAMILY}
+                    fontWeight={700}
+                    fontSize={30}
+                    fill={COLORS.text}
+                    opacity={opacity}
+                    style={{ filter: `drop-shadow(0 0 8px ${COLORS.background})`, ...transformStyle }}
+                  >
+                    {object.label}
+                  </text>
+                );
+              }
+
+              // "dot" — the default/generic marker.
+              return (
+                <React.Fragment key={object.id}>
+                  {trailNodes}
+                  <g opacity={opacity} style={transformStyle}>
+                    <circle cx={px} cy={py} r={DOT_RADIUS} fill={color} />
+                    {object.label && (
+                      <text x={px} y={py + DOT_RADIUS + 15} textAnchor="middle" fill={COLORS.text} style={PLAYER_LABEL_STYLE}>
+                        {object.label}
+                      </text>
+                    )}
+                  </g>
+                </React.Fragment>
+              );
+            })}
+          </svg>
+        </div>
+
+        {allPhases.length > 1 && (
+          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+            {allPhases.map((_, index) => (
+              <div
+                key={index}
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  background: index === phaseIndex ? COLORS.highlight : COLORS.border,
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </SceneFrame>
+  );
+};

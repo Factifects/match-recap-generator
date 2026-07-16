@@ -1,8 +1,8 @@
 import React from "react";
-import { interpolate, useCurrentFrame } from "remotion";
+import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE, colorForCharacter } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, drawIn } from "../motion";
+import { fadeIn, drawIn, pulse, resolveRevealOrder } from "../motion";
 import type { SharedVisualProps, BarChartData } from "../sharedVisualProps";
 
 const MAX_BAR_HEIGHT = 480;
@@ -37,14 +37,19 @@ export const BarChartCard: React.FC<{ data: BarChartData } & SharedVisualProps> 
   data: { title, bars, prefix, suffix },
   backgroundColor,
   orientation,
+  animation,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const maxValue = Math.max(...bars.map((b) => b.value), 1);
   const isPortrait = orientation === "portrait";
   const barWidth = isPortrait ? BAR_WIDTH_PORTRAIT : BAR_WIDTH;
   const barGap = isPortrait ? BAR_GAP_PORTRAIT : BAR_GAP;
 
   const titleOpacity = fadeIn(frame, 0, 10);
+  const staggerFrames =
+    animation?.staggerSeconds !== undefined ? Math.round(animation.staggerSeconds * fps) : BAR_STAGGER_FRAMES;
+  const revealOrder = animation?.focusOrder ? resolveRevealOrder(animation.focusOrder, bars.length) : null;
 
   return (
     <SceneFrame backgroundColor={backgroundColor}>
@@ -52,14 +57,28 @@ export const BarChartCard: React.FC<{ data: BarChartData } & SharedVisualProps> 
         <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 48 }}>{title}</div>
         <div style={{ display: "flex", alignItems: "flex-end", gap: barGap, height: MAX_BAR_HEIGHT, flexWrap: "wrap", maxWidth: isPortrait ? 900 : undefined, justifyContent: "center" }}>
           {bars.map((bar, index) => {
-            const start = index * BAR_STAGGER_FRAMES;
+            const revealPosition = revealOrder ? revealOrder[index] : index;
+            const start = revealPosition * staggerFrames;
             const growth = drawIn(frame, start, 18);
             const height = interpolate(growth, [0, 1], [0, (bar.value / maxValue) * MAX_BAR_HEIGHT]);
             const color = colorForCharacter(bar.label);
             const valueOpacity = fadeIn(frame, start + 8, 8);
+            const columnScale = animation?.pulse ? pulse(frame, 90, 0.97, 1.03, index * 0.6) : 1;
 
             return (
-              <div key={bar.label} style={{ width: barWidth, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+              <div
+                key={bar.label}
+                style={{
+                  width: barWidth,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  height: "100%",
+                  transform: `scale(${columnScale})`,
+                  transformOrigin: "bottom center",
+                }}
+              >
                 <div
                   style={{
                     opacity: valueOpacity,

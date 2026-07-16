@@ -2,7 +2,7 @@ import "./index.css";
 import { Composition } from "remotion";
 import { AnalysisVideo, transitionFramesFor } from "./compositions/AnalysisVideo";
 import { FPS } from "./theme";
-import type { TimedSegment, AspectRatio } from "../model/Segment";
+import type { TimedSegment, AspectRatio, AudioClipPlacement } from "../model/Segment";
 
 const DIMENSIONS: Record<AspectRatio, { width: number; height: number }> = {
   "16:9": { width: 1920, height: 1080 },
@@ -39,6 +39,7 @@ export const RemotionRoot: React.FC = () => {
           segments: [] as TimedSegment[],
           aspectRatio: "16:9" as AspectRatio,
           backgroundMusicPath: undefined as string | undefined,
+          audioClips: [] as AudioClipPlacement[],
         }}
         calculateMetadata={async ({ props }) => {
           const { segments, aspectRatio } = props as { segments: TimedSegment[]; aspectRatio?: AspectRatio };

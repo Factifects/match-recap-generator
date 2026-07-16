@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import { useCurrentFrame } from "remotion";
 import { COLORS } from "../theme";
 import { drawIn, pulse } from "../motion";
@@ -6,6 +6,38 @@ import { vpitchX, vpitchY } from "./VerticalPitch";
 import { BallGlyph } from "./BallGlyph";
 
 export const CURVED_ARROW_DRAW_DURATION = 18;
+
+export type ArrowStyle = "standard" | "press" | "recovery" | "third-man-run";
+
+// Purely visual per-concept treatment, independent of `kind` (which governs
+// ball-vs-player-glide semantics, not appearance) — a real render showed
+// every arrow reading as the same generic colored line regardless of what
+// tactical idea it depicted. `dash` is in the path's own normalized
+// pathLength=1 units (a fraction of the curve's total length per on/off
+// segment), not pixels, so the pattern scales with any arrow's length.
+// `color` absent means "use whatever the caller passed" (today's behavior);
+// press/recovery override it because those concepts read as a fixed color
+// regardless of team.
+const ARROW_STYLE_PRESETS: Record<ArrowStyle, { color?: string; strokeWidth: number; dash?: string }> = {
+  standard: { strokeWidth: 2.5 },
+  press: { color: COLORS.danger, strokeWidth: 3.5 },
+  recovery: { color: COLORS.textDim, strokeWidth: 2, dash: "0.05 0.035" },
+  "third-man-run": { strokeWidth: 1.5, dash: "0.012 0.03" },
+};
+
+// A real render showed a "pass" arrow reading as just a static colored line
+// with an arrowhead — the BallGlyph only exists while `travelOpacity` is on
+// (a ~0.5s window mid-draw), so anyone who wasn't looking at that exact
+// instant never sees a ball at all, only the line it left behind. This trail
+// samples the same bezier curve at earlier progress values, same lag/opacity
+// recipe as TacticalBoard's own GHOST_TRAIL for player gliding, so a pass
+// reads as a ball actually traveling (with a fading motion trail) instead of
+// a single dot that blinks past.
+const BALL_GHOST_TRAIL = [
+  { lag: 0.3, opacity: 0.14 },
+  { lag: 0.18, opacity: 0.26 },
+  { lag: 0.08, opacity: 0.42 },
+];
 
 /** Curved counterpart to MovementArrow.tsx's straight line — scoped to
  * vertical/perspective boards rather than adding curve support to
@@ -31,6 +63,7 @@ export const CurvedMovementArrow: React.FC<{
   bow?: number;
   project?: (px: number, py: number) => [number, number];
   kind?: "run" | "pass";
+  style?: ArrowStyle;
 }> = ({
   fromX,
   fromY,
@@ -42,9 +75,14 @@ export const CurvedMovementArrow: React.FC<{
   bow = 40,
   project = (px, py) => [vpitchX(px), vpitchY(py)],
   kind = "run",
+  style = "standard",
 }) => {
   const frame = useCurrentFrame();
   const progress = drawIn(frame, startFrame, duration);
+  const maskId = useId();
+  const preset = ARROW_STYLE_PRESETS[style];
+  const strokeColor = preset.color ?? color;
+  const strokeWidth = preset.strokeWidth;
 
   const [x1, y1] = project(fromX, fromY);
   const [x2, y2] = project(toX, toY);
@@ -89,26 +127,69 @@ export const CurvedMovementArrow: React.FC<{
   // scene.
   const idleGlowOpacity = progress >= 0.96 ? pulse(frame, 80, 0.06, 0.18, startFrame) : 0;
 
+  const pathD = `M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`;
+
   return (
     <g opacity={progress > 0 ? 1 : 0}>
-      <path
-        d={`M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`}
-        fill="none"
-        stroke={color}
-        strokeWidth={2.5}
-        strokeLinecap="round"
-        pathLength={1}
-        strokeDasharray={1}
-        strokeDashoffset={1 - progress}
-      />
-      <circle cx={tip.x} cy={tip.y} r={11 * travelPulse} fill={color} opacity={travelOpacity * 0.22} />
+      {preset.dash ? (
+        // Two-path trick: a `<mask>` reveals the curve progressively (the
+        // exact same pathLength=1/dasharray=1/offset reveal used everywhere
+        // else in this file), then the actual visual path — stroked with
+        // the real dash pattern, not the reveal trick's single dash — is
+        // clipped by that mask, so the line both draws in AND reads as
+        // dashed/dotted rather than solid.
+        <>
+          <mask id={maskId}>
+            <path
+              d={pathD}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth={strokeWidth + 4}
+              strokeLinecap="round"
+              pathLength={1}
+              strokeDasharray={1}
+              strokeDashoffset={1 - progress}
+            />
+          </mask>
+          <path
+            d={pathD}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            pathLength={1}
+            strokeDasharray={preset.dash}
+            mask={`url(#${maskId})`}
+          />
+        </>
+      ) : (
+        <path
+          d={pathD}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          pathLength={1}
+          strokeDasharray={1}
+          strokeDashoffset={1 - progress}
+        />
+      )}
+      <circle cx={tip.x} cy={tip.y} r={11 * travelPulse} fill={strokeColor} opacity={travelOpacity * 0.22} />
+      {kind === "pass" &&
+        travelOpacity > 0 &&
+        BALL_GHOST_TRAIL.map(({ lag, opacity: ghostOpacity }, index) => {
+          const ghostProgress = progress - lag;
+          if (ghostProgress <= 0) return null;
+          const ghostPoint = bezierPoint(ghostProgress);
+          return <BallGlyph key={index} cx={ghostPoint.x} cy={ghostPoint.y} size={7} opacity={ghostOpacity} />;
+        })}
       {kind === "pass" ? (
         <BallGlyph cx={tip.x} cy={tip.y} size={9} opacity={travelOpacity} />
       ) : (
         <circle cx={tip.x} cy={tip.y} r={4.5} fill="#ffffff" opacity={travelOpacity * 0.9} />
       )}
-      <circle cx={tip.x} cy={tip.y} r={13} fill={color} opacity={idleGlowOpacity} />
-      {progress > 0.02 && <polygon points={`${tip.x},${tip.y} ${leftWing.x},${leftWing.y} ${rightWing.x},${rightWing.y}`} fill={color} />}
+      <circle cx={tip.x} cy={tip.y} r={13} fill={strokeColor} opacity={idleGlowOpacity} />
+      {progress > 0.02 && <polygon points={`${tip.x},${tip.y} ${leftWing.x},${leftWing.y} ${rightWing.x},${rightWing.y}`} fill={strokeColor} />}
     </g>
   );
 };

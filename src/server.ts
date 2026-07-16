@@ -3,12 +3,16 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
-import { generateVideo } from "./generate";
+import { parseMedia } from "@remotion/media-parser";
+import { nodeReader } from "@remotion/media-parser/node";
+import { generateVideo, renderEditedTimeline, type TimelinePayload } from "./generate";
 import type { RenderProgress } from "./render/renderVideo";
-import type { AspectRatio } from "./model/Segment";
+import type { AspectRatio, TimedSegment, AudioClipPlacement } from "./model/Segment";
 import type { TtsProvider } from "./audio/resolveAudio";
 import { fetchFeedItems } from "./news/fetchFeed";
 import { extractArticleText } from "./news/extractArticle";
+import { parseSceneScript, isSceneScript } from "./script/parseSceneScript";
+import { parseAnalysisScript } from "./script/parseAnalysisScript";
 
 const PORT = Number(process.env.PORT) || 4321;
 const PUBLIC_DIR = path.join(__dirname, "..", "public-ui");
@@ -17,7 +21,15 @@ const PUBLIC_DIR = path.join(__dirname, "..", "public-ui");
  * output, which also emits hashed JS/CSS under dist/assets/. */
 const DIST_DIR = path.join(PUBLIC_DIR, "dist");
 const OUTPUT_DIR = path.join(process.cwd(), "output");
-const NEWS_SOURCES_PATH = path.join(process.cwd(), "config", "news-sources.json");
+/** Where a user's own sound-effect/background-music files land after upload
+ * from the timeline editor — lives under public/ (not output/) for the same
+ * reason public/audio-cache/ does: Remotion needs staticFile() to reach it. */
+const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
+const NEWS_SOURCES_PATH = path.join(
+  process.cwd(),
+  "config",
+  "news-sources.json",
+);
 
 const ASSET_CONTENT_TYPES: Record<string, string> = {
   ".js": "application/javascript",
@@ -42,6 +54,10 @@ interface JobResult {
   segmentCount: number;
   totalSeconds: number;
   usedSceneFormat: boolean;
+  /** Basename (no extension) of the rendered mp4 — lets the client link to
+   * `/edit/:outputName` (or POST an edited timeline back to
+   * `/timeline/:outputName/render`) after generation finishes. */
+  outputName: string;
 }
 
 interface Job {
@@ -53,7 +69,11 @@ interface Job {
 
 const jobs = new Map<string, Job>();
 
-function serveFile(res: http.ServerResponse, filePath: string, contentType: string) {
+function serveFile(
+  res: http.ServerResponse,
+  filePath: string,
+  contentType: string,
+) {
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.writeHead(404);
@@ -65,7 +85,9 @@ function serveFile(res: http.ServerResponse, filePath: string, contentType: stri
   });
 }
 
-function readJsonBody(req: http.IncomingMessage): Promise<Record<string, unknown>> {
+function readJsonBody(
+  req: http.IncomingMessage,
+): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     let body = "";
     req.on("data", (chunk) => (body += chunk));
@@ -80,16 +102,21 @@ function readJsonBody(req: http.IncomingMessage): Promise<Record<string, unknown
   });
 }
 
+interface StartJobOptions {
+  script: string;
+  withAudio: boolean;
+  aspectRatio: AspectRatio;
+  ttsProvider: TtsProvider;
+  edgeVoice: string | undefined;
+  backgroundMusicPath: string | undefined;
+  segments: TimedSegment[] | undefined;
+  audioClips: AudioClipPlacement[] | undefined;
+}
+
 /** Starts generation as a background job (rather than blocking the request)
  * so the client can open an SSE connection and watch real render progress
  * instead of staring at a spinner for minutes with no feedback. */
-function startJob(
-  script: string,
-  withAudio: boolean,
-  aspectRatio: AspectRatio,
-  ttsProvider: TtsProvider,
-  edgeVoice: string | undefined,
-): string {
+function startJob(options: StartJobOptions): string {
   const jobId = crypto.randomUUID();
   const emitter = new EventEmitter();
   const job: Job = { emitter, done: false };
@@ -97,19 +124,24 @@ function startJob(
 
   (async () => {
     try {
-      const result = await generateVideo(script, {
-        withAudio,
-        aspectRatio,
-        ttsProvider,
-        edgeVoice,
+      const result = await generateVideo(options.script, {
+        withAudio: options.withAudio,
+        aspectRatio: options.aspectRatio,
+        ttsProvider: options.ttsProvider,
+        edgeVoice: options.edgeVoice,
+        backgroundMusicPath: options.backgroundMusicPath,
+        segments: options.segments,
+        audioClips: options.audioClips,
         onLog: (message) => emitter.emit("log", { message }),
-        onProgress: (progress: RenderProgress) => emitter.emit("progress", progress),
+        onProgress: (progress: RenderProgress) =>
+          emitter.emit("progress", progress),
       });
       job.result = {
         videoUrl: `/output/${path.basename(result.outputPath)}`,
         segmentCount: result.segmentCount,
         totalSeconds: result.totalSeconds,
         usedSceneFormat: result.usedSceneFormat,
+        outputName: result.outputName,
       };
       job.done = true;
       emitter.emit("complete", job.result);
@@ -123,7 +155,55 @@ function startJob(
   return jobId;
 }
 
-function streamProgress(req: http.IncomingMessage, res: http.ServerResponse, jobId: string) {
+/** Same background-job/SSE-progress shape as startJob, but re-renders an
+ * already-resolved timeline (from the post-generation edit view) instead of
+ * parsing a script — see renderEditedTimeline in generate.ts. */
+function startEditedRenderJob(timeline: TimelinePayload, sourceOutputName: string): string {
+  const jobId = crypto.randomUUID();
+  const emitter = new EventEmitter();
+  const job: Job = { emitter, done: false };
+  jobs.set(jobId, job);
+
+  (async () => {
+    try {
+      const result = await renderEditedTimeline(timeline, {
+        outputName: `${sourceOutputName}-edit-${Date.now()}`,
+        onProgress: (progress: RenderProgress) => emitter.emit("progress", progress),
+      });
+      job.result = {
+        videoUrl: `/output/${path.basename(result.outputPath)}`,
+        segmentCount: result.segmentCount,
+        totalSeconds: result.totalSeconds,
+        usedSceneFormat: result.usedSceneFormat,
+        outputName: result.outputName,
+      };
+      job.done = true;
+      emitter.emit("complete", job.result);
+    } catch (err) {
+      job.error = err instanceof Error ? err.message : "Render failed.";
+      job.done = true;
+      emitter.emit("failed", { error: job.error });
+    }
+  })();
+
+  return jobId;
+}
+
+/** Reads the sidecar JSON a completed render wrote (see renderAndPersist in
+ * generate.ts) so the timeline editor can reload a finished job's resolved
+ * segments. `path.basename` guards against a URL segment escaping OUTPUT_DIR. */
+function loadTimelineData(outputNameRaw: string): TimelinePayload | null {
+  const outputName = path.basename(outputNameRaw);
+  const sidecarPath = path.join(OUTPUT_DIR, `${outputName}.json`);
+  if (!fs.existsSync(sidecarPath)) return null;
+  return JSON.parse(fs.readFileSync(sidecarPath, "utf8"));
+}
+
+function streamProgress(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  jobId: string,
+) {
   const job = jobs.get(jobId);
   if (!job) {
     res.writeHead(404);
@@ -137,10 +217,14 @@ function streamProgress(req: http.IncomingMessage, res: http.ServerResponse, job
     Connection: "keep-alive",
   });
 
-  const send = (event: string, data: unknown) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  const send = (event: string, data: unknown) =>
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
   if (job.done) {
-    send(job.error ? "failed" : "complete", job.error ? { error: job.error } : job.result);
+    send(
+      job.error ? "failed" : "complete",
+      job.error ? { error: job.error } : job.result,
+    );
     res.end();
     return;
   }
@@ -175,7 +259,8 @@ function streamProgress(req: http.IncomingMessage, res: http.ServerResponse, job
 const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && req.url?.startsWith("/assets/")) {
     const fileName = decodeURIComponent(req.url.replace("/assets/", ""));
-    const contentType = ASSET_CONTENT_TYPES[path.extname(fileName)] ?? "application/octet-stream";
+    const contentType =
+      ASSET_CONTENT_TYPES[path.extname(fileName)] ?? "application/octet-stream";
     serveFile(res, path.join(DIST_DIR, "assets", fileName), contentType);
     return;
   }
@@ -197,7 +282,12 @@ const server = http.createServer(async (req, res) => {
       const sources = loadNewsSources();
       if (sources.length === 0) {
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ items: [], warning: "No sources configured in config/news-sources.json." }));
+        res.end(
+          JSON.stringify({
+            items: [],
+            warning: "No sources configured in config/news-sources.json.",
+          }),
+        );
         return;
       }
       const results = await Promise.all(
@@ -210,7 +300,11 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ items: results.flat() }));
     } catch (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Failed to fetch news." }));
+      res.end(
+        JSON.stringify({
+          error: err instanceof Error ? err.message : "Failed to fetch news.",
+        }),
+      );
     }
     return;
   }
@@ -229,7 +323,36 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify(article));
     } catch (err) {
       res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Failed to extract article." }));
+      res.end(
+        JSON.stringify({
+          error:
+            err instanceof Error ? err.message : "Failed to extract article.",
+        }),
+      );
+    }
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/parse") {
+    // Preview-only: parses a script into its segments with word-count-
+    // estimated durations, no narration/render involved, so the timeline
+    // preview can appear the moment a script is pasted, before Generate is
+    // ever clicked. Deliberately synchronous/instant — no job/SSE needed.
+    try {
+      const body = await readJsonBody(req);
+      const script = typeof body.script === "string" ? body.script : "";
+      if (!script.trim()) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Paste a script first." }));
+        return;
+      }
+      const usedSceneFormat = isSceneScript(script);
+      const segments = usedSceneFormat ? parseSceneScript(script) : parseAnalysisScript(script);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ segments, usedSceneFormat }));
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Could not parse this script." }));
     }
     return;
   }
@@ -239,9 +362,17 @@ const server = http.createServer(async (req, res) => {
       const body = await readJsonBody(req);
       const script = typeof body.script === "string" ? body.script : "";
       const withAudio = Boolean(body.withAudio);
-      const aspectRatio: AspectRatio = body.aspectRatio === "9:16" ? "9:16" : "16:9";
-      const ttsProvider: TtsProvider = body.ttsProvider === "edge" ? "edge" : "elevenlabs";
-      const edgeVoice = typeof body.edgeVoice === "string" ? body.edgeVoice : undefined;
+      const aspectRatio: AspectRatio =
+        body.aspectRatio === "9:16" ? "9:16" : "16:9";
+      const ttsProvider: TtsProvider =
+        body.ttsProvider === "edge" ? "edge" : "elevenlabs";
+      const edgeVoice =
+        typeof body.edgeVoice === "string" ? body.edgeVoice : undefined;
+      const backgroundMusicPath =
+        typeof body.backgroundMusicPath === "string" ? body.backgroundMusicPath : undefined;
+      const segments =
+        Array.isArray(body.segments) && body.segments.length > 0 ? (body.segments as TimedSegment[]) : undefined;
+      const audioClips = Array.isArray(body.audioClips) ? (body.audioClips as AudioClipPlacement[]) : undefined;
 
       if (!script.trim()) {
         res.writeHead(400, { "Content-Type": "application/json" });
@@ -249,7 +380,95 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const jobId = startJob(script, withAudio, aspectRatio, ttsProvider, edgeVoice);
+      const jobId = startJob({
+        script,
+        withAudio,
+        aspectRatio,
+        ttsProvider,
+        edgeVoice,
+        backgroundMusicPath,
+        segments,
+        audioClips,
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ jobId }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: err instanceof Error ? err.message : "Request failed.",
+        }),
+      );
+    }
+    return;
+  }
+
+  if (req.method === "GET" && req.url?.startsWith("/timeline/")) {
+    const outputName = decodeURIComponent(req.url.replace("/timeline/", ""));
+    const data = loadTimelineData(outputName);
+    if (!data) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unknown or not-yet-rendered video." }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ...data, videoUrl: `/output/${path.basename(outputName)}.mp4` }));
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/uploads/audio") {
+    try {
+      const body = await readJsonBody(req);
+      const fileName = typeof body.fileName === "string" ? body.fileName : "";
+      const dataBase64 = typeof body.dataBase64 === "string" ? body.dataBase64 : "";
+      if (!fileName || !dataBase64) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing fileName or file data." }));
+        return;
+      }
+
+      // Stored filename is derived from a hash of the content, never the
+      // user-supplied fileName itself (only its extension survives) — avoids
+      // any path-traversal/injection risk from an arbitrary uploaded name.
+      const extension = path.extname(fileName) || ".mp3";
+      const hash = crypto.createHash("sha256").update(dataBase64).digest("hex").slice(0, 24);
+      const storedName = `${hash}${extension}`;
+      fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+      const filePath = path.join(UPLOADS_DIR, storedName);
+      if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, Buffer.from(dataBase64, "base64"));
+      }
+
+      const { durationInSeconds } = await parseMedia({
+        src: filePath,
+        fields: { durationInSeconds: true },
+        reader: nodeReader,
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ staticPath: `uploads/${storedName}`, durationSeconds: durationInSeconds ?? null }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Upload failed." }));
+    }
+    return;
+  }
+
+  if (req.method === "POST" && req.url?.startsWith("/timeline/") && req.url.endsWith("/render")) {
+    try {
+      const outputName = path.basename(decodeURIComponent(req.url.replace("/timeline/", "").replace(/\/render$/, "")));
+      const body = await readJsonBody(req);
+      const segments = Array.isArray(body.segments) && body.segments.length > 0 ? (body.segments as TimedSegment[]) : null;
+      const aspectRatio: AspectRatio = body.aspectRatio === "9:16" ? "9:16" : "16:9";
+      const backgroundMusicPath = typeof body.backgroundMusicPath === "string" ? body.backgroundMusicPath : undefined;
+      const audioClips = Array.isArray(body.audioClips) ? (body.audioClips as AudioClipPlacement[]) : undefined;
+
+      if (!segments) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "No segments to render." }));
+        return;
+      }
+
+      const jobId = startEditedRenderJob({ segments, aspectRatio, backgroundMusicPath, audioClips }, outputName);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ jobId }));
     } catch (err) {
@@ -260,9 +479,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET") {
-    // SPA fallback: React Router owns client-side routes (/, /news, ...) —
+    // SPA fallback: React Router owns client-side routes (/, /news, /edit/..., ...) —
     // every unmatched GET serves the same built index.html and the router
-    // takes over from there, including on a hard refresh at /news.
+    // takes over from there, including on a hard refresh at /news or /edit/:outputName.
     serveFile(res, path.join(DIST_DIR, "index.html"), "text/html");
     return;
   }
@@ -272,5 +491,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Match Recap Generator UI running at http://localhost:${PORT}`);
+  console.log(`Tactivilizer UI running at http://localhost:${PORT}`);
 });

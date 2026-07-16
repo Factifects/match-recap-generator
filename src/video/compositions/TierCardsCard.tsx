@@ -1,9 +1,11 @@
 import React from "react";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
 import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, slideIn } from "../motion";
+import { fadeIn, slideIn, pulse, resolveRevealOrder } from "../motion";
 import type { SharedVisualProps, TierCardsData } from "../sharedVisualProps";
+
+const TIER_STAGGER_FRAMES = 8;
 
 const CARD_WIDTH = 320;
 const CARD_WIDTH_PORTRAIT = 280;
@@ -17,11 +19,16 @@ export const TierCardsCard: React.FC<{ data: TierCardsData } & SharedVisualProps
   data: { title, tiers },
   backgroundColor,
   orientation,
+  animation,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const isPortrait = orientation === "portrait";
   const cardWidth = isPortrait ? CARD_WIDTH_PORTRAIT : CARD_WIDTH;
   const titleOpacity = fadeIn(frame, 0, 10);
+  const staggerFrames =
+    animation?.staggerSeconds !== undefined ? Math.round(animation.staggerSeconds * fps) : TIER_STAGGER_FRAMES;
+  const revealOrder = animation?.focusOrder ? resolveRevealOrder(animation.focusOrder, tiers.length) : null;
 
   return (
     <SceneFrame backgroundColor={backgroundColor} orientation={orientation}>
@@ -29,16 +36,18 @@ export const TierCardsCard: React.FC<{ data: TierCardsData } & SharedVisualProps
         {title && <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 48 }}>{title}</div>}
         <div style={{ display: "flex", alignItems: "flex-end", gap: 28, flexWrap: "wrap", justifyContent: "center", maxWidth: isPortrait ? 900 : 1700 }}>
           {tiers.map((tier, index) => {
-            const start = 12 + index * 8;
+            const revealPosition = revealOrder ? revealOrder[index] : index;
+            const start = 12 + revealPosition * staggerFrames;
             const opacity = fadeIn(frame, start, 14);
             const y = slideIn(frame, start, 16, 30);
+            const tierScale = animation?.pulse ? pulse(frame, 90, 0.98, 1.02, index * 0.6) : 1;
 
             return (
               <div
                 key={tier.name}
                 style={{
                   opacity,
-                  transform: `translateY(${y - (tier.featured ? 24 : 0)}px)`,
+                  transform: `translateY(${y - (tier.featured ? 24 : 0)}px) scale(${tierScale})`,
                   width: cardWidth,
                   background: tier.featured ? "#20264a" : COLORS.panel,
                   border: `2px solid ${tier.featured ? COLORS.accent : COLORS.border}`,

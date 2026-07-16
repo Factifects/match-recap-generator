@@ -9,7 +9,7 @@ import { z } from "zod";
 // entry in src/video/visualComponents.tsx), not editing four separate files
 // that have to be kept in sync by hand. See the "Visual Registry" plan this
 // was built from for the full rationale.
-export type VisualCategory = "pitch-tactics" | "stats-dataviz" | "narrative-callouts";
+export type VisualCategory = "pitch-tactics" | "stats-dataviz" | "narrative-callouts" | "generic-diagrams";
 
 const beatSchema = z.object({
   marker: z.string(),
@@ -120,6 +120,12 @@ const tacticalArrowSchema = z.object({
   // passer's own disc slide across the pitch to the receiver's feet, reading
   // as "the passer ran there" rather than "the passer played the ball there."
   kind: z.enum(["run", "pass"]).default("run"),
+  // Purely visual — a distinct color/dash treatment per tactical concept, so
+  // a press, a defensive recovery, and a third-man run don't all read as the
+  // same generic colored line. Independent of `kind`: a press is a "run"
+  // (a player moving) styled as `style: "press"`, not a new kind. Defaults to
+  // "standard" (today's exact look) so every existing script is unaffected.
+  style: z.enum(["standard", "press", "recovery", "third-man-run"]).default("standard"),
 });
 
 // Kept separate from tacticalPlayerSchema/tacticalArrowSchema rather than
@@ -236,6 +242,94 @@ const gridItemSchema = z.object({
   label: z.string(),
   caption: z.string().optional(),
   icon: z.enum(ICON_KEYS).optional(),
+});
+
+// Canvas: a generic (non-pitch) 2D scene — "dot" is the generic "thing" in a
+// diagram (a plane, a node, a particle), "circle"/"ellipse"/"rectangle"/
+// "roundedRectangle"/"polygon"/"line" are generic shape primitives, "label"
+// is free floating text with no marker (a "Safe"/"Warning" callout appearing
+// mid-diagram). Kept deliberately generic rather than domain-specific (no
+// "plane"/"node" type) so the same primitives cover any topic a script
+// author reaches for. Every field below besides id/type/x/y is optional
+// with a default that reproduces v1's exact behavior, so a v1 script (no
+// rotation/scale/enter/exit/etc.) renders byte-for-byte identically.
+const canvasObjectSchema = z.object({
+  id: z.string(),
+  type: z.enum(["dot", "circle", "label", "rectangle", "roundedRectangle", "ellipse", "line", "polygon"]),
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  label: z.string().optional(),
+  color: z.string().optional(),
+  // "circle"/"ellipse" radius, OR "roundedRectangle" corner radius — percent
+  // of canvas width, so a growing radar bubble/zone can be authored without
+  // pixel math (same convention as pitch coordinates).
+  radius: z.number().min(0).max(100).optional(),
+  // "rectangle"/"roundedRectangle"/"ellipse"/"line" — percent of canvas
+  // width/height. For "line", `width` is the segment length and `rotation`
+  // its angle (degrees) from (x,y).
+  width: z.number().min(0).max(100).optional(),
+  height: z.number().min(0).max(100).optional(),
+  // "polygon" only — vertex offsets from (x,y), NOT absolute coordinates, so
+  // the whole shape can still be repositioned by changing x/y alone.
+  points: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
+  // Animatable like x/y/radius — glides phase-to-phase the same way.
+  rotation: z.number().default(0),
+  scale: z.number().default(1),
+  // Author-set base opacity — multiplies with the entrance-fade opacity, so
+  // an object can be authored at e.g. 0.4 opacity throughout without fighting
+  // its own enter/exit fade.
+  opacity: z.number().min(0).max(1).default(1),
+  filled: z.boolean().default(true),
+  fillOpacity: z.number().min(0).max(1).optional(),
+  strokeWidth: z.number().optional(),
+  // Z-order — objects are sorted by this (stable) before rendering, so a
+  // label/connector can be pinned above or below markers regardless of
+  // array order. 0 for everything (the default) reproduces today's
+  // array-order rendering exactly, since a stable sort of equal keys is a
+  // no-op.
+  layer: z.number().default(0),
+  // How this object animates in when it first appears (phase 0, or a later
+  // phase it's newly present in) / out (present in the previous phase but
+  // absent from this one). "fade" (today's only enter behavior) and "none"
+  // (today's only exit behavior — an absent object simply vanishes) are the
+  // defaults, so no existing script's visual behavior changes.
+  enter: z.enum(["none", "fade", "scale", "slide"]).default("fade"),
+  exit: z.enum(["none", "fade", "scale", "slide"]).default("none"),
+  easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut"]).default("easeOut"),
+  // A fading ghost trail behind this object while it glides — same
+  // technique as TacticalBoard's GHOST_TRAIL, opt-in per object.
+  trail: z.boolean().default(false),
+});
+
+const canvasArrowSchema = z.object({
+  from: z.string(),
+  // A fixed point (today's only option), OR another object's id — resolved
+  // live every frame against that object's current (phase-interpolated)
+  // position, so a connector automatically tracks a moving target.
+  to: z.union([z.string(), z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100) })]),
+  style: z.enum(["solid", "dashed", "dotted", "double"]).default("solid"),
+  label: z.string().optional(),
+  color: z.string().optional(),
+  strokeWidth: z.number().optional(),
+});
+
+// Optional camera framing over Canvas's flat plane — absent (the default)
+// renders the full, unzoomed canvas exactly as today. Phases glide the
+// camera the same generalized way they glide any object's properties.
+const canvasCameraSchema = z.object({
+  x: z.number().min(0).max(100).default(50),
+  y: z.number().min(0).max(100).default(50),
+  zoom: z.number().min(0.5).max(6).default(1),
+});
+
+// A follow-on beat after Canvas's initial (top-level objects/arrows)
+// arrangement — same "full snapshot, not a delta" convention as
+// tacticalPhaseSchema, so the component can glide every object from its
+// previous-phase properties to this phase's by matching on `id`.
+const canvasPhaseSchema = z.object({
+  objects: z.array(canvasObjectSchema).min(1),
+  arrows: z.array(canvasArrowSchema).optional(),
+  camera: canvasCameraSchema.optional(),
 });
 
 export interface VisualDefinition<Schema extends z.ZodTypeAny = z.ZodTypeAny> {
@@ -684,6 +778,23 @@ export const VISUAL_DEFINITIONS = [
       icon: z.enum(ICON_KEYS),
       headline: z.string(),
       caption: z.string(),
+    }),
+  },
+  {
+    kind: "canvas",
+    category: "generic-diagrams",
+    label: "Canvas",
+    description:
+      "A generic 2D scene: freely positioned objects (dot/circle/label/rectangle/roundedRectangle/ellipse/line/polygon), connected by arrows or object-tracking connectors, optionally rearranging across phases (every animatable property glides id-matched from one phase's value to the next) with per-object enter/exit animations, layering, trails, and an optional pan/zoom camera — the general-purpose diagram for anything a pitch/chart visual can't express (systems, physics, spatial relationships).",
+    sceneTypeKey: "canvas",
+    schema: z.object({
+      kind: z.literal("canvas"),
+      title: z.string().optional(),
+      objects: z.array(canvasObjectSchema).min(1),
+      arrows: z.array(canvasArrowSchema).optional(),
+      phases: z.array(canvasPhaseSchema).min(1).optional(),
+      snap: z.number().optional(),
+      camera: canvasCameraSchema.optional(),
     }),
   },
 ] as const satisfies readonly VisualDefinition[];

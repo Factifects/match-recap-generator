@@ -2,7 +2,14 @@ import React from "react";
 import { useCurrentFrame } from "remotion";
 import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { PerspectivePitch, PERSPECTIVE_PITCH_WIDTH, PERSPECTIVE_PITCH_HEIGHT, perspectiveProject } from "./PerspectivePitch";
+import {
+  PerspectivePitch,
+  PERSPECTIVE_PITCH_WIDTH,
+  PERSPECTIVE_PITCH_HEIGHT,
+  PERSPECTIVE_PITCH_WIDTH_LANDSCAPE,
+  PERSPECTIVE_PITCH_HEIGHT_LANDSCAPE,
+  perspectiveProject,
+} from "./PerspectivePitch";
 import { JerseyDisc } from "./JerseyDisc";
 import { CurvedMovementArrow, CURVED_ARROW_DRAW_DURATION } from "./CurvedMovementArrow";
 import { fadeIn, drawIn, pulse } from "../motion";
@@ -128,8 +135,15 @@ export const TacticalBoard: React.FC<{ data: TacticalBoardData } & SharedVisualP
   const currentPhase = allPhases[phaseIndex];
   const previousPhase = phaseIndex > 0 ? allPhases[phaseIndex - 1] : undefined;
 
-  const boardWidth = PERSPECTIVE_PITCH_WIDTH;
-  const boardHeight = PERSPECTIVE_PITCH_HEIGHT;
+  // A landscape (16:9) video has ~1920px of spare horizontal room a portrait
+  // (9:16) frame never had — the portrait board's 760x900 was sized for a
+  // 1080px-wide portrait frame, and reused unchanged reads as cramped in
+  // landscape (player labels overlapping when several sit close together).
+  // Use the wider landscape board size whenever the video itself isn't
+  // portrait, matching the same board's own aspect the other way for
+  // portrait delivery.
+  const boardWidth = orientation === "portrait" ? PERSPECTIVE_PITCH_WIDTH : PERSPECTIVE_PITCH_WIDTH_LANDSCAPE;
+  const boardHeight = orientation === "portrait" ? PERSPECTIVE_PITCH_HEIGHT : PERSPECTIVE_PITCH_HEIGHT_LANDSCAPE;
   // player.x/annotation.x etc. are the goal-to-goal (length) axis, .y the
   // touchline-to-touchline (width) axis — perspectiveProject's first
   // argument is length (pixel-y, top-to-bottom), second is width (pixel-x,
@@ -139,11 +153,11 @@ export const TacticalBoard: React.FC<{ data: TacticalBoardData } & SharedVisualP
   // width must be mirrored (100 - py) here or "right"-labeled players render
   // on the screen's left — confirmed via an actual rendered still before
   // this line was added (see feedback_formation_slot_order_bug in memory).
-  const project = (px: number, py: number): [number, number] => perspectiveProject(px, 100 - py);
+  const project = (px: number, py: number): [number, number] => perspectiveProject(px, 100 - py, boardWidth, boardHeight);
   const toPixelX = (px: number, py: number) => project(px, py)[0];
   const toPixelY = (px: number, py: number) => project(px, py)[1];
   const boostedCamera = boostZoom(camera);
-  const cameraTransform = getCameraTransformPerspective(boostedCamera, frame, durationInFrames);
+  const cameraTransform = getCameraTransformPerspective(boostedCamera, frame, durationInFrames, boardWidth, boardHeight);
   // Board Position only applies in landscape — portrait's board already
   // fills the frame edge to edge, so there's no spare room for a side panel.
   const isSideLayout = orientation !== "portrait" && (boardPosition === "left" || boardPosition === "right");
@@ -205,7 +219,7 @@ export const TacticalBoard: React.FC<{ data: TacticalBoardData } & SharedVisualP
           style={{ overflow: "visible", transform: cameraTransform, transformOrigin: "0 0", position: "absolute", top: 0, left: 0 }}
         >
           <g opacity={pitchOpacity}>
-            <PerspectivePitch />
+            <PerspectivePitch width={boardWidth} height={boardHeight} />
           </g>
 
           {activeZone && (
@@ -246,6 +260,7 @@ export const TacticalBoard: React.FC<{ data: TacticalBoardData } & SharedVisualP
                 bow={0}
                 project={project}
                 kind={arrow.kind}
+                style={arrow.style}
               />
             );
           })}

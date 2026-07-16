@@ -1,0 +1,1198 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Annotation:** How Pep Guardiola Changed Football Forever
+
+**Narration:** Every weekend, millions of fans watch teams dominate possession, build patiently from the back, and create intricate passing patterns. Today, these ideas feel completely normal. But twenty years ago, much of football looked very different.
+
+**Duration:** 8 seconds
+
+**Story Beat:** hook
+
+---
+
+### SCENE 2
+
+**Scene Type:** HeroMetric
+
+**Narration:** Before Guardiola arrived at Barcelona, possession statistics above seventy percent were incredibly uncommon, even among the world's best teams.
+
+**Duration:** 8 seconds
+
+**Story Beat:** reveal
+
+**Data:**
+{
+  "label": "Typical Elite Possession",
+  "value": 55,
+  "suffix": "%",
+  "subtext": "Before Pep's Barcelona",
+  "barProgress": 0.55
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** SplitCards
+
+**Narration:** Most teams approached football very differently from the way we know it today.
+
+**Duration:** 9 seconds
+
+**Story Beat:** comparison
+
+**Data:**
+{
+  "title": "Football Then vs Now",
+  "left": {
+    "label": "Before Pep",
+    "value": "Direct Football",
+    "caption": "Quick attacks, long passes and fast transitions."
+  },
+  "right": {
+    "label": "Modern Football",
+    "value": "Controlled Possession",
+    "caption": "Patient build-up and positional play."
+  }
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** TacticalBoard
+
+**Narration:** A traditional 4-4-2 was one of football's most common shapes. Defenders looked to play forward early, midfielders stayed in straight lines, and attacks often bypassed the middle of the pitch.
+
+**Duration:** 12 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "Traditional 4-4-2 — Direct Football",
+  "players": [
+    {"id": "cb", "x": 15, "y": 50, "team": "home", "label": "Centre Back"},
+    {"id": "lm", "x": 45, "y": 80, "team": "home", "label": "Left Mid"},
+    {"id": "rm", "x": 45, "y": 20, "team": "home", "label": "Right Mid"},
+    {"id": "st", "x": 85, "y": 50, "team": "home", "label": "Striker"},
+    {"id": "opp", "x": 45, "y": 50, "team": "away", "label": "Holding Mid"}
+  ],
+  "highlightZone": {"x": 38, "y": 8, "width": 14, "height": 84},
+  "phases": [
+    {
+      "players": [
+        {"id": "cb", "x": 15, "y": 50, "team": "home", "label": "Centre Back"},
+        {"id": "lm", "x": 45, "y": 80, "team": "home", "label": "Left Mid"},
+        {"id": "rm", "x": 45, "y": 20, "team": "home", "label": "Right Mid"},
+        {"id": "st", "x": 85, "y": 50, "team": "home", "label": "Striker"},
+        {"id": "opp", "x": 45, "y": 50, "team": "away", "label": "Holding Mid"}
+      ],
+      "arrows": [{"from": "cb", "to": {"x": 85, "y": 50}, "kind": "pass"}],
+      "highlightZone": {"x": 38, "y": 8, "width": 14, "height": 84},
+      "caption": "The long ball skips the midfield entirely",
+      "dataPoint": "Direct football — everyone stays in their line"
+    }
+  ]
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Canvas
+
+**Narration:** Football wasn't broken. It simply followed a different philosophy. Then one coach began asking a completely different question. Instead of wondering how quickly his team could attack, he asked how they could control every moment of the game.
+
+**Duration:** 12 seconds
+
+**Story Beat:** reveal
+
+**Phases:**
+[
+  {
+    "caption": "Football was direct"
+  },
+  {
+    "startSeconds": 3,
+    "caption": "One new idea emerges"
+  },
+  {
+    "startSeconds": 6,
+    "caption": "Control over chaos"
+  }
+]
+
+**Data:**
+{
+  "title": "A Change In Thinking",
+  "objects": [
+    {
+      "id": "ball",
+      "type": "dot",
+      "x": 50,
+      "y": 50,
+      "label": "Ball"
+    },
+    {
+      "id": "attack",
+      "type": "label",
+      "x": 75,
+      "y": 35,
+      "label": "Attack Fast"
+    }
+  ],
+  "arrows": [
+    {
+      "from": "ball",
+      "to": {
+        "x": 80,
+        "y": 40
+      }
+    }
+  ],
+  "phases": [
+    {
+      "objects": [
+        {
+          "id": "ball",
+          "type": "dot",
+          "x": 50,
+          "y": 50,
+          "label": "Ball"
+        },
+        {
+          "id": "question",
+          "type": "label",
+          "x": 50,
+          "y": 25,
+          "label": "How Do We Control The Game?"
+        }
+      ]
+    },
+    {
+      "objects": [
+        {
+          "id": "ball",
+          "type": "dot",
+          "x": 50,
+          "y": 50,
+          "label": "Ball"
+        },
+        {
+          "id": "control",
+          "type": "label",
+          "x": 50,
+          "y": 25,
+          "label": "Control"
+        },
+        {
+          "id": "possession",
+          "type": "label",
+          "x": 50,
+          "y": 75,
+          "label": "Possession"
+        }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** HeroMetric
+
+**Narration:** Pep Guardiola's teams are often remembered for their possession, but possession was never the objective. It was simply the result of always having one more passing option than the opponent.
+
+**Duration:** 8 seconds
+
+**Story Beat:** reveal
+
+**Data:**
+{
+  "label": "Average Possession",
+  "value": 68,
+  "suffix": "%",
+  "subtext": "Pep Guardiola's top-flight teams",
+  "barProgress": 0.68
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** Imagine two teams competing for the ball. At first, both sides have the same number of players. Nobody has an advantage.
+
+**Duration:** 12 seconds
+
+**Story Beat:** explanation
+
+**Phases:**
+[
+  {
+    "caption": "2 vs 2"
+  },
+  {
+    "startSeconds": 3,
+    "caption": "One player joins"
+  },
+  {
+    "startSeconds": 6,
+    "caption": "Numerical superiority"
+  }
+]
+
+**Data:**
+{
+  "title": "Creating The Extra Man",
+  "objects": [
+    {
+      "id": "b1",
+      "type": "dot",
+      "x": 35,
+      "y": 35,
+      "label": "Blue"
+    },
+    {
+      "id": "b2",
+      "type": "dot",
+      "x": 35,
+      "y": 65,
+      "label": "Blue"
+    },
+    {
+      "id": "r1",
+      "type": "dot",
+      "x": 65,
+      "y": 35,
+      "label": "Red"
+    },
+    {
+      "id": "r2",
+      "type": "dot",
+      "x": 65,
+      "y": 65,
+      "label": "Red"
+    }
+  ],
+  "phases": [
+    {
+      "objects": [
+        {
+          "id": "b1",
+          "type": "dot",
+          "x": 35,
+          "y": 35,
+          "label": "Blue"
+        },
+        {
+          "id": "b2",
+          "type": "dot",
+          "x": 35,
+          "y": 65,
+          "label": "Blue"
+        },
+        {
+          "id": "b3",
+          "type": "dot",
+          "x": 22,
+          "y": 50,
+          "label": "Blue"
+        },
+        {
+          "id": "r1",
+          "type": "dot",
+          "x": 65,
+          "y": 35,
+          "label": "Red"
+        },
+        {
+          "id": "r2",
+          "type": "dot",
+          "x": 65,
+          "y": 65,
+          "label": "Red"
+        }
+      ]
+    },
+    {
+      "objects": [
+        {
+          "id": "b1",
+          "type": "dot",
+          "x": 35,
+          "y": 35,
+          "label": "Blue"
+        },
+        {
+          "id": "b2",
+          "type": "dot",
+          "x": 35,
+          "y": 65,
+          "label": "Blue"
+        },
+        {
+          "id": "b3",
+          "type": "dot",
+          "x": 22,
+          "y": 50,
+          "label": "Blue"
+        },
+        {
+          "id": "r1",
+          "type": "dot",
+          "x": 65,
+          "y": 35,
+          "label": "Red"
+        },
+        {
+          "id": "r2",
+          "type": "dot",
+          "x": 65,
+          "y": 65,
+          "label": "Red"
+        },
+        {
+          "id": "label",
+          "type": "label",
+          "x": 50,
+          "y": 15,
+          "label": "3 vs 2"
+        }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** TacticalBoard
+
+**Narration:** Guardiola's teams constantly move players to create these overloads. A midfielder might drop deeper, or a full-back might step inside, giving the team an extra passing option exactly where it's needed.
+
+**Duration:** 14 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "Creating The Overload",
+  "players": [
+    {"id": "st", "x": 85, "y": 50, "team": "home", "label": "Striker"},
+    {"id": "cb", "x": 83, "y": 50, "team": "away", "label": "Marker"},
+    {"id": "cm", "x": 40, "y": 50, "team": "home", "label": "Midfielder"}
+  ],
+  "phases": [
+    {
+      "players": [
+        {"id": "st", "x": 55, "y": 50, "team": "home", "label": "Striker"},
+        {"id": "cb", "x": 60, "y": 50, "team": "away", "label": "Marker"},
+        {"id": "cm", "x": 80, "y": 50, "team": "home", "label": "Midfielder"}
+      ],
+      "caption": "The striker drops deep, pulling the marker out of position",
+      "dataPoint": "The midfielder arrives free into the space that's left behind"
+    }
+  ]
+}
+
+---
+
+### SCENE 9
+
+**Scene Type:** Radar
+
+**Narration:** Having an extra player doesn't just increase possession. It improves almost every aspect of the game at once.
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+**Data:**
+{
+  "title": "Benefits Of Numerical Superiority",
+  "axes": [
+    "Control",
+    "Passing",
+    "Press Resistance",
+    "Space",
+    "Progression"
+  ],
+  "series": [
+    {
+      "label": "Even Numbers",
+      "values": [52, 55, 48, 50, 46]
+    },
+    {
+      "label": "Extra Player",
+      "values": [88, 91, 90, 84, 87]
+    }
+  ]
+}
+
+---
+
+### SCENE 10
+
+**Scene Type:** TacticalBoard
+
+**Narration:** Once the press is broken, the advantage spreads across the pitch. One extra player becomes extra space, extra time, and eventually, a better chance to score.
+
+**Duration:** 14 seconds
+
+**Story Beat:** payoff
+
+**Data:**
+{
+  "title": "The Switch Spreads The Advantage",
+  "players": [
+    {"id": "cm", "x": 45, "y": 50, "team": "home", "label": "Midfielder"},
+    {"id": "lw", "x": 70, "y": 85, "team": "home", "label": "Left Winger"},
+    {"id": "def", "x": 72, "y": 88, "team": "away", "label": "Defender"},
+    {"id": "rb", "x": 55, "y": 15, "team": "home", "label": "Right Back"}
+  ],
+  "highlightZone": {"x": 60, "y": 70, "width": 30, "height": 26},
+  "phases": [
+    {
+      "players": [
+        {"id": "cm", "x": 45, "y": 50, "team": "home", "label": "Midfielder"},
+        {"id": "lw", "x": 70, "y": 85, "team": "home", "label": "Left Winger"},
+        {"id": "def", "x": 72, "y": 88, "team": "away", "label": "Defender"},
+        {"id": "rb", "x": 55, "y": 15, "team": "home", "label": "Right Back"}
+      ],
+      "arrows": [{"from": "cm", "to": {"x": 70, "y": 85}, "kind": "pass"}],
+      "highlightZone": {"x": 60, "y": 70, "width": 30, "height": 26},
+      "caption": "The ball switches across the pitch",
+      "dataPoint": "The winger is isolated against just one defender"
+    },
+    {
+      "players": [
+        {"id": "cm", "x": 45, "y": 50, "team": "home", "label": "Midfielder"},
+        {"id": "lw", "x": 85, "y": 80, "team": "home", "label": "Left Winger"},
+        {"id": "def", "x": 75, "y": 85, "team": "away", "label": "Defender"},
+        {"id": "rb", "x": 55, "y": 15, "team": "home", "label": "Right Back"}
+      ],
+      "caption": "One extra half-second of space is all it takes",
+      "dataPoint": "A genuine chance to attack the box"
+    }
+  ]
+}
+
+---
+
+### SCENE 11
+
+**Scene Type:** Canvas
+
+**Narration:** Guardiola doesn't see a football pitch the way most people do. Instead of twenty-two players chasing a ball, he sees a field divided into zones that can each be occupied or left empty.
+
+**Duration:** 12 seconds
+
+**Story Beat:** explanation
+
+**Phases:**
+[
+  {
+    "caption": "One football pitch"
+  },
+  {
+    "startSeconds": 3,
+    "caption": "Five vertical lanes"
+  },
+  {
+    "startSeconds": 6,
+    "caption": "Every lane has a purpose"
+  }
+]
+
+**Data:**
+{
+  "title": "The Pitch As Space",
+  "objects": [
+    {
+      "id": "left",
+      "type": "label",
+      "x": 10,
+      "y": 50,
+      "label": "Lane 1"
+    },
+    {
+      "id": "lhalf",
+      "type": "label",
+      "x": 30,
+      "y": 50,
+      "label": "Lane 2"
+    },
+    {
+      "id": "centre",
+      "type": "label",
+      "x": 50,
+      "y": 50,
+      "label": "Lane 3"
+    },
+    {
+      "id": "rhalf",
+      "type": "label",
+      "x": 70,
+      "y": 50,
+      "label": "Lane 4"
+    },
+    {
+      "id": "right",
+      "type": "label",
+      "x": 90,
+      "y": 50,
+      "label": "Lane 5"
+    }
+  ],
+  "phases": [
+    {
+      "objects": [
+        {
+          "id": "left",
+          "type": "label",
+          "x": 10,
+          "y": 25,
+          "label": "Wide"
+        },
+        {
+          "id": "lhalf",
+          "type": "label",
+          "x": 30,
+          "y": 25,
+          "label": "Half Space"
+        },
+        {
+          "id": "centre",
+          "type": "label",
+          "x": 50,
+          "y": 25,
+          "label": "Centre"
+        },
+        {
+          "id": "rhalf",
+          "type": "label",
+          "x": 70,
+          "y": 25,
+          "label": "Half Space"
+        },
+        {
+          "id": "right",
+          "type": "label",
+          "x": 90,
+          "y": 25,
+          "label": "Wide"
+        }
+      ]
+    },
+    {
+      "objects": [
+        {
+          "id": "left",
+          "type": "label",
+          "x": 10,
+          "y": 20,
+          "label": "Stretch"
+        },
+        {
+          "id": "lhalf",
+          "type": "label",
+          "x": 30,
+          "y": 20,
+          "label": "Create"
+        },
+        {
+          "id": "centre",
+          "type": "label",
+          "x": 50,
+          "y": 20,
+          "label": "Control"
+        },
+        {
+          "id": "rhalf",
+          "type": "label",
+          "x": 70,
+          "y": 20,
+          "label": "Create"
+        },
+        {
+          "id": "right",
+          "type": "label",
+          "x": 90,
+          "y": 20,
+          "label": "Stretch"
+        }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 12
+
+**Scene Type:** TacticalBoard
+
+**Narration:** Rather than bunching together around the ball, Guardiola spreads his players across these lanes. This forces defenders to make impossible choices about who to mark and which spaces to leave open.
+
+**Duration:** 15 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "Half-Space Overload",
+  "players": [
+    {"id": "lam", "x": 78, "y": 70, "team": "home", "label": "Left AM"},
+    {"id": "lw", "x": 80, "y": 90, "team": "home", "label": "Left Winger"},
+    {"id": "st", "x": 88, "y": 50, "team": "home", "label": "Striker"},
+    {"id": "def", "x": 75, "y": 75, "team": "away", "label": "Defender"}
+  ],
+  "phases": [
+    {
+      "players": [
+        {"id": "lam", "x": 78, "y": 70, "team": "home", "label": "Left AM"},
+        {"id": "lw", "x": 80, "y": 90, "team": "home", "label": "Left Winger"},
+        {"id": "st", "x": 88, "y": 50, "team": "home", "label": "Striker"},
+        {"id": "def", "x": 76, "y": 85, "team": "away", "label": "Defender"}
+      ],
+      "highlightZone": {"x": 68, "y": 55, "width": 20, "height": 25},
+      "caption": "The defender is forced to close down the winger",
+      "dataPoint": "The half-space behind him is left completely open"
+    }
+  ]
+}
+
+---
+
+### SCENE 13
+
+**Scene Type:** Canvas
+
+**Narration:** Once every lane is occupied, passing triangles naturally begin to appear. Every player suddenly has multiple safe passing options.
+
+**Duration:** 12 seconds
+
+**Story Beat:** reveal
+
+**Phases:**
+[
+  {
+    "caption": "Players occupy space"
+  },
+  {
+    "startSeconds": 3,
+    "caption": "Passing options appear"
+  },
+  {
+    "startSeconds": 6,
+    "caption": "Triangles create control"
+  }
+]
+
+**Data:**
+{
+  "title": "Passing Triangles",
+  "objects": [
+    {
+      "id": "a",
+      "type": "dot",
+      "x": 30,
+      "y": 70,
+      "label": "A"
+    },
+    {
+      "id": "b",
+      "type": "dot",
+      "x": 50,
+      "y": 45,
+      "label": "B"
+    },
+    {
+      "id": "c",
+      "type": "dot",
+      "x": 70,
+      "y": 70,
+      "label": "C"
+    }
+  ],
+  "arrows": [
+    {
+      "from": "a",
+      "to": {
+        "x": 50,
+        "y": 45
+      }
+    },
+    {
+      "from": "b",
+      "to": {
+        "x": 70,
+        "y": 70
+      }
+    }
+  ],
+  "phases": [
+    {
+      "objects": [
+        {
+          "id": "a",
+          "type": "dot",
+          "x": 30,
+          "y": 70,
+          "label": "A"
+        },
+        {
+          "id": "b",
+          "type": "dot",
+          "x": 50,
+          "y": 45,
+          "label": "B"
+        },
+        {
+          "id": "c",
+          "type": "dot",
+          "x": 70,
+          "y": 70,
+          "label": "C"
+        },
+        {
+          "id": "t1",
+          "type": "label",
+          "x": 50,
+          "y": 62,
+          "label": "Triangle"
+        }
+      ],
+      "arrows": [
+        {
+          "from": "c",
+          "to": {
+            "x": 30,
+            "y": 70
+          }
+        }
+      ]
+    },
+    {
+      "objects": [
+        {
+          "id": "a",
+          "type": "dot",
+          "x": 30,
+          "y": 70,
+          "label": "A"
+        },
+        {
+          "id": "b",
+          "type": "dot",
+          "x": 50,
+          "y": 45,
+          "label": "B"
+        },
+        {
+          "id": "c",
+          "type": "dot",
+          "x": 70,
+          "y": 70,
+          "label": "C"
+        },
+        {
+          "id": "free",
+          "type": "label",
+          "x": 82,
+          "y": 50,
+          "label": "Always An Option"
+        }
+      ],
+      "arrows": [
+        {
+          "from": "a",
+          "to": {
+            "x": 70,
+            "y": 70
+          }
+        },
+        {
+          "from": "b",
+          "to": {
+            "x": 30,
+            "y": 70
+          }
+        },
+        {
+          "from": "c",
+          "to": {
+            "x": 50,
+            "y": 45
+          }
+        }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 14
+
+**Scene Type:** Radar
+
+**Narration:** Good positioning improves every phase of play simultaneously. The same structure helps teams keep the ball, escape pressure, create chances, and control transitions.
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+**Data:**
+{
+  "title": "Impact Of Positional Play",
+  "axes": [
+    "Possession",
+    "Chance Creation",
+    "Press Resistance",
+    "Width",
+    "Control"
+  ],
+  "series": [
+    {
+      "label": "Unstructured",
+      "values": [48, 52, 43, 45, 49]
+    },
+    {
+      "label": "Positional Play",
+      "values": [91, 86, 90, 88, 94]
+    }
+  ]
+}
+
+---
+
+### SCENE 15
+
+**Scene Type:** TacticalBoard
+
+**Narration:** This is the payoff. Because every player occupies the right space, the defending team is stretched apart. One final pass breaks the structure completely, creating a clear route to goal.
+
+**Duration:** 16 seconds
+
+**Story Beat:** payoff
+
+**Data:**
+{
+  "title": "The Structure Breaks The Defence",
+  "players": [
+    {"id": "rw", "x": 80, "y": 15, "team": "home", "label": "Right Winger"},
+    {"id": "am", "x": 60, "y": 50, "team": "home", "label": "Attacking Mid"},
+    {"id": "lb", "x": 55, "y": 85, "team": "home", "label": "Left Back"},
+    {"id": "def", "x": 82, "y": 25, "team": "away", "label": "Defender"}
+  ],
+  "phases": [
+    {
+      "players": [
+        {"id": "rw", "x": 80, "y": 15, "team": "home", "label": "Right Winger"},
+        {"id": "am", "x": 60, "y": 50, "team": "home", "label": "Attacking Mid"},
+        {"id": "lb", "x": 55, "y": 85, "team": "home", "label": "Left Back"},
+        {"id": "def", "x": 82, "y": 25, "team": "away", "label": "Defender"}
+      ],
+      "arrows": [{"from": "am", "to": {"x": 80, "y": 15}, "kind": "pass"}],
+      "caption": "The final ball finds the space",
+      "dataPoint": "The defence is stretched across the width of the pitch"
+    },
+    {
+      "players": [
+        {"id": "rw", "x": 92, "y": 15, "team": "home", "label": "Right Winger"},
+        {"id": "am", "x": 60, "y": 50, "team": "home", "label": "Attacking Mid"},
+        {"id": "lb", "x": 55, "y": 85, "team": "home", "label": "Left Back"},
+        {"id": "def", "x": 85, "y": 20, "team": "away", "label": "Defender"}
+      ],
+      "caption": "A clear route to goal",
+      "dataPoint": "The picture Guardiola always wanted"
+    }
+  ]
+}
+
+---
+
+### SCENE 16
+
+**Scene Type:** Treemap
+
+**Narration:** Guardiola's influence extends far beyond the clubs he has managed. Coaches across Europe have adapted his principles, creating a new generation of possession-based football.
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+**Data:**
+{
+  "title": "Where Pep's Ideas Spread",
+  "segments": [
+    {
+      "label": "Manchester City",
+      "value": 30
+    },
+    {
+      "label": "Arsenal",
+      "value": 18
+    },
+    {
+      "label": "Brighton",
+      "value": 14
+    },
+    {
+      "label": "Leverkusen",
+      "value": 12
+    },
+    {
+      "label": "Barcelona",
+      "value": 16
+    },
+    {
+      "label": "Others",
+      "value": 10
+    }
+  ]
+}
+
+---
+
+### SCENE 17
+
+**Scene Type:** Canvas
+
+**Narration:** Tactical ideas spread much like a network. One successful innovation inspires another, until an entire sport begins to evolve around the same principles.
+
+**Duration:** 13 seconds
+
+**Story Beat:** explanation
+
+**Phases:**
+[
+  {
+    "caption": "The origin"
+  },
+  {
+    "startSeconds": 3,
+    "caption": "Ideas spread"
+  },
+  {
+    "startSeconds": 6,
+    "caption": "A new football era"
+  }
+]
+
+**Data:**
+{
+  "title": "The Spread Of Positional Play",
+  "objects": [
+    {
+      "id": "pep",
+      "type": "dot",
+      "x": 50,
+      "y": 20,
+      "label": "Pep"
+    }
+  ],
+  "phases": [
+    {
+      "objects": [
+        {
+          "id": "pep",
+          "type": "dot",
+          "x": 50,
+          "y": 20,
+          "label": "Pep"
+        },
+        {
+          "id": "arteta",
+          "type": "dot",
+          "x": 30,
+          "y": 50,
+          "label": "Arteta"
+        },
+        {
+          "id": "kompany",
+          "type": "dot",
+          "x": 70,
+          "y": 50,
+          "label": "Kompany"
+        }
+      ],
+      "arrows": [
+        {
+          "from": "pep",
+          "to": {
+            "x": 30,
+            "y": 50
+          }
+        },
+        {
+          "from": "pep",
+          "to": {
+            "x": 70,
+            "y": 50
+          }
+        }
+      ]
+    },
+    {
+      "objects": [
+        {
+          "id": "pep",
+          "type": "dot",
+          "x": 50,
+          "y": 20,
+          "label": "Pep"
+        },
+        {
+          "id": "arteta",
+          "type": "dot",
+          "x": 20,
+          "y": 50,
+          "label": "Arteta"
+        },
+        {
+          "id": "kompany",
+          "type": "dot",
+          "x": 80,
+          "y": 50,
+          "label": "Kompany"
+        },
+        {
+          "id": "alonso",
+          "type": "dot",
+          "x": 35,
+          "y": 80,
+          "label": "Xabi Alonso"
+        },
+        {
+          "id": "modern",
+          "type": "label",
+          "x": 70,
+          "y": 82,
+          "label": "Modern Football"
+        }
+      ],
+      "arrows": [
+        {
+          "from": "arteta",
+          "to": {
+            "x": 35,
+            "y": 80
+          }
+        },
+        {
+          "from": "kompany",
+          "to": {
+            "x": 70,
+            "y": 82
+          }
+        }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 18
+
+**Scene Type:** TacticalBoard
+
+**Narration:** Watch carefully. Every idea we've explored now comes together in a single attack. The overload creates the free player, the spacing opens the passing lane, the switch stretches the defence, and the final run finishes the move.
+
+**Duration:** 18 seconds
+
+**Story Beat:** payoff
+
+**Data:**
+{
+  "title": "Every Idea, One Attack",
+  "players": [
+    {"id": "st", "x": 88, "y": 50, "team": "home", "label": "Striker"},
+    {"id": "def1", "x": 85, "y": 50, "team": "away", "label": "Marker"},
+    {"id": "cm", "x": 45, "y": 50, "team": "home", "label": "Midfielder"},
+    {"id": "lw", "x": 75, "y": 85, "team": "home", "label": "Left Winger"},
+    {"id": "def2", "x": 78, "y": 88, "team": "away", "label": "Defender"},
+    {"id": "rb", "x": 55, "y": 15, "team": "home", "label": "Right Back"}
+  ],
+  "phases": [
+    {
+      "players": [
+        {"id": "st", "x": 55, "y": 50, "team": "home", "label": "Striker"},
+        {"id": "def1", "x": 60, "y": 50, "team": "away", "label": "Marker"},
+        {"id": "cm", "x": 80, "y": 50, "team": "home", "label": "Midfielder"},
+        {"id": "lw", "x": 75, "y": 85, "team": "home", "label": "Left Winger"},
+        {"id": "def2", "x": 78, "y": 88, "team": "away", "label": "Defender"},
+        {"id": "rb", "x": 70, "y": 15, "team": "home", "label": "Right Back"}
+      ],
+      "caption": "The overload frees the midfielder — and good spacing keeps every lane open",
+      "dataPoint": "One free player, multiple passing options"
+    },
+    {
+      "players": [
+        {"id": "st", "x": 55, "y": 50, "team": "home", "label": "Striker"},
+        {"id": "def1", "x": 60, "y": 50, "team": "away", "label": "Marker"},
+        {"id": "cm", "x": 80, "y": 50, "team": "home", "label": "Midfielder"},
+        {"id": "lw", "x": 75, "y": 85, "team": "home", "label": "Left Winger"},
+        {"id": "def2", "x": 78, "y": 88, "team": "away", "label": "Defender"},
+        {"id": "rb", "x": 70, "y": 15, "team": "home", "label": "Right Back"}
+      ],
+      "arrows": [{"from": "cm", "to": {"x": 75, "y": 85}, "kind": "pass"}],
+      "caption": "The switch finds the winger, isolated wide",
+      "dataPoint": "Defence stretched from side to side"
+    },
+    {
+      "players": [
+        {"id": "st", "x": 55, "y": 50, "team": "home", "label": "Striker"},
+        {"id": "def1", "x": 60, "y": 50, "team": "away", "label": "Marker"},
+        {"id": "cm", "x": 80, "y": 50, "team": "home", "label": "Midfielder"},
+        {"id": "lw", "x": 92, "y": 80, "team": "home", "label": "Left Winger"},
+        {"id": "def2", "x": 85, "y": 85, "team": "away", "label": "Defender"},
+        {"id": "rb", "x": 70, "y": 15, "team": "home", "label": "Right Back"}
+      ],
+      "caption": "The final run finishes the move",
+      "dataPoint": "From overload to goal — every idea, one attack"
+    }
+  ]
+}
+
+---
+
+### SCENE 19
+
+**Scene Type:** Quote
+
+**Narration:** Guardiola didn't invent passing. He changed the way football thinks about space. That single shift continues to shape the modern game.
+
+**Duration:** 8 seconds
+
+**Story Beat:** reflection
+
+**Data:**
+{
+  "quote": "The secret is to overload one side so the opponent shifts, then attack the other side where there is space.",
+  "attribution": "Pep Guardiola"
+}
+
+---
+
+### SCENE 20
+
+**Scene Type:** Chapter
+
+**Annotation:** More Than A Style
+
+**Narration:** Every generation changes football in its own way. Guardiola's legacy isn't simply the trophies he won, but the questions he asked. Where is the free player? Where is the space? How can we control the game instead of chasing it? Today, those questions define modern football, and the answers continue to shape every level of the sport.
+
+**Duration:** 10 seconds
+
+**Story Beat:** payoff

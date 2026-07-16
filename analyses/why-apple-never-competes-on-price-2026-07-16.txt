@@ -1,0 +1,859 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Annotation:** Why Apple Never Competes On Price
+
+**Narration:** In almost every industry, companies fight to offer lower prices than their competitors. Apple built one of the world's most valuable businesses by doing the exact opposite.
+
+**Duration:** 8 seconds
+
+**Story Beat:** hook
+
+---
+
+### SCENE 2
+
+**Scene Type:** HeroMetric
+
+**Narration:** Apple became one of the most valuable companies in history without trying to be the cheapest. Instead, it focused on creating products people believed were worth paying more for.
+
+**Duration:** 9 seconds
+
+**Story Beat:** reveal
+
+**Data:**
+{
+  "label": "Market Value",
+  "value": 3.0,
+  "prefix": "$",
+  "suffix": " Trillion",
+  "subtext": "Approximate peak valuation",
+  "barProgress": 1
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** SplitCards
+
+**Narration:** Most companies compete on price. Apple competes on perceived value.
+
+**Duration:** 9 seconds
+
+**Story Beat:** comparison
+
+**Data:**
+{
+  "title": "Two Different Strategies",
+  "left": {
+    "label": "Typical Brands",
+    "value": "Lower Prices",
+    "caption": "Win customers by costing less."
+  },
+  "right": {
+    "label": "Apple",
+    "value": "Higher Value",
+    "caption": "Win customers by becoming more desirable."
+  }
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Canvas
+
+**Narration:** Imagine two identical products. One keeps getting cheaper, while the other becomes more desirable. Surprisingly, the second strategy can often be more profitable.
+
+**Duration:** 13 seconds
+
+**Story Beat:** explanation
+
+**Phases:**
+[
+  {
+    "caption": "Two similar products"
+  },
+  {
+    "startSeconds": 3,
+    "caption": "One cuts price"
+  },
+  {
+    "startSeconds": 6,
+    "caption": "One increases perceived value"
+  }
+]
+
+**Data:** {
+  "title": "Competing Differently",
+  "objects": [
+    {"id": "a", "type": "dot", "x": 25, "y": 50, "label": "Brand A", "color": "#ff5a5f"},
+    {"id": "b", "type": "dot", "x": 75, "y": 50, "label": "Apple", "color": "#3ddc97"}
+  ],
+  "camera": {"x": 50, "y": 50, "zoom": 1},
+  "phases": [
+    {
+      "objects": [
+        {"id": "a", "type": "dot", "x": 25, "y": 65, "label": "Lower Price", "color": "#ff5a5f", "scale": 0.9},
+        {"id": "b", "type": "dot", "x": 75, "y": 35, "label": "Higher Value", "color": "#3ddc97", "scale": 1.15}
+      ]
+    },
+    {
+      "objects": [
+        {"id": "a", "type": "dot", "x": 20, "y": 72, "label": "Price War", "color": "#ff5a5f", "scale": 0.7},
+        {"id": "b", "type": "dot", "x": 80, "y": 28, "label": "Premium Brand", "color": "#3ddc97", "scale": 1.4},
+        {"id": "winner", "type": "label", "x": 80, "y": 10, "label": "Higher Margins", "enter": "scale"}
+      ],
+      "camera": {"x": 80, "y": 18, "zoom": 1.8}
+    }
+  ]
+}
+
+**Transition:** Cross Dissolve
+
+---
+
+### SCENE 5
+
+**Scene Type:** Treemap
+
+**Narration:** Apple's business has grown far beyond selling phones. Today, its revenue comes from a diverse portfolio of products and services that reinforce one another.
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+**Data:**
+{
+  "title": "Apple's Business",
+  "segments": [
+    {
+      "label": "iPhone",
+      "value": 52
+    },
+    {
+      "label": "Services",
+      "value": 22
+    },
+    {
+      "label": "Mac",
+      "value": 10
+    },
+    {
+      "label": "Wearables",
+      "value": 10
+    },
+    {
+      "label": "iPad",
+      "value": 6
+    }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Canvas
+
+**Narration:** Apple doesn't just sell devices. It sells an experience that begins long before you open the box, and keeps looping long after you've made the purchase.
+
+**Duration:** 12 seconds
+
+**Story Beat:** explanation
+
+**Data:** {
+  "title": "The Apple Customer Journey",
+  "objects": [
+    {"id": "discover", "type": "roundedRectangle", "x": 15, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#4f6bff", "label": "Discover"},
+    {"id": "purchase", "type": "roundedRectangle", "x": 40, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#4f6bff", "label": "Purchase"},
+    {"id": "dailyuse", "type": "roundedRectangle", "x": 65, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#4f6bff", "label": "Daily Use"},
+    {"id": "upgrade", "type": "roundedRectangle", "x": 90, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#4f6bff", "label": "Upgrade"}
+  ],
+  "arrows": [
+    {"from": "discover", "to": "purchase"},
+    {"from": "purchase", "to": "dailyuse"},
+    {"from": "dailyuse", "to": "upgrade"}
+  ],
+  "phases": [
+    {
+      "objects": [
+        {"id": "discover", "type": "roundedRectangle", "x": 15, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#4f6bff", "label": "Discover"},
+        {"id": "purchase", "type": "roundedRectangle", "x": 40, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#4f6bff", "label": "Purchase", "scale": 1.2},
+        {"id": "dailyuse", "type": "roundedRectangle", "x": 65, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#4f6bff", "label": "Daily Use", "scale": 1.2},
+        {"id": "upgrade", "type": "roundedRectangle", "x": 90, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#4f6bff", "label": "Upgrade"}
+      ],
+      "arrows": [
+        {"from": "discover", "to": "purchase"},
+        {"from": "purchase", "to": "dailyuse"},
+        {"from": "dailyuse", "to": "upgrade"}
+      ]
+    },
+    {
+      "objects": [
+        {"id": "discover", "type": "roundedRectangle", "x": 15, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#4f6bff", "label": "Discover"},
+        {"id": "purchase", "type": "roundedRectangle", "x": 40, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#4f6bff", "label": "Purchase"},
+        {"id": "dailyuse", "type": "roundedRectangle", "x": 65, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#4f6bff", "label": "Daily Use"},
+        {"id": "upgrade", "type": "roundedRectangle", "x": 90, "y": 50, "width": 18, "height": 15, "radius": 5, "color": "#3ddc97", "label": "Upgrade", "scale": 1.2},
+        {"id": "loop", "type": "label", "x": 52, "y": 20, "label": "The Loop Repeats", "enter": "scale"}
+      ],
+      "arrows": [
+        {"from": "discover", "to": "purchase"},
+        {"from": "purchase", "to": "dailyuse"},
+        {"from": "dailyuse", "to": "upgrade"},
+        {"from": "upgrade", "to": "discover", "style": "dashed", "color": "#3ddc97"}
+      ]
+    }
+  ]
+}
+
+**Transition:** Cross Dissolve
+
+---
+
+### SCENE 7
+
+**Scene Type:** PackedCircles
+
+**Narration:** Apple's value comes from far more than hardware. Several powerful ideas work together to strengthen the brand.
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "What Apple Really Sells",
+  "circles": [
+    {
+      "label": "Design",
+      "value": 25
+    },
+    {
+      "label": "Trust",
+      "value": 22
+    },
+    {
+      "label": "Privacy",
+      "value": 16
+    },
+    {
+      "label": "Status",
+      "value": 20
+    },
+    {
+      "label": "Experience",
+      "value": 28
+    },
+    {
+      "label": "Ecosystem",
+      "value": 35
+    }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Canvas
+
+**Narration:** It usually begins with just one product. For most customers, that's the iPhone.
+
+**Duration:** 12 seconds
+
+**Story Beat:** reveal
+
+**Phases:**
+[
+  {
+    "caption": "One product"
+  },
+  {
+    "startSeconds": 3,
+    "caption": "A second device appears"
+  },
+  {
+    "startSeconds": 6,
+    "caption": "The ecosystem begins"
+  }
+]
+
+**Data:** {
+  "title": "The First Step",
+  "objects": [
+    {"id": "iphone", "type": "dot", "x": 50, "y": 50, "label": "iPhone"}
+  ],
+  "phases": [
+    {
+      "objects": [
+        {"id": "iphone", "type": "dot", "x": 40, "y": 50, "label": "iPhone"},
+        {"id": "airpods", "type": "dot", "x": 70, "y": 50, "label": "AirPods", "enter": "scale"}
+      ],
+      "arrows": [
+        {"from": "iphone", "to": "airpods"}
+      ]
+    },
+    {
+      "objects": [
+        {"id": "iphone", "type": "dot", "x": 40, "y": 50, "label": "iPhone"},
+        {"id": "airpods", "type": "dot", "x": 70, "y": 40, "label": "AirPods"},
+        {"id": "watch", "type": "dot", "x": 70, "y": 65, "label": "Apple Watch", "enter": "scale"}
+      ],
+      "arrows": [
+        {"from": "iphone", "to": "airpods"},
+        {"from": "iphone", "to": "watch"}
+      ]
+    }
+  ]
+}
+
+**Transition:** Cross Dissolve
+
+---
+
+### SCENE 9
+
+**Scene Type:** Canvas
+
+**Narration:** As customers buy more Apple products, each new device becomes another reason to stay inside the ecosystem.
+
+**Duration:** 15 seconds
+
+**Story Beat:** explanation
+
+**Phases:**
+[
+  {
+    "caption": "The ecosystem expands"
+  },
+  {
+    "startSeconds": 3,
+    "caption": "Everything connects"
+  },
+  {
+    "startSeconds": 6,
+    "caption": "Leaving becomes harder"
+  }
+]
+
+**Data:** {
+  "title": "The Apple Ecosystem",
+  "objects": [
+    {"id": "iphone", "type": "dot", "x": 50, "y": 50, "label": "iPhone"},
+    {"id": "watch", "type": "dot", "x": 75, "y": 35, "label": "Watch"},
+    {"id": "airpods", "type": "dot", "x": 75, "y": 65, "label": "AirPods"}
+  ],
+  "camera": {"x": 50, "y": 50, "zoom": 1.35},
+  "phases": [
+    {
+      "objects": [
+        {"id": "iphone", "type": "dot", "x": 50, "y": 50, "label": "iPhone"},
+        {"id": "watch", "type": "dot", "x": 75, "y": 35, "label": "Watch"},
+        {"id": "airpods", "type": "dot", "x": 75, "y": 65, "label": "AirPods"},
+        {"id": "mac", "type": "dot", "x": 25, "y": 35, "label": "Mac", "enter": "scale"},
+        {"id": "ipad", "type": "dot", "x": 25, "y": 65, "label": "iPad", "enter": "scale"}
+      ],
+      "arrows": [
+        {"from": "iphone", "to": "watch"},
+        {"from": "iphone", "to": "airpods"},
+        {"from": "iphone", "to": "mac"},
+        {"from": "iphone", "to": "ipad"}
+      ],
+      "camera": {"x": 50, "y": 50, "zoom": 1.1}
+    },
+    {
+      "objects": [
+        {"id": "iphone", "type": "dot", "x": 50, "y": 50, "label": "iPhone"},
+        {"id": "watch", "type": "dot", "x": 75, "y": 35, "label": "Watch"},
+        {"id": "airpods", "type": "dot", "x": 75, "y": 65, "label": "AirPods"},
+        {"id": "mac", "type": "dot", "x": 25, "y": 35, "label": "Mac"},
+        {"id": "ipad", "type": "dot", "x": 25, "y": 65, "label": "iPad"},
+        {"id": "icloud", "type": "label", "x": 50, "y": 18, "label": "iCloud", "enter": "scale"},
+        {"id": "lockin", "type": "label", "x": 50, "y": 88, "label": "Switching Becomes Harder"}
+      ],
+      "arrows": [
+        {"from": "iphone", "to": "watch"},
+        {"from": "iphone", "to": "airpods"},
+        {"from": "iphone", "to": "mac"},
+        {"from": "iphone", "to": "ipad"},
+        {"from": "iphone", "to": "icloud"}
+      ],
+      "camera": {"x": 50, "y": 50, "zoom": 1}
+    }
+  ]
+}
+
+**Transition:** Cross Dissolve
+
+---
+
+### SCENE 10
+
+**Scene Type:** Radar
+
+**Narration:** Line them up side by side, and the gap isn't just about price. Apple's customers stay more loyal, spend more over time, and are far less likely to ever leave the ecosystem.
+
+**Duration:** 10 seconds
+
+**Story Beat:** comparison
+
+**Data:**
+{
+  "title": "Traditional Brands vs Apple",
+  "axes": [
+    "Loyalty",
+    "Margin",
+    "Repeat Purchases",
+    "Ecosystem Strength",
+    "Brand Perception"
+  ],
+  "series": [
+    {
+      "label": "Traditional Brands",
+      "values": [45, 40, 38, 30, 42]
+    },
+    {
+      "label": "Apple",
+      "values": [88, 82, 85, 90, 91]
+    }
+  ]
+}
+
+---
+
+### SCENE 11
+
+**Scene Type:** Sequence
+
+**Narration:** Apple's advantage isn't built at the checkout. It starts years earlier, by controlling nearly every step of creating its products.
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "Vertical Integration",
+  "beats": [
+    {
+      "marker": "1",
+      "label": "Design"
+    },
+    {
+      "marker": "2",
+      "label": "Develop"
+    },
+    {
+      "marker": "3",
+      "label": "Manufacture"
+    },
+    {
+      "marker": "4",
+      "label": "Sell"
+    }
+  ]
+}
+
+---
+
+### SCENE 12
+
+**Scene Type:** Canvas
+
+**Narration:** While many companies rely heavily on third parties, Apple controls much of the customer journey itself, allowing every stage to reinforce the next.
+
+**Duration:** 15 seconds
+
+**Story Beat:** explanation
+
+**Phases:**
+[
+  {
+    "caption": "The journey begins"
+  },
+  {
+    "startSeconds": 3,
+    "caption": "Apple controls each stage"
+  },
+  {
+    "startSeconds": 6,
+    "caption": "One seamless experience"
+  }
+]
+
+**Data:** {
+  "title": "Apple's Controlled Journey",
+  "objects": [
+    {"id": "design", "type": "rectangle", "x": 15, "y": 50, "width": 17, "height": 15, "color": "#4f6bff", "label": "Design"},
+    {"id": "chip", "type": "rectangle", "x": 40, "y": 50, "width": 17, "height": 15, "color": "#4f6bff", "label": "Apple Silicon"},
+    {"id": "store", "type": "rectangle", "x": 65, "y": 50, "width": 17, "height": 15, "color": "#4f6bff", "label": "Apple Store"},
+    {"id": "customer", "type": "rectangle", "x": 90, "y": 50, "width": 17, "height": 15, "color": "#3ddc97", "label": "Customer"}
+  ],
+  "arrows": [
+    {"from": "design", "to": "chip"},
+    {"from": "chip", "to": "store"},
+    {"from": "store", "to": "customer"}
+  ],
+  "phases": [
+    {
+      "objects": [
+        {"id": "design", "type": "rectangle", "x": 15, "y": 50, "width": 17, "height": 15, "color": "#4f6bff", "label": "Design", "scale": 1.15},
+        {"id": "chip", "type": "rectangle", "x": 40, "y": 50, "width": 17, "height": 15, "color": "#4f6bff", "label": "Apple Silicon"},
+        {"id": "store", "type": "rectangle", "x": 65, "y": 50, "width": 17, "height": 15, "color": "#4f6bff", "label": "Apple Store"},
+        {"id": "customer", "type": "rectangle", "x": 90, "y": 50, "width": 17, "height": 15, "color": "#3ddc97", "label": "Customer"}
+      ],
+      "arrows": [
+        {"from": "design", "to": "chip"},
+        {"from": "chip", "to": "store"},
+        {"from": "store", "to": "customer"}
+      ]
+    },
+    {
+      "objects": [
+        {"id": "design", "type": "rectangle", "x": 15, "y": 50, "width": 17, "height": 15, "color": "#4f6bff", "label": "Design"},
+        {"id": "chip", "type": "rectangle", "x": 40, "y": 50, "width": 17, "height": 15, "color": "#4f6bff", "label": "Apple Silicon"},
+        {"id": "store", "type": "rectangle", "x": 65, "y": 50, "width": 17, "height": 15, "color": "#4f6bff", "label": "Apple Store", "scale": 1.15},
+        {"id": "customer", "type": "rectangle", "x": 90, "y": 50, "width": 17, "height": 15, "color": "#3ddc97", "label": "Customer"},
+        {"id": "experience", "type": "label", "x": 65, "y": 20, "label": "Seamless Experience", "enter": "scale"}
+      ],
+      "arrows": [
+        {"from": "design", "to": "chip"},
+        {"from": "chip", "to": "store"},
+        {"from": "store", "to": "customer"}
+      ],
+      "camera": {"x": 65, "y": 35, "zoom": 1.5}
+    }
+  ]
+}
+
+**Transition:** Cross Dissolve
+
+---
+
+### SCENE 13
+
+**Scene Type:** Funnel
+
+**Narration:** Apple doesn't need every customer. It focuses on turning interested buyers into loyal, long-term users who continue purchasing products and services.
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "Customer Lifetime Strategy",
+  "shape": "funnel",
+  "stages": [
+    {
+      "label": "Awareness",
+      "value": 100
+    },
+    {
+      "label": "Store Visit",
+      "value": 62
+    },
+    {
+      "label": "Purchase",
+      "value": 38
+    },
+    {
+      "label": "Ecosystem",
+      "value": 28
+    },
+    {
+      "label": "Repeat Customer",
+      "value": 21
+    }
+  ]
+}
+
+---
+
+### SCENE 14
+
+**Scene Type:** KpiPanel
+
+**Narration:** Apple's strategy produces impressive financial results. High customer loyalty supports premium pricing, strong margins, and recurring service revenue.
+
+**Duration:** 11 seconds
+
+**Story Beat:** evidence
+
+**Data:**
+{
+  "title": "Business Outcomes",
+  "stats": [
+    {
+      "label": "Brand Loyalty",
+      "value": "High"
+    },
+    {
+      "label": "Gross Margin",
+      "value": "~46%"
+    },
+    {
+      "label": "Services Revenue",
+      "value": "Growing"
+    },
+    {
+      "label": "Upgrade Cycle",
+      "value": "Recurring"
+    }
+  ]
+}
+
+---
+
+### SCENE 15
+
+**Scene Type:** Canvas
+
+**Narration:** This is where everything comes together. A customer buys an iPhone, then gradually adds more Apple products and services. Each purchase spins the flywheel a little faster, making the ecosystem stronger over time.
+
+**Duration:** 18 seconds
+
+**Story Beat:** payoff
+
+**Phases:**
+[
+  {
+    "caption": "First purchase"
+  },
+  {
+    "startSeconds": 3,
+    "caption": "The ecosystem grows"
+  },
+  {
+    "startSeconds": 6,
+    "caption": "Services connect everything"
+  },
+  {
+    "startSeconds": 9,
+    "caption": "A loyal customer"
+  }
+]
+
+**Data:** {
+  "title": "The Apple Flywheel",
+  "objects": [
+    {"id": "iphone", "type": "dot", "x": 50, "y": 50, "label": "iPhone"},
+    {"id": "ring", "type": "circle", "x": 50, "y": 50, "radius": 15, "color": "#4f6bff", "filled": false, "strokeWidth": 2, "rotation": 0}
+  ],
+  "camera": {"x": 50, "y": 50, "zoom": 1.6},
+  "phases": [
+    {
+      "objects": [
+        {"id": "iphone", "type": "dot", "x": 50, "y": 50, "label": "iPhone"},
+        {"id": "ring", "type": "circle", "x": 50, "y": 50, "radius": 28, "color": "#4f6bff", "filled": false, "strokeWidth": 2.5, "rotation": 180},
+        {"id": "watch", "type": "dot", "x": 72, "y": 32, "label": "Watch", "enter": "scale"},
+        {"id": "airpods", "type": "dot", "x": 72, "y": 68, "label": "AirPods", "enter": "scale"}
+      ],
+      "arrows": [
+        {"from": "iphone", "to": "watch"},
+        {"from": "iphone", "to": "airpods"}
+      ],
+      "camera": {"x": 50, "y": 50, "zoom": 1.3}
+    },
+    {
+      "objects": [
+        {"id": "iphone", "type": "dot", "x": 50, "y": 50, "label": "iPhone"},
+        {"id": "ring", "type": "circle", "x": 50, "y": 50, "radius": 40, "color": "#3ddc97", "filled": false, "strokeWidth": 3, "rotation": 450},
+        {"id": "watch", "type": "dot", "x": 72, "y": 32, "label": "Watch"},
+        {"id": "airpods", "type": "dot", "x": 72, "y": 68, "label": "AirPods"},
+        {"id": "mac", "type": "dot", "x": 28, "y": 32, "label": "Mac", "enter": "scale"},
+        {"id": "ipad", "type": "dot", "x": 28, "y": 68, "label": "iPad", "enter": "scale"},
+        {"id": "services", "type": "label", "x": 50, "y": 15, "label": "Services", "enter": "scale"}
+      ],
+      "arrows": [
+        {"from": "iphone", "to": "watch"},
+        {"from": "iphone", "to": "airpods"},
+        {"from": "iphone", "to": "mac"},
+        {"from": "iphone", "to": "ipad"},
+        {"from": "iphone", "to": "services"}
+      ],
+      "camera": {"x": 50, "y": 50, "zoom": 1.05}
+    },
+    {
+      "objects": [
+        {"id": "iphone", "type": "dot", "x": 50, "y": 50, "label": "iPhone"},
+        {"id": "ring", "type": "circle", "x": 50, "y": 50, "radius": 48, "color": "#3ddc97", "filled": false, "strokeWidth": 3.5, "rotation": 720},
+        {"id": "watch", "type": "dot", "x": 72, "y": 32, "label": "Watch"},
+        {"id": "airpods", "type": "dot", "x": 72, "y": 68, "label": "AirPods"},
+        {"id": "mac", "type": "dot", "x": 28, "y": 32, "label": "Mac"},
+        {"id": "ipad", "type": "dot", "x": 28, "y": 68, "label": "iPad"},
+        {"id": "services", "type": "label", "x": 50, "y": 15, "label": "Services"},
+        {"id": "loyalty", "type": "label", "x": 50, "y": 90, "label": "High Customer Loyalty", "enter": "scale"}
+      ],
+      "arrows": [
+        {"from": "iphone", "to": "watch"},
+        {"from": "iphone", "to": "airpods"},
+        {"from": "iphone", "to": "mac"},
+        {"from": "iphone", "to": "ipad"},
+        {"from": "iphone", "to": "services"}
+      ],
+      "camera": {"x": 50, "y": 50, "zoom": 1}
+    }
+  ]
+}
+
+**Transition:** Cross Dissolve
+
+---
+
+### SCENE 16
+
+**Scene Type:** BarChart
+
+**Narration:** Competing on price often means accepting smaller profits. Apple chooses a different path by protecting its premium position instead of joining price wars.
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+**Data:**
+{
+  "title": "Two Business Strategies",
+  "bars": [
+    {
+      "label": "Price Competition",
+      "value": 25
+    },
+    {
+      "label": "Premium Strategy",
+      "value": 46
+    }
+  ],
+  "suffix": "%"
+}
+
+---
+
+### SCENE 17
+
+**Scene Type:** Canvas
+
+**Narration:** Imagine two companies. One keeps lowering prices to attract customers. The other keeps improving the customer experience. Over time, they don't just end up in different places — they end up completely different sizes.
+
+**Duration:** 15 seconds
+
+**Story Beat:** comparison
+
+**Phases:**
+[
+  {
+    "caption": "Both start the same size"
+  },
+  {
+    "startSeconds": 3,
+    "caption": "Different strategies"
+  },
+  {
+    "startSeconds": 6,
+    "caption": "Different outcomes"
+  }
+]
+
+**Data:** {
+  "title": "Competing On Price vs Competing On Value",
+  "objects": [
+    {"id": "brandA", "type": "circle", "x": 32, "y": 55, "radius": 14, "color": "#ff5a5f", "label": "Company A"},
+    {"id": "apple", "type": "circle", "x": 68, "y": 55, "radius": 14, "color": "#3ddc97", "label": "Apple"}
+  ],
+  "camera": {"x": 50, "y": 50, "zoom": 1},
+  "phases": [
+    {
+      "objects": [
+        {"id": "brandA", "type": "circle", "x": 30, "y": 62, "radius": 10, "color": "#ff5a5f", "label": "Lower Prices"},
+        {"id": "apple", "type": "circle", "x": 70, "y": 48, "radius": 20, "color": "#3ddc97", "label": "Higher Value"}
+      ]
+    },
+    {
+      "objects": [
+        {"id": "brandA", "type": "circle", "x": 25, "y": 70, "radius": 6, "color": "#ff5a5f", "label": "Price War"},
+        {"id": "apple", "type": "circle", "x": 72, "y": 40, "radius": 30, "color": "#3ddc97", "label": "Premium Brand"}
+      ],
+      "camera": {"x": 65, "y": 45, "zoom": 1.4}
+    }
+  ]
+}
+
+**Transition:** Cross Dissolve
+
+---
+
+### SCENE 18
+
+**Scene Type:** Treemap
+
+**Narration:** Apple's success isn't built on a single product. It's the combination of hardware, software, services, and customer loyalty that makes the business so difficult to replicate.
+
+**Duration:** 11 seconds
+
+**Story Beat:** payoff
+
+**Data:**
+{
+  "title": "Apple's Competitive Advantages",
+  "segments": [
+    {
+      "label": "Brand",
+      "value": 24
+    },
+    {
+      "label": "Ecosystem",
+      "value": 23
+    },
+    {
+      "label": "Hardware",
+      "value": 18
+    },
+    {
+      "label": "Software",
+      "value": 15
+    },
+    {
+      "label": "Services",
+      "value": 12
+    },
+    {
+      "label": "Retail",
+      "value": 8
+    }
+  ]
+}
+
+---
+
+### SCENE 19
+
+**Scene Type:** Quote
+
+**Narration:** Companies that compete only on price often become commodities. Companies that create unique value earn the freedom to charge more.
+
+**Duration:** 8 seconds
+
+**Story Beat:** reflection
+
+**Data:**
+{
+  "quote": "Price is what you pay. Value is what you get.",
+  "attribution": "Warren Buffett"
+}
+
+---
+
+### SCENE 20
+
+**Scene Type:** Chapter
+
+**Annotation:** More Than A Phone Company
+
+**Narration:** Apple doesn't avoid price competition because it can't lower prices. It avoids price competition because it built a business where customers value the complete experience more than the price tag. That's why Apple isn't simply selling devices. It's selling an ecosystem, a brand, and a relationship that millions of customers choose to stay in year after year.
+
+**Duration:** 11 seconds
+
+**Story Beat:** payoff

@@ -3,6 +3,7 @@ import { VISUAL_DEFINITIONS } from "../model/visualDefinitions";
 import { resolvePattern, TACTICAL_PATTERNS, type PatternRole, type PatternRoleTemplate } from "../video/tacticalPatterns";
 import { findAsset, findPersonArt } from "../video/assets";
 import { PHASE_DURATION_FRAMES } from "../video/compositions/TacticalBoard";
+import { CANVAS_PHASE_DURATION_FRAMES } from "../video/compositions/Canvas";
 import { FPS } from "../video/theme";
 
 const SCENE_MARKER = /^### SCENE \d+/;
@@ -23,14 +24,18 @@ const CAMERA_ARROW = /→|->/; // the "→" glyph used between multi-stage camer
 const MIN_REAL_AUDIO_FLOOR_SECONDS = 2;
 
 /** Only a visual with genuine multi-beat choreography earns a floor above
- * the bare minimum — right now that's a multi-phase TacticalBoard, whose
- * phases each hold the screen for PHASE_DURATION_FRAMES so a real breakdown
- * legitimately runs long because it has real content, not because of an
- * inflated word-count guess. */
+ * the bare minimum — right now that's a multi-phase TacticalBoard or Canvas,
+ * each of whose phases hold the screen for a fixed per-phase frame count so a
+ * real breakdown legitimately runs long because it has real content, not
+ * because of an inflated word-count guess. */
 function computeVisualMinDurationSeconds(visual: Visual | undefined): number {
   if (visual?.kind === "tactical-board" && visual.phases && visual.phases.length > 0) {
     const phaseCount = 1 + visual.phases.length;
     return (phaseCount * PHASE_DURATION_FRAMES) / FPS;
+  }
+  if (visual?.kind === "canvas" && visual.phases && visual.phases.length > 0) {
+    const phaseCount = 1 + visual.phases.length;
+    return (phaseCount * CANVAS_PHASE_DURATION_FRAMES) / FPS;
   }
   return MIN_REAL_AUDIO_FLOOR_SECONDS;
 }
@@ -479,6 +484,56 @@ function resolveBoardPosition(visual: Visual, fields: SceneFields): "left" | "ri
   return value && BOARD_POSITION_KEYS.has(value) ? (value as "left" | "right" | "center") : undefined;
 }
 
+/** An optional **Animation:** field — cross-visual reveal control (stagger
+ * timing, reveal order, a gentle pulse) parsed as JSON, same convention as
+ * **Data:**. Currently only Grid/BarChart read the result; every other
+ * visual kind simply ignores it. This field previously existed as free
+ * prose that was never read anywhere, so this parse is wrapped in try/catch:
+ * any existing script's prose-style Animation value just fails to parse and
+ * returns undefined, identical to today's behavior. */
+function resolveAnimation(
+  fields: SceneFields,
+): { staggerSeconds?: number; focusOrder?: number[]; pulse?: boolean } | undefined {
+  const raw = fields["Animation"];
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return undefined;
+    const { staggerSeconds, focusOrder, pulse } = parsed as Record<string, unknown>;
+    return {
+      staggerSeconds: typeof staggerSeconds === "number" ? staggerSeconds : undefined,
+      focusOrder: Array.isArray(focusOrder) && focusOrder.every((n) => typeof n === "number") ? focusOrder : undefined,
+      pulse: typeof pulse === "boolean" ? pulse : undefined,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/** An optional **Phases:** field — an independent sequence of on-screen
+ * captions playing over the scene's own duration, parsed as a JSON array.
+ * Works identically across every visual kind since it renders as a shared
+ * overlay, not per-card. Does not collide with TacticalBoard's own nested
+ * `Data.phases` JSON property — different field, different scope, different
+ * meaning (player-position choreography vs. caption sequencing). */
+function resolvePhases(fields: SceneFields): { caption: string; startSeconds?: number }[] | undefined {
+  const raw = fields["Phases"];
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return undefined;
+    const phases = parsed
+      .filter((p): p is Record<string, unknown> => typeof p === "object" && p !== null && typeof p.caption === "string")
+      .map((p) => ({
+        caption: p.caption as string,
+        startSeconds: typeof p.startSeconds === "number" ? p.startSeconds : undefined,
+      }));
+    return phases.length > 0 ? phases : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** A jersey image per side of a Formation scene, keyed by "home"/"away" —
  * only included when a real asset exists for that team, so a side with no
  * jersey art falls back to Formation's plain colored disc. */
@@ -490,6 +545,28 @@ function resolveJerseyImages(visual: Visual): Partial<Record<"home" | "away", st
     if (jersey) images[side.side] = jersey;
   }
   return Object.keys(images).length > 0 ? images : undefined;
+}
+
+/** Shared by the Statement Scene Type and by the graceful-degradation
+ * fallback when some other Scene Type's visual fails to resolve — plain
+ * kinetic-typography text over Narration, no Data/visual required. Returns
+ * null only if `narration` itself is somehow empty (segmentSchema requires
+ * non-empty text), which can't happen given the `!narration` guard already
+ * run before either caller. */
+function buildStatementFallback(fields: SceneFields, narration: string): TimedSegment | null {
+  const result = segmentSchema.safeParse({ type: "statement", text: narration, visual: undefined });
+  if (!result.success) return null;
+  const durationSeconds = parseDurationSeconds(fields["Duration"]);
+  const storyBeat = resolveStoryBeat(fields);
+  return {
+    ...result.data,
+    durationSeconds,
+    visualMinDurationSeconds: MIN_REAL_AUDIO_FLOOR_SECONDS,
+    transitionOut: parseTransitionOut(fields["Transition"]),
+    transitionStyle: resolveTransitionStyle(fields, storyBeat),
+    storyBeat,
+    panelColor: resolvePanelColor(fields),
+  };
 }
 
 /**
@@ -534,31 +611,26 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
 
     // Statement is the other odd one out: kinetic-typography text over the
     // Narration itself (StatementCard), with no Data/visual at all — for a
-    // welcome/sign-off line that doesn't need a graphic. Previously
-    // unreachable from this format entirely: resolveVisual has no case for
-    // an unrecognized Scene Type other than returning null, and the main
-    // path below skips (continue) any block whose visual doesn't resolve —
-    // so a scene meant to fall back to plain text just vanished instead of
-    // rendering. Special-cased the same way Chapter is, before that skip.
+    // welcome/sign-off line that doesn't need a graphic.
     if (sceneType.trim().toLowerCase() === "statement") {
-      const statementResult = segmentSchema.safeParse({ type: "statement", text: narration, visual: undefined });
-      if (!statementResult.success) continue;
-      const statementDurationSeconds = parseDurationSeconds(fields["Duration"]);
-      const statementStoryBeat = resolveStoryBeat(fields);
-      segments.push({
-        ...statementResult.data,
-        durationSeconds: statementDurationSeconds,
-        visualMinDurationSeconds: MIN_REAL_AUDIO_FLOOR_SECONDS,
-        transitionOut: parseTransitionOut(fields["Transition"]),
-        transitionStyle: resolveTransitionStyle(fields, statementStoryBeat),
-        storyBeat: statementStoryBeat,
-        panelColor: resolvePanelColor(fields),
-      });
+      const statementSegment = buildStatementFallback(fields, narration);
+      if (statementSegment) segments.push(statementSegment);
       continue;
     }
 
     const visual = resolveVisual(sceneType, fields);
-    if (!visual) continue; // unresolvable scene type/pattern for now — skip gracefully
+    if (!visual) {
+      // A Scene Type that doesn't resolve (unrecognized type, or a
+      // recognized one whose **Data:** field is missing/invalid/mismatched
+      // for that visual's schema) previously dropped the ENTIRE scene here
+      // — not just its visual, but its narration and duration too, with no
+      // indication anything was wrong. Fall back to a plain Statement
+      // instead, same principle as Statement's own special case above: a
+      // scene should still speak its line rather than vanish silently.
+      const fallbackSegment = buildStatementFallback(fields, narration);
+      if (fallbackSegment) segments.push(fallbackSegment);
+      continue;
+    }
 
     const result = segmentSchema.safeParse({ type: "statement", text: narration, visual });
     if (!result.success) continue;
@@ -583,6 +655,8 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
       iconImage: resolveIconImage(visual),
       jerseyImages: resolveJerseyImages(visual),
       boardPosition: resolveBoardPosition(visual, fields),
+      animation: resolveAnimation(fields),
+      phases: resolvePhases(fields),
     });
   }
 

@@ -1,9 +1,9 @@
 import React from "react";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
 import { COLORS, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { IconGlyph } from "./IconInfographicCard";
-import { fadeIn, scaleSettle } from "../motion";
+import { fadeIn, scaleSettle, pulse, resolveRevealOrder } from "../motion";
 import type { SharedVisualProps, GridData } from "../sharedVisualProps";
 
 const TILE_WIDTH = 380;
@@ -18,12 +18,17 @@ export const GridCard: React.FC<{ data: GridData } & SharedVisualProps> = ({
   data: { title, items },
   backgroundColor,
   orientation,
+  animation,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
   const isPortrait = orientation === "portrait";
   const tileWidth = isPortrait ? TILE_WIDTH_PORTRAIT : TILE_WIDTH;
   const maxWidth = isPortrait ? 980 : 1760;
   const titleOpacity = fadeIn(frame, 0, 10);
+  const staggerFrames =
+    animation?.staggerSeconds !== undefined ? Math.round(animation.staggerSeconds * fps) : TILE_STAGGER_FRAMES;
+  const revealOrder = animation?.focusOrder ? resolveRevealOrder(animation.focusOrder, items.length) : null;
 
   return (
     <SceneFrame backgroundColor={backgroundColor} orientation={orientation}>
@@ -31,9 +36,11 @@ export const GridCard: React.FC<{ data: GridData } & SharedVisualProps> = ({
         {title && <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 44, textAlign: "left" }}>{title}</div>}
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center" }}>
           {items.map((item, index) => {
-            const start = 10 + index * TILE_STAGGER_FRAMES;
+            const revealPosition = revealOrder ? revealOrder[index] : index;
+            const start = 10 + revealPosition * staggerFrames;
             const opacity = fadeIn(frame, start, 14);
-            const scale = scaleSettle(frame, start, 16, 0.9);
+            const settledScale = scaleSettle(frame, start, 16, 0.9);
+            const scale = animation?.pulse ? settledScale * pulse(frame, 90, 0.97, 1.03, index * 0.6) : settledScale;
             const drawProgress = fadeIn(frame, start + 4, 14);
 
             return (

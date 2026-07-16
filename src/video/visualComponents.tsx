@@ -30,6 +30,7 @@ import { QuoteCard } from "./compositions/QuoteCard";
 import { CareerPathCard } from "./compositions/CareerPathCard";
 import { GridCard } from "./compositions/GridCard";
 import { IconInfographicCard } from "./compositions/IconInfographicCard";
+import { Canvas } from "./compositions/Canvas";
 
 type DataFor<K extends Visual["kind"]> = Extract<Visual, { kind: K }>;
 
@@ -69,4 +70,5 @@ export const VISUAL_COMPONENTS: { [K in Visual["kind"]]: React.FC<{ data: DataFo
   "career-path": CareerPathCard,
   grid: GridCard,
   icon: IconInfographicCard,
+  canvas: Canvas,
 };
