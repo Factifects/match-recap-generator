@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { parseAnalysisScript } from "./script/parseAnalysisScript";
 import { parseSceneScript, isSceneScript } from "./script/parseSceneScript";
+import { autoFixGeometry } from "./script/validateGeometry";
 import { resolveSegmentAudio, generateBackgroundMusic, type TtsProvider } from "./audio/resolveAudio";
 import { renderVideo, type RenderProgress } from "./render/renderVideo";
 import type { TimedSegment, AspectRatio, AudioClipPlacement } from "./model/Segment";
@@ -122,6 +123,17 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
       ? `Using ${segments.length} segments from the timeline preview (already reordered/trimmed).`
       : `Parsed ${segments.length} segments as ${usedSceneFormat ? "scene-spec" : "prose+tags"} format.`,
   );
+
+  // Auto-corrects the recurring "LW/RW (or Formation slot order) backwards"
+  // mistake instead of blocking generation on it — see validateGeometry.ts.
+  // Applied unconditionally (including pre-parsed timeline-preview segments)
+  // since it's a no-op when everything's already correct.
+  const { segments: geometryFixedSegments, fixes } = autoFixGeometry(segments);
+  segments = geometryFixedSegments;
+  if (fixes.length > 0) {
+    log(`Auto-corrected ${fixes.length} left/right position mistake${fixes.length > 1 ? "s" : ""}:`);
+    fixes.forEach((fix) => log(`  - ${fix}`));
+  }
 
   let backgroundMusicPath = options.backgroundMusicPath;
   if (options.withAudio) {
