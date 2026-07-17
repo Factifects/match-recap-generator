@@ -56,25 +56,27 @@ const ARROW_STYLE_PRESETS: Record<ArrowStyle, { color?: string; strokeWidth: num
 // preset — maps TacticalBoard's evented `timeline` `move` actions onto this
 // component's already-proven `bow`/`style` parameters instead of inventing
 // new geometry per run type. Sign of `bow` only matters relative to travel
-// direction (positive = curves to the right of travel, negative = left);
-// magnitude is a starting point tuned by eye against the Gegenpressing test
-// scene, not a precise tactical measurement. `standard`/`counterRun`/
-// `diagonalRun` stay straight (bow 0) — their identity comes from the
-// authored `to` point (a diagonal/counter run IS its direction), not from
-// added curvature.
+// direction (positive = curves to the right of travel, negative = left).
+// `standard`/`counterRun`/`diagonalRun` stay straight (bow 0) — their
+// identity comes from the authored `to` point (a diagonal/counter run IS its
+// direction), not from added curvature. Magnitudes bumped up from the
+// original Gegenpressing-tuned values (~40-60% stronger across the board)
+// after real feedback that the original curves read as "short lines that
+// display once," too subtle to register as a distinct run identity at a
+// glance — these are still a starting point, not a precise measurement.
 export const RUN_TYPE_GEOMETRY: Record<RunType, { bow: number; style?: ArrowStyle }> = {
   standard: { bow: 0 },
-  overlap: { bow: 55 },
-  underlap: { bow: -35 },
-  blindsideRun: { bow: 10 },
+  overlap: { bow: 75 },
+  underlap: { bow: -50 },
+  blindsideRun: { bow: 18 },
   diagonalRun: { bow: 0 },
-  thirdManRun: { bow: 20, style: "third-man-run" },
-  recoveryRun: { bow: -15, style: "recovery" },
+  thirdManRun: { bow: 32, style: "third-man-run" },
+  recoveryRun: { bow: -24, style: "recovery" },
   counterRun: { bow: 0 },
-  dummyRun: { bow: 15 },
-  supportRun: { bow: 25 },
-  channelRun: { bow: 45 },
-  halfSpaceRun: { bow: 30 },
+  dummyRun: { bow: 24 },
+  supportRun: { bow: 38 },
+  channelRun: { bow: 62 },
+  halfSpaceRun: { bow: 44 },
 };
 
 // A real render showed a "pass" arrow reading as just a static colored line

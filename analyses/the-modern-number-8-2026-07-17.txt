@@ -1,0 +1,1409 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Annotation:** THE MODERN NUMBER 8
+
+**Narration:** The Number 8 is no longer just another midfielder. In today's game, they are the engine that connects defense to attack, controls the rhythm, creates chances, and arrives in the box when nobody expects them.
+
+**Duration:** 8 seconds
+
+**Story Beat:** hook
+
+**Transition Style:** zoom in
+
+---
+
+### SCENE 2
+
+**Scene Type:** Formation
+
+**Annotation:** Position in a 4-3-3
+
+**Narration:** In a modern 4-3-3, the Number 8 operates between the holding midfielder and the forwards. They constantly move between lines, offering passing options while supporting attacks and defensive transitions.
+
+**Duration:** 12 seconds
+
+**Camera:** wide
+
+**Panel Color:** blue
+
+**Phases:**
+[
+  {
+    "caption": "Starting structure"
+  },
+  {
+    "caption": "Number 8 pushes higher"
+  },
+  {
+    "caption": "Creating a passing triangle"
+  }
+]
+
+**Data:**
+{
+  "title": "Modern 4-3-3",
+  "sides": [
+    {
+      "team": "Blue",
+      "formationName": "4-3-3",
+      "players": [
+        { "name": "GK" },
+        { "name": "RB" },
+        { "name": "RCB" },
+        { "name": "LCB" },
+        { "name": "LB" },
+        { "name": "R8" },
+        { "name": "6" },
+        { "name": "L8" },
+        { "name": "RW" },
+        { "name": "ST" },
+        { "name": "LW" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** TacticalBoard
+
+**Annotation:** Build-Up Phase
+
+**Narration:** During build-up, the Number 8 constantly scans for space. Instead of standing beside the Number 6, they move into pockets where defenders hesitate to follow.
+
+**Duration:** 15 seconds
+
+**Camera:** full pitch → central channel → follow L8
+
+**Panel Color:** neutral
+
+**Board Position:** right
+
+**Data:**
+{
+  "title": "Finding Space During Build-Up",
+  "players": [
+    { "id": "gk", "x": 6, "y": 50, "team": "home", "label": "GK" },
+    { "id": "lcb", "x": 18, "y": 38, "team": "home", "label": "RCB" },
+    { "id": "rcb", "x": 18, "y": 62, "team": "home", "label": "LCB" },
+    { "id": "six", "x": 32, "y": 50, "team": "home", "label": "6" },
+    { "id": "l8", "x": 42, "y": 34, "team": "home", "label": "8" },
+    { "id": "r8", "x": 42, "y": 66, "team": "home", "label": "8" },
+    { "id": "st", "x": 78, "y": 50, "team": "home", "label": "ST" },
+    { "id": "op1", "x": 48, "y": 45, "team": "away", "label": "CM" },
+    { "id": "op2", "x": 48, "y": 58, "team": "away", "label": "CM" },
+    { "id": "op3", "x": 67, "y": 50, "team": "away", "label": "DM" }
+  ],
+  "ball": {
+    "x": 6,
+    "y": 50,
+    "belongsTo": "gk"
+  },
+  "timeline": [
+    {
+      "type": "possession",
+      "startSeconds": 0.3,
+      "fromId": "gk",
+      "toId": "lcb"
+    },
+    {
+      "type": "move",
+      "actorId": "l8",
+      "startSeconds": 0.8,
+      "durationSeconds": 0.5,
+      "to": {
+        "x": 46,
+        "y": 40
+      },
+      "runType": "supportRun"
+    },
+    {
+      "type": "move",
+      "actorId": "l8",
+      "startSeconds": 1.3,
+      "durationSeconds": 1.0,
+      "to": {
+        "x": 52,
+        "y": 27
+      },
+      "runType": "halfSpaceRun"
+    },
+    {
+      "type": "camera",
+      "startSeconds": 1.3,
+      "focus": {
+        "x": 52,
+        "y": 30
+      },
+      "zoom": 1.18
+    },
+    {
+      "type": "freeze",
+      "startSeconds": 2.6,
+      "durationSeconds": 2,
+      "annotations": [
+        {
+          "text": "Between the lines",
+          "x": 56,
+          "y": 25
+        }
+      ],
+      "circles": [
+        {
+          "x": 52,
+          "y": 27,
+          "radius": 7
+        }
+      ]
+    },
+    {
+      "type": "possession",
+      "startSeconds": 5,
+      "fromId": "lcb",
+      "toId": "l8"
+    }
+  ],
+  "tacticalObjects": [
+    {
+      "shape": "lane",
+      "from": {
+        "x": 18,
+        "y": 38
+      },
+      "to": {
+        "x": 52,
+        "y": 27
+      }
+    }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** PassNetwork
+
+**Annotation:** Connecting Every Phase
+
+**Narration:** Elite Number 8s become the team's connection point. They receive from defenders, combine with midfielders, and supply the forwards more than almost anyone else.
+
+**Duration:** 10 seconds
+
+**Panel Color:** yellow
+
+**Animation:**
+{
+  "staggerSeconds": 0.25,
+  "pulse": true
+}
+
+**Data:**
+{
+  "title": "Typical Passing Network",
+  "nodes": [
+    { "id": "GK", "x": 8, "y": 50, "team": "home", "label": "GK" },
+    { "id": "LCB", "x": 18, "y": 35, "team": "home", "label": "RCB" },
+    { "id": "RCB", "x": 18, "y": 65, "team": "home", "label": "LCB" },
+    { "id": "6", "x": 34, "y": 50, "team": "home", "label": "6" },
+    { "id": "8L", "x": 52, "y": 34, "team": "home", "label": "8" },
+    { "id": "8R", "x": 52, "y": 66, "team": "home", "label": "8" },
+    { "id": "LW", "x": 82, "y": 20, "team": "home", "label": "RW" },
+    { "id": "ST", "x": 86, "y": 50, "team": "home", "label": "ST" },
+    { "id": "RW", "x": 82, "y": 80, "team": "home", "label": "LW" }
+  ],
+  "links": [
+    { "from": "GK", "to": "LCB", "weight": 24 },
+    { "from": "GK", "to": "RCB", "weight": 22 },
+    { "from": "LCB", "to": "6", "weight": 39 },
+    { "from": "RCB", "to": "6", "weight": 36 },
+    { "from": "6", "to": "8L", "weight": 58 },
+    { "from": "6", "to": "8R", "weight": 53 },
+    { "from": "8L", "to": "LW", "weight": 41 },
+    { "from": "8L", "to": "ST", "weight": 37 },
+    { "from": "8R", "to": "RW", "weight": 39 },
+    { "from": "8R", "to": "ST", "weight": 42 },
+    { "from": "8L", "to": "8R", "weight": 27 }
+  ]
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** HeatMap
+
+**Annotation:** Everywhere on the Pitch
+
+**Narration:** Unlike specialists who dominate one area, the Number 8 influences every phase of play. Their heat map stretches from their own defensive third all the way to the opponent's penalty area.
+
+**Duration:** 11 seconds
+
+**Panel Color:** red
+
+**Camera:** full pitch
+
+**Phases:**
+[
+  {
+    "caption": "Helping build attacks"
+  },
+  {
+    "caption": "Supporting possession"
+  },
+  {
+    "caption": "Arriving in the final third"
+  }
+]
+
+**Data:**
+{
+  "title": "Typical Number 8 Heat Map",
+  "zones": [
+    { "x": 22, "y": 50, "intensity": 0.42 },
+    { "x": 32, "y": 44, "intensity": 0.63 },
+    { "x": 34, "y": 58, "intensity": 0.59 },
+    { "x": 46, "y": 35, "intensity": 0.81 },
+    { "x": 48, "y": 50, "intensity": 0.94 },
+    { "x": 49, "y": 66, "intensity": 0.87 },
+    { "x": 58, "y": 42, "intensity": 0.90 },
+    { "x": 61, "y": 56, "intensity": 0.88 },
+    { "x": 70, "y": 34, "intensity": 0.71 },
+    { "x": 72, "y": 50, "intensity": 0.79 },
+    { "x": 73, "y": 66, "intensity": 0.68 },
+    { "x": 82, "y": 48, "intensity": 0.55 }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** TacticalBoard
+
+**Annotation:** Creating a Midfield Overload
+
+**Narration:** One of the Number 8's biggest jobs is creating numerical superiority. By drifting inside at the right moment, they turn a two-versus-two midfield into a three-versus-two advantage.
+
+**Duration:** 16 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** blue
+
+**Camera:** full pitch → central channel → follow 8
+
+**Board Position:** left
+
+**Data:**
+{
+  "title": "3v2 Midfield Overload",
+  "players": [
+    { "id":"gk","x":6,"y":50,"team":"home","label":"GK"},
+    { "id":"lcb","x":20,"y":40,"team":"home","label":"RCB"},
+    { "id":"rcb","x":20,"y":60,"team":"home","label":"LCB"},
+    { "id":"6","x":34,"y":50,"team":"home","label":"6"},
+    { "id":"8","x":45,"y":28,"team":"home","label":"8"},
+    { "id":"10","x":58,"y":50,"team":"home","label":"10"},
+    { "id":"9","x":82,"y":50,"team":"home","label":"9"},
+    { "id":"m1","x":46,"y":43,"team":"away","label":"CM"},
+    { "id":"m2","x":46,"y":58,"team":"away","label":"CM"}
+  ],
+  "ball":{
+    "x":34,
+    "y":50,
+    "belongsTo":"6"
+  },
+  "timeline":[
+    {
+      "type":"move",
+      "actorId":"8",
+      "startSeconds":0.5,
+      "durationSeconds":1.2,
+      "to":{"x":48,"y":40},
+      "runType":"supportRun"
+    },
+    {
+      "type":"camera",
+      "startSeconds":0.8,
+      "focus":{"x":48,"y":45},
+      "zoom":1.2
+    },
+    {
+      "type":"possession",
+      "startSeconds":2,
+      "fromId":"6",
+      "toId":"8"
+    },
+    {
+      "type":"freeze",
+      "startSeconds":3.5,
+      "durationSeconds":2,
+      "annotations":[
+        {
+          "text":"3 vs 2 created",
+          "x":49,
+          "y":47
+        }
+      ],
+      "circles":[
+        {
+          "x":48,
+          "y":40,
+          "radius":8
+        }
+      ]
+    },
+    {
+      "type":"possession",
+      "startSeconds":6,
+      "fromId":"8",
+      "toId":"10"
+    }
+  ],
+  "tacticalObjects":[
+    {
+      "shape":"triangle",
+      "points":[
+        {"x":34,"y":50},
+        {"x":48,"y":40},
+        {"x":58,"y":50}
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Analysis
+
+**Annotation:** Playing Between The Lines
+
+**Narration:** The smartest Number 8s don't run into crowded areas. They wait in the blind spot between midfield and defense, where neither opponent knows who should pick them up.
+
+**Duration:** 11 seconds
+
+**Camera:** close tactical
+
+**Panel Color:** yellow
+
+**Data:**
+{
+  "title":"Finding The Blind Spot",
+  "players":[
+    {"id":"8","x":56,"y":47,"team":"home","label":"8"},
+    {"id":"cb","x":67,"y":50,"team":"away","label":"CB"},
+    {"id":"dm","x":48,"y":50,"team":"away","label":"DM"},
+    {"id":"6","x":34,"y":48,"team":"home","label":"6"},
+    {"id":"9","x":82,"y":50,"team":"home","label":"9"}
+  ],
+  "gazeLines":[
+    {
+      "from":"dm",
+      "to":{"x":34,"y":48}
+    },
+    {
+      "from":"cb",
+      "to":{"x":82,"y":50}
+    }
+  ],
+  "revealCaption":"The Number 8 occupies the gap neither defender is watching."
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** TacticalBoard
+
+**Annotation:** Third-Man Combination
+
+**Narration:** Elite Number 8s rarely keep the ball for long. Instead, they become the third man, receiving one pass before instantly releasing another to eliminate multiple defenders.
+
+**Duration:** 18 seconds
+
+**Camera:** central channel → follow 8 → follow 9
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title":"Third-Man Combination",
+  "players":[
+    {"id":"6","x":35,"y":50,"team":"home","label":"6"},
+    {"id":"8","x":52,"y":42,"team":"home","label":"8"},
+    {"id":"9","x":75,"y":50,"team":"home","label":"9"},
+    {"id":"10","x":62,"y":62,"team":"home","label":"10"},
+    {"id":"dm","x":55,"y":50,"team":"away","label":"DM"},
+    {"id":"cb","x":70,"y":45,"team":"away","label":"CB"}
+  ],
+  "ball":{
+    "x":35,
+    "y":50,
+    "belongsTo":"6"
+  },
+  "timeline":[
+    {
+      "type":"possession",
+      "startSeconds":0.5,
+      "fromId":"6",
+      "toId":"8"
+    },
+    {
+      "type":"move",
+      "actorId":"9",
+      "startSeconds":1,
+      "durationSeconds":1.6,
+      "to":{"x":84,"y":46},
+      "runType":"blindsideRun"
+    },
+    {
+      "type":"possession",
+      "startSeconds":2,
+      "fromId":"8",
+      "toId":"9"
+    },
+    {
+      "type":"freeze",
+      "startSeconds":3.5,
+      "durationSeconds":2,
+      "annotations":[
+        {
+          "text":"Two passes eliminate four defenders",
+          "x":61,
+          "y":34
+        }
+      ]
+    }
+  ],
+  "tacticalObjects":[
+    {
+      "shape":"lane",
+      "from":{"x":52,"y":42},
+      "to":{"x":84,"y":46}
+    }
+  ]
+}
+
+---
+
+### SCENE 9
+
+**Scene Type:** GoalSequence
+
+**Annotation:** Arriving Late
+
+**Narration:** Unlike a striker, the Number 8 attacks the box late. Defenders lose track of them, creating space for a clean finish.
+
+**Duration:** 9 seconds
+
+**Panel Color:** red
+
+**Camera:** box
+
+**Data:**
+{
+  "title":"Late Box Arrival",
+  "shooter":"Number 8",
+  "from":{
+    "x":74,
+    "y":44
+  },
+  "to":{
+    "x":97,
+    "y":51
+  },
+  "keeper":"Goalkeeper",
+  "keeperAt":{
+    "x":96,
+    "y":50
+  },
+  "curve":true
+}
+
+---
+
+### SCENE 10
+
+**Scene Type:** ShotMap
+
+**Annotation:** Where Number 8 Goals Come From
+
+**Narration:** Notice where most of the shots originate. Rather than standing inside the six-yard box, elite Number 8s often arrive around the edge of the area before striking.
+
+**Duration:** 11 seconds
+
+**Panel Color:** blue
+
+**Animation:**
+{
+  "staggerSeconds":0.18,
+  "pulse":true
+}
+
+**Data:**
+{
+  "title":"Typical Shot Locations",
+  "shots":[
+    {"x":76,"y":44,"team":"home","result":"goal","xg":0.23},
+    {"x":79,"y":56,"team":"home","result":"goal","xg":0.18},
+    {"x":73,"y":50,"team":"home","result":"saved","xg":0.15},
+    {"x":71,"y":40,"team":"home","result":"blocked","xg":0.12},
+    {"x":69,"y":61,"team":"home","result":"goal","xg":0.17},
+    {"x":74,"y":35,"team":"home","result":"off-target","xg":0.09},
+    {"x":78,"y":65,"team":"home","result":"saved","xg":0.21},
+    {"x":81,"y":49,"team":"home","result":"goal","xg":0.34},
+    {"x":70,"y":53,"team":"home","result":"blocked","xg":0.14},
+    {"x":72,"y":46,"team":"home","result":"goal","xg":0.19},
+    {"x":76,"y":58,"team":"home","result":"saved","xg":0.22},
+    {"x":68,"y":48,"team":"home","result":"goal","xg":0.16}
+  ]
+}
+
+---
+
+### SCENE 11
+
+**Scene Type:** TacticalBoard
+
+**Annotation:** Breaking The High Press
+
+**Narration:** When opponents press aggressively, the Number 8 becomes the escape route. A single movement into space can bypass an entire line of pressure.
+
+**Duration:** 18 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** blue
+
+**Camera:** full pitch → left half → follow 8
+
+**Board Position:** right
+
+**Data:**
+{
+  "title":"Escaping The Press",
+  "players":[
+    {"id":"gk","x":6,"y":50,"team":"home","label":"GK"},
+    {"id":"lcb","x":18,"y":38,"team":"home","label":"RCB"},
+    {"id":"rb","x":24,"y":80,"team":"home","label":"LB"},
+    {"id":"6","x":33,"y":50,"team":"home","label":"6"},
+    {"id":"8","x":47,"y":34,"team":"home","label":"8"},
+    {"id":"10","x":60,"y":56,"team":"home","label":"10"},
+    {"id":"9","x":82,"y":48,"team":"home","label":"9"},
+    {"id":"p1","x":30,"y":36,"team":"away","label":"ST"},
+    {"id":"p2","x":38,"y":46,"team":"away","label":"CM"},
+    {"id":"p3","x":40,"y":60,"team":"away","label":"CM"},
+    {"id":"p4","x":55,"y":50,"team":"away","label":"DM"}
+  ],
+  "ball":{
+    "x":18,
+    "y":38,
+    "belongsTo":"lcb"
+  },
+  "timeline":[
+    {
+      "type":"state",
+      "actorId":"p1",
+      "startSeconds":0.2,
+      "state":"pressing"
+    },
+    {
+      "type":"state",
+      "actorId":"p2",
+      "startSeconds":0.2,
+      "state":"pressing"
+    },
+    {
+      "type":"move",
+      "actorId":"8",
+      "startSeconds":0.7,
+      "durationSeconds":1.1,
+      "to":{"x":54,"y":27},
+      "runType":"halfSpaceRun"
+    },
+    {
+      "type":"camera",
+      "startSeconds":1,
+      "focus":{"x":52,"y":30},
+      "zoom":1.18
+    },
+    {
+      "type":"possession",
+      "startSeconds":2,
+      "fromId":"lcb",
+      "toId":"8"
+    },
+    {
+      "type":"possession",
+      "startSeconds":3.2,
+      "fromId":"8",
+      "toId":"9"
+    },
+    {
+      "type":"freeze",
+      "startSeconds":4.4,
+      "durationSeconds":2,
+      "annotations":[
+        {
+          "text":"Four pressers eliminated",
+          "x":59,
+          "y":24
+        }
+      ]
+    }
+  ],
+  "tacticalObjects":[
+    {
+      "shape":"zone",
+      "x":53,
+      "y":27,
+      "width":14,
+      "height":12
+    },
+    {
+      "shape":"lane",
+      "from":{"x":18,"y":38},
+      "to":{"x":54,"y":27}
+    }
+  ]
+}
+
+---
+
+### SCENE 12
+
+**Scene Type:** TacticalBoard
+
+**Annotation:** Rotating With The Full-Back
+
+**Narration:** Modern Number 8s constantly rotate positions with their full-back. These rotations confuse defenders and create entirely new passing angles.
+
+**Duration:** 17 seconds
+
+**Panel Color:** yellow
+
+**Camera:** right half → follow RB → follow 8
+
+**Data:**
+{
+  "title":"Positional Rotation",
+  "players":[
+    {"id":"rb","x":28,"y":84,"team":"home","label":"LB"},
+    {"id":"8","x":46,"y":68,"team":"home","label":"8"},
+    {"id":"rw","x":74,"y":86,"team":"home","label":"LW"},
+    {"id":"9","x":80,"y":52,"team":"home","label":"9"},
+    {"id":"fb","x":42,"y":80,"team":"away","label":"LB"},
+    {"id":"cm","x":50,"y":64,"team":"away","label":"CM"}
+  ],
+  "ball":{
+    "x":46,
+    "y":68,
+    "belongsTo":"8"
+  },
+  "timeline":[
+    {
+      "type":"move",
+      "actorId":"rb",
+      "startSeconds":0.4,
+      "durationSeconds":1.8,
+      "to":{"x":58,"y":84},
+      "runType":"overlap"
+    },
+    {
+      "type":"move",
+      "actorId":"8",
+      "startSeconds":0.5,
+      "durationSeconds":1.5,
+      "to":{"x":32,"y":78},
+      "runType":"supportRun"
+    },
+    {
+      "type":"possession",
+      "startSeconds":2.4,
+      "fromId":"8",
+      "toId":"rb"
+    },
+    {
+      "type":"freeze",
+      "startSeconds":4,
+      "durationSeconds":2,
+      "annotations":[
+        {
+          "text":"Positions exchanged",
+          "x":47,
+          "y":74
+        }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 13
+
+**Scene Type:** Radar
+
+**Annotation:** Different Styles Of Number 8
+
+**Narration:** Not every Number 8 plays the same way. Some are creators, some are ball carriers, while others dominate both sides of the game.
+
+**Duration:** 12 seconds
+
+**Panel Color:** neutral
+
+**Animation:**
+{
+  "staggerSeconds":0.3
+}
+
+**Data:**
+{
+  "title":"Elite Number 8 Profiles",
+  "axes":[
+    "Passing",
+    "Vision",
+    "Ball Carrying",
+    "Pressing",
+    "Defending",
+    "Finishing"
+  ],
+  "series":[
+    {
+      "label":"Kevin De Bruyne",
+      "values":[98,99,90,76,72,91]
+    },
+    {
+      "label":"Jude Bellingham",
+      "values":[90,88,96,92,91,89]
+    }
+  ]
+}
+
+---
+
+### SCENE 14
+
+**Scene Type:** PlayerComparison
+
+**Annotation:** Creator vs Complete Midfielder
+
+**Narration:** De Bruyne overwhelms teams with chance creation, while Bellingham combines creativity with physicality and defensive work.
+
+**Duration:** 12 seconds
+
+**Panel Color:** red
+
+**Data:**
+{
+  "leftPlayer":"Kevin De Bruyne",
+  "rightPlayer":"Jude Bellingham",
+  "stats":[
+    {
+      "label":"Key Passes /90",
+      "left":3.5,
+      "right":2.1
+    },
+    {
+      "label":"Progressive Passes",
+      "left":10.2,
+      "right":8.3
+    },
+    {
+      "label":"Carries Into Final Third",
+      "left":4.4,
+      "right":6.2
+    },
+    {
+      "label":"Ball Recoveries",
+      "left":5.9,
+      "right":8.6
+    },
+    {
+      "label":"Duels Won %",
+      "left":52,
+      "right":63
+    }
+  ]
+}
+
+---
+
+### SCENE 15
+
+**Scene Type:** MomentumTimeline
+
+**Annotation:** Changing The Game
+
+**Narration:** Watch how the influence of an elite Number 8 changes the momentum of a match. Every successful progression shifts control further towards their team.
+
+**Duration:** 12 seconds
+
+**Panel Color:** blue
+
+**Animation:**
+{
+  "staggerSeconds":0.35
+}
+
+**Data:**
+{
+  "title":"Match Momentum",
+  "matchMinutes":90,
+  "phases":[
+    {
+      "startMinute":1,
+      "endMinute":15,
+      "direction":"rise",
+      "label":"Early control"
+    },
+    {
+      "startMinute":16,
+      "endMinute":33,
+      "direction":"fall",
+      "label":"Opponent pressure"
+    },
+    {
+      "startMinute":34,
+      "endMinute":58,
+      "direction":"rise",
+      "label":"Midfield dominance"
+    },
+    {
+      "startMinute":59,
+      "endMinute":74,
+      "direction":"rise",
+      "label":"Chance creation"
+    },
+    {
+      "startMinute":75,
+      "endMinute":90,
+      "direction":"rise",
+      "label":"Game controlled"
+    }
+  ]
+}
+
+---
+
+### SCENE 16
+
+**Scene Type:** TacticalBoard
+
+**Annotation:** Winning The Ball Back
+
+**Narration:** The Number 8's work doesn't end when possession is lost. Elite midfielders react instantly, closing passing lanes, pressing aggressively, and recovering the ball within seconds.
+
+**Duration:** 18 seconds
+
+**Story Beat:** escalation
+
+**Panel Color:** red
+
+**Camera:** central channel → follow 8 → box
+
+**Board Position:** left
+
+**Data:**
+{
+  "title":"Counter-Press After Losing Possession",
+  "players":[
+    {"id":"8","x":61,"y":46,"team":"home","label":"8"},
+    {"id":"6","x":44,"y":52,"team":"home","label":"6"},
+    {"id":"10","x":70,"y":60,"team":"home","label":"10"},
+    {"id":"9","x":82,"y":50,"team":"home","label":"9"},
+    {"id":"rw","x":76,"y":78,"team":"home","label":"LW"},
+    {"id":"opp6","x":65,"y":48,"team":"away","label":"DM"},
+    {"id":"oppcb","x":79,"y":46,"team":"away","label":"CB"},
+    {"id":"oppfb","x":72,"y":72,"team":"away","label":"RB"}
+  ],
+  "ball":{
+    "x":65,
+    "y":48,
+    "belongsTo":"opp6"
+  },
+  "timeline":[
+    {
+      "type":"state",
+      "actorId":"8",
+      "startSeconds":0.2,
+      "state":"pressing"
+    },
+    {
+      "type":"move",
+      "actorId":"8",
+      "startSeconds":0.3,
+      "durationSeconds":0.9,
+      "to":{"x":66,"y":48},
+      "runType":"recoveryRun"
+    },
+    {
+      "type":"state",
+      "actorId":"10",
+      "startSeconds":0.4,
+      "state":"pressing"
+    },
+    {
+      "type":"move",
+      "actorId":"10",
+      "startSeconds":0.5,
+      "durationSeconds":1.1,
+      "to":{"x":69,"y":55},
+      "runType":"counterRun"
+    },
+    {
+      "type":"freeze",
+      "startSeconds":1.8,
+      "durationSeconds":2,
+      "annotations":[
+        {
+          "text":"Three passing lanes closed",
+          "x":67,
+          "y":40
+        }
+      ]
+    },
+    {
+      "type":"possession",
+      "startSeconds":4.2,
+      "fromId":"opp6",
+      "toId":"8"
+    },
+    {
+      "type":"camera",
+      "startSeconds":4.5,
+      "focus":{"x":66,"y":48},
+      "zoom":1.22
+    }
+  ],
+  "tacticalObjects":[
+    {
+      "shape":"triangle",
+      "points":[
+        {"x":61,"y":46},
+        {"x":69,"y":55},
+        {"x":44,"y":52}
+      ]
+    },
+    {
+      "shape":"lane",
+      "from":{"x":65,"y":48},
+      "to":{"x":79,"y":46},
+      "closesAtSeconds":1.6
+    },
+    {
+      "shape":"lane",
+      "from":{"x":65,"y":48},
+      "to":{"x":72,"y":72},
+      "closesAtSeconds":1.6
+    }
+  ]
+}
+
+---
+
+### SCENE 17
+
+**Scene Type:** TacticalBoard
+
+**Annotation:** From Defence To Goal
+
+**Narration:** This is the complete job of a modern Number 8. They receive during build-up, escape pressure, connect teammates, attack the box, and finish the move themselves.
+
+**Duration:** 24 seconds
+
+**Story Beat:** payoff
+
+**Panel Color:** blue
+
+**Camera:** full pitch → central channel → right half → box
+
+**Board Position:** right
+
+**Data:**
+{
+  "title":"The Complete Number 8 Sequence",
+  "players":[
+    {"id":"gk","x":6,"y":50,"team":"home","label":"GK"},
+    {"id":"lcb","x":18,"y":38,"team":"home","label":"RCB"},
+    {"id":"6","x":33,"y":50,"team":"home","label":"6"},
+    {"id":"8","x":46,"y":34,"team":"home","label":"8"},
+    {"id":"10","x":60,"y":58,"team":"home","label":"10"},
+    {"id":"rw","x":77,"y":82,"team":"home","label":"LW"},
+    {"id":"9","x":82,"y":50,"team":"home","label":"9"},
+    {"id":"cb1","x":70,"y":44,"team":"away","label":"CB"},
+    {"id":"cb2","x":70,"y":58,"team":"away","label":"CB"},
+    {"id":"dm","x":56,"y":50,"team":"away","label":"DM"}
+  ],
+  "ball":{
+    "x":6,
+    "y":50,
+    "belongsTo":"gk"
+  },
+  "timeline":[
+    {
+      "type":"possession",
+      "startSeconds":0.4,
+      "fromId":"gk",
+      "toId":"lcb"
+    },
+    {
+      "type":"possession",
+      "startSeconds":1.1,
+      "fromId":"lcb",
+      "toId":"6"
+    },
+    {
+      "type":"move",
+      "actorId":"8",
+      "startSeconds":1.2,
+      "durationSeconds":0.5,
+      "to":{"x":46,"y":40},
+      "runType":"supportRun"
+    },
+    {
+      "type":"move",
+      "actorId":"8",
+      "startSeconds":1.7,
+      "durationSeconds":1.0,
+      "to":{"x":54,"y":27},
+      "runType":"halfSpaceRun"
+    },
+    {
+      "type":"possession",
+      "startSeconds":2.9,
+      "fromId":"6",
+      "toId":"8"
+    },
+    {
+      "type":"possession",
+      "startSeconds":3.9,
+      "fromId":"8",
+      "toId":"10"
+    },
+    {
+      "type":"move",
+      "actorId":"8",
+      "startSeconds":4.2,
+      "durationSeconds":2,
+      "to":{"x":78,"y":46},
+      "runType":"thirdManRun"
+    },
+    {
+      "type":"possession",
+      "startSeconds":6.5,
+      "fromId":"10",
+      "toId":"8",
+      "action":"pass"
+    },
+    {
+      "type":"freeze",
+      "startSeconds":7.2,
+      "durationSeconds":2,
+      "annotations":[
+        {
+          "text":"Late run beats both centre-backs",
+          "x":80,
+          "y":40
+        }
+      ],
+      "circles":[
+        {
+          "x":78,
+          "y":46,
+          "radius":6
+        }
+      ]
+    },
+    {
+      "type":"possession",
+      "startSeconds":9.6,
+      "fromId":"8",
+      "toPoint":{"x":99,"y":50},
+      "action":"shot"
+    }
+  ],
+  "tacticalObjects":[
+    {
+      "shape":"zone",
+      "x":78,
+      "y":46,
+      "width":14,
+      "height":12
+    }
+  ]
+}
+
+---
+
+### SCENE 18
+
+**Scene Type:** KpiPanel
+
+**Annotation:** The Elite Number 8 Checklist
+
+**Narration:** The very best Number 8s influence every phase of the game. They progress the ball, create chances, recover possession, and contribute goals.
+
+**Duration:** 11 seconds
+
+**Panel Color:** yellow
+
+**Animation:**
+{
+  "staggerSeconds":0.3,
+  "pulse":true
+}
+
+**Data:**
+{
+  "title":"Elite Number 8 Output",
+  "stats":[
+    {
+      "label":"Progressive Passes",
+      "value":"10.4 /90",
+      "trend":[55,62,70,81,89],
+      "delta":"+14%",
+      "deltaDirection":"up"
+    },
+    {
+      "label":"Key Passes",
+      "value":"3.2 /90",
+      "trend":[45,51,60,72,83],
+      "delta":"+9%",
+      "deltaDirection":"up"
+    },
+    {
+      "label":"Recoveries",
+      "value":"8.9 /90",
+      "trend":[48,55,63,71,80],
+      "delta":"+11%",
+      "deltaDirection":"up"
+    },
+    {
+      "label":"Box Entries",
+      "value":"6.1 /90",
+      "trend":[36,44,53,68,79],
+      "delta":"+17%",
+      "deltaDirection":"up"
+    }
+  ]
+}
+
+---
+
+### SCENE 19
+
+**Scene Type:** Canvas
+
+**Annotation:** Everything Connected
+
+**Narration:** Every responsibility of a Number 8 connects to the next. Build-up leads to progression, progression creates chances, and every successful attack starts with intelligent movement.
+
+**Duration:** 13 seconds
+
+**Panel Color:** neutral
+
+**Phases:**
+[
+  {
+    "caption":"Build-Up"
+  },
+  {
+    "caption":"Progression"
+  },
+  {
+    "caption":"Chance Creation"
+  },
+  {
+    "caption":"Goal"
+  }
+]
+
+**Data:**
+{
+  "title":"The Complete Cycle",
+  "objects":[
+    {
+      "id":"build",
+      "type":"circle",
+      "x":18,
+      "y":50,
+      "radius":6,
+      "label":"Build-Up"
+    },
+    {
+      "id":"progress",
+      "type":"circle",
+      "x":42,
+      "y":50,
+      "radius":6,
+      "label":"Progress"
+    },
+    {
+      "id":"create",
+      "type":"circle",
+      "x":66,
+      "y":50,
+      "radius":6,
+      "label":"Create"
+    },
+    {
+      "id":"finish",
+      "type":"circle",
+      "x":88,
+      "y":50,
+      "radius":6,
+      "label":"Finish"
+    }
+  ],
+  "arrows":[
+    {
+      "from":"build",
+      "to":"progress",
+      "style":"solid"
+    },
+    {
+      "from":"progress",
+      "to":"create",
+      "style":"solid"
+    },
+    {
+      "from":"create",
+      "to":"finish",
+      "style":"solid"
+    }
+  ],
+  "phases":[
+    {
+      "objects":[
+        {
+          "id":"build",
+          "type":"circle",
+          "x":18,
+          "y":50,
+          "radius":8,
+          "label":"Build-Up"
+        },
+        {
+          "id":"progress",
+          "type":"circle",
+          "x":42,
+          "y":50,
+          "radius":6,
+          "label":"Progress"
+        },
+        {
+          "id":"create",
+          "type":"circle",
+          "x":66,
+          "y":50,
+          "radius":6,
+          "label":"Create"
+        },
+        {
+          "id":"finish",
+          "type":"circle",
+          "x":88,
+          "y":50,
+          "radius":6,
+          "label":"Finish"
+        }
+      ]
+    },
+    {
+      "objects":[
+        {
+          "id":"build",
+          "type":"circle",
+          "x":18,
+          "y":50,
+          "radius":6,
+          "label":"Build-Up"
+        },
+        {
+          "id":"progress",
+          "type":"circle",
+          "x":42,
+          "y":50,
+          "radius":8,
+          "label":"Progress"
+        },
+        {
+          "id":"create",
+          "type":"circle",
+          "x":66,
+          "y":50,
+          "radius":6,
+          "label":"Create"
+        },
+        {
+          "id":"finish",
+          "type":"circle",
+          "x":88,
+          "y":50,
+          "radius":6,
+          "label":"Finish"
+        }
+      ]
+    },
+    {
+      "objects":[
+        {
+          "id":"build",
+          "type":"circle",
+          "x":18,
+          "y":50,
+          "radius":6,
+          "label":"Build-Up"
+        },
+        {
+          "id":"progress",
+          "type":"circle",
+          "x":42,
+          "y":50,
+          "radius":6,
+          "label":"Progress"
+        },
+        {
+          "id":"create",
+          "type":"circle",
+          "x":66,
+          "y":50,
+          "radius":8,
+          "label":"Create"
+        },
+        {
+          "id":"finish",
+          "type":"circle",
+          "x":88,
+          "y":50,
+          "radius":6,
+          "label":"Finish"
+        }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 20
+
+**Scene Type:** Chapter
+
+**Annotation:** THE ENGINE OF MODERN FOOTBALL
+
+**Narration:** Great Number 8s don't just play midfield—they connect every phase of football. They defend, build, create, arrive, and score. Master the Number 8 role, and you master the heartbeat of the modern game.
+
+**Duration:** 9 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
