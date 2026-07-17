@@ -239,6 +239,44 @@ Known gaps / next things to look at, not active work:
   `analyses/` scripts have needed so far (ask before adding a new named pattern — see
   `src/video/tacticalPatterns.ts`).
 
+## YouTube publishing & engagement guidelines
+
+Standing rules for how finished videos get published/promoted — abide by these for every upload,
+not just as one-off suggestions. Established 2026-07-17 after a direct engagement-tips
+conversation; revise this section (not just remember it in chat) if the approach changes.
+
+- **Thumbnail/title is the primary lever, not the video itself.** One clear focal point, 3-5 words
+  of huge/legible text (test shrunk to ~120px wide — if unreadable there, it's too busy), a
+  specific curiosity-driving claim in the title (not a flat description). This matters more than
+  almost any in-video change.
+- **No real athlete/public-figure photos in thumbnails without a confirmed license.** A real,
+  identifiable photo of a real player (broadcast photography, sponsor branding visible, etc.) is
+  someone else's copyrighted image and a likeness/publicity-rights risk — the same category of
+  problem that pushed this whole project away from broadcast footage in the first place (see "Why
+  this exists" above). Use a licensed photo, generated generic-player art, or a photo with
+  confirmed rights instead.
+- **Hook-first, no throat-clearing.** The first 15 seconds decide whether YouTube keeps
+  recommending the video — cut straight to the surprising claim before any branding/intro card.
+  Matches this project's existing "hook" Story Beat convention; don't let a title card or logo
+  bumper delay it.
+- **Diagnose retention with real data, not guesses.** YouTube Studio → Analytics → a specific
+  video → Audience Retention shows the exact second viewers drop off. Use that to find which scene
+  is the problem before changing pacing/structure generally.
+- **Session time compounds.** End screens linking to the next most-relevant video, and playlists
+  grouping related topics (e.g. all tactics-explainer videos together), matter because YouTube
+  rewards keeping viewers on the platform, not just finishing one video.
+- **Clip a Short from the single most striking beat** (a freeze-frame reveal, a sharp stat) per
+  video — cheap discovery channel, can pull in subscribers who'd never find the long-form video.
+- **First 48 hours after publish get disproportionate algorithmic weight** (YouTube test-launches
+  to a small sample first) — time any external promotion (community post, social share) to that
+  window, not days later.
+- **One channel, many topics (business/finance/tech/aerospace/football) is fine as long as the
+  *format* is the consistent brand** — the "why does X actually work" hook + clean graphic-card
+  style is what should read as consistent across an Apple-pricing video and a Number-8-tactics
+  video, not the subject matter. Don't expect YouTube's suggested/browse algorithm to
+  cross-pollinate a viewer from one topic into another automatically — the thumbnail/title has to
+  do that work.
+
 ## User action already done
 
 Both `API_FOOTBALL_KEY` and `ELEVENLABS_API_KEY` are in `.env` (user completed both signups —
