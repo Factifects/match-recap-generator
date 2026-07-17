@@ -5,6 +5,11 @@ Generated 2026-07-16 directly from the live source of truth: `src/model/Segment.
 and `src/video/tacticalPatterns.ts`. If the parser or registry changes, re-derive this doc from
 those files rather than hand-editing around drift — they're what actually runs.
 
+The "YouTube publishing & engagement guidelines" section near the end is sourced from this
+project's `CLAUDE.md` instead (added 2026-07-17) — it's channel/publishing policy, not script
+format, so it doesn't get re-derived from the parser/schema files above. If that policy changes,
+update `CLAUDE.md` first and mirror the change here.
+
 **Purpose of this file:** for use by tools/models *outside* this project (or a human) drafting a
 script to paste into the app. It is not meant to be re-read every session inside this repo — treat
 it like an API reference, not a live dependency.
@@ -283,6 +288,58 @@ team automatically mirrors x (`100 - x`).
 | `3-4-2-1` | (5,50) GK · (20,25)(20,50)(20,75) DEF · (45,12)(45,38)(45,62)(45,88) MID · (65,35)(65,65) AM · (85,50) FWD |
 | `5-4-1` | (5,50) GK · (20,10)(20,30)(20,50)(20,70)(20,90) DEF · (50,15)(50,40)(50,60)(50,85) MID · (85,50) FWD |
 | `4-4-2` | (5,50) GK · (20,15)(20,38)(20,62)(20,85) DEF · (50,15)(50,38)(50,62)(50,85) MID · (80,35)(80,65) FWD |
+
+## YouTube publishing & engagement guidelines
+
+Standing rules for how a finished video (rendered from a script in this format) gets published/
+promoted on YouTube — not part of the script format itself, but relevant to anyone drafting a
+script with the finished upload in mind (the hook-first rule below, in particular, shapes how
+Scene 1 should be written). Canonical source is this project's own `CLAUDE.md`; revise there first
+if the approach changes, then mirror the change here.
+
+**Thumbnail/banner/DP art style for The Tactical Debrief** (the football channel): a low-poly/
+faceted geometric "shard" art style — vibrant multi-color palette (electric blue, magenta, gold,
+teal), sharp triangular facets, flat color per facet (no gradients within a shard), near-black
+background, high contrast.
+
+**Banner/DP art style for Second Order Synce** (the multi-topic business/finance/tech/aerospace/
+football channel): dark near-black background (`#111315`), electric blue (`#4f6bff`) accent, flat
+professional/corporate style — no gradients, no glossy/3D effects. DP: a single smooth curved arc
+resolving into a straight line (the "looks complicated, is actually simple once revealed" motif).
+Banner: subtle overlapping schematic linework (flight paths, tactical arrows, growth curves,
+circuit traces) behind a centered wordmark + tagline.
+
+Default to the matching style above for a thumbnail/banner/DP prompt for either channel; don't mix
+the two channels' styles, or invent a different one, unless asked to.
+
+- **Thumbnail/title is the primary lever, not the video itself.** One clear focal point, 3-5 words
+  of huge/legible text (test shrunk to ~120px wide — if unreadable there, it's too busy), a
+  specific curiosity-driving claim in the title (not a flat description). This matters more than
+  almost any in-video change.
+- **No real athlete/public-figure photos in thumbnails without a confirmed license.** A real,
+  identifiable photo of a real player (broadcast photography, sponsor branding visible, etc.) is
+  someone else's copyrighted image and a likeness/publicity-rights risk. Use a licensed photo,
+  generated generic-player art, or a photo with confirmed rights instead.
+- **Hook-first, no throat-clearing.** The first 15 seconds decide whether YouTube keeps
+  recommending the video — cut straight to the surprising claim before any branding/intro card.
+  Write Scene 1 (or whichever scene opens the video) to land the hook immediately; don't let a
+  title card or logo bumper delay it.
+- **Diagnose retention with real data, not guesses.** YouTube Studio → Analytics → a specific
+  video → Audience Retention shows the exact second viewers drop off. Use that to find which scene
+  is the problem before changing pacing/structure generally.
+- **Session time compounds.** End screens linking to the next most-relevant video, and playlists
+  grouping related topics, matter because YouTube rewards keeping viewers on the platform, not
+  just finishing one video.
+- **Clip a Short from the single most striking beat** (a freeze-frame reveal, a sharp stat) per
+  video — cheap discovery channel, can pull in subscribers who'd never find the long-form video.
+- **First 48 hours after publish get disproportionate algorithmic weight** (YouTube test-launches
+  to a small sample first) — time any external promotion (community post, social share) to that
+  window, not days later.
+- **One channel, many topics is fine as long as the *format* is the consistent brand** — the "why
+  does X actually work" hook + clean graphic-card style is what should read as consistent across
+  topics, not the subject matter. Don't expect YouTube's suggested/browse algorithm to
+  cross-pollinate a viewer from one topic into another automatically — the thumbnail/title has to
+  do that work.
 
 ## Legacy tag format (do not use for new scripts)
 
