@@ -1,6 +1,29 @@
 import React from "react";
 import { staticFile, useCurrentFrame } from "remotion";
 import { COLORS } from "../theme";
+import type { PLAYER_STATE_KEYS } from "../../model/visualDefinitions";
+
+type PlayerState = (typeof PLAYER_STATE_KEYS)[number];
+
+// Grouped into a small semantic palette (not 12 unique colors) so a glance
+// at a crowded board still reads at a distance: red = actively disrupting
+// the ball (defensive intent), green = on/creating the ball (attacking
+// intent), amber = positional/off-ball shape. A future state can slot into
+// whichever bucket it behaviorally matches without a new color.
+const STATE_COLORS: Record<PlayerState, string> = {
+  pressing: COLORS.danger,
+  marking: COLORS.danger,
+  covering: COLORS.danger,
+  screening: COLORS.danger,
+  receiving: COLORS.highlight,
+  carrying: COLORS.highlight,
+  overlapping: COLORS.highlight,
+  underlapping: COLORS.highlight,
+  dropping: COLORS.textDim,
+  holdingWidth: COLORS.textDim,
+  checkingShoulder: COLORS.textDim,
+  waiting: COLORS.textDim,
+};
 
 // A continuously looping, outward-expanding ring — a live "sonar ping" read
 // as "this marker is a live, tracked thing," not a flat static sticker. Runs
@@ -34,7 +57,12 @@ export const JerseyDisc: React.FC<{
   highlighted?: boolean;
   opacity?: number;
   jerseyImage?: string;
-}> = ({ cx, cy, radius = 15, color, highlighted = false, opacity = 1, jerseyImage }) => {
+  // Degrees, 0 = attacking-direction "up" — an evented-timeline addition
+  // (see TacticalBoard.tsx's resolveActorFold), absent for every marker that
+  // doesn't come from a `timeline`-authored board.
+  facing?: number;
+  state?: PlayerState;
+}> = ({ cx, cy, radius = 15, color, highlighted = false, opacity = 1, jerseyImage, facing, state }) => {
   const frame = useCurrentFrame();
   const clipId = `jersey-clip-${Math.round(cx)}-${Math.round(cy)}-${Math.round(radius)}`;
   const src = jerseyImage ?? FALLBACK_JERSEY;
@@ -52,10 +80,27 @@ export const JerseyDisc: React.FC<{
   const pulseRadius = radius + pulseProgress * PULSE_MAX_GROWTH;
   const pulseOpacity = (1 - pulseProgress) * 0.4;
 
+  // A small wedge just outside the disc's rim pointing in `facing`'s
+  // direction (0deg = up/attacking direction, clockwise) — body orientation
+  // is otherwise invisible on a top-down disc, and "opening the body to
+  // receive" is meaningless without something to show which way it opened.
+  const facingWedge = facing !== undefined && (
+    <polygon
+      points="0,-6 5,3 -5,3"
+      fill={COLORS.text}
+      opacity={0.9}
+      transform={`translate(${cx}, ${cy}) rotate(${facing}) translate(0, ${-(radius + 7)})`}
+    />
+  );
+  const stateBadge = state !== undefined && (
+    <circle cx={cx + radius * 0.72} cy={cy - radius * 0.72} r={4.5} fill={STATE_COLORS[state]} stroke="#ffffff" strokeWidth={1} />
+  );
+
   return (
     <g opacity={opacity}>
       <circle cx={cx} cy={cy} r={pulseRadius} fill="none" stroke={color} strokeWidth={1.5} opacity={pulseOpacity} />
       {highlighted && <circle cx={cx} cy={cy} r={radius + 6} fill="none" stroke={COLORS.highlight} strokeWidth={2} opacity={0.85} />}
+      {facingWedge}
       <circle cx={cx} cy={cy} r={radius} fill={color} />
       <defs>
         <clipPath id={clipId}>
@@ -74,6 +119,7 @@ export const JerseyDisc: React.FC<{
         <circle cx={cx} cy={cy} r={radius} fill={color} style={{ mixBlendMode: "color" }} opacity={0.9} />
       </g>
       <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#ffffff" strokeWidth={1.5} opacity={0.45} />
+      {stateBadge}
     </g>
   );
 };

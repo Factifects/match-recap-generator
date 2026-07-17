@@ -98,6 +98,47 @@ const formationSideSchema = z.object({
 });
 
 const pitchPointSchema = z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100) });
+const pctNum = z.number().min(0).max(100);
+
+// Behavior states a player can be in — explain WHY a player is where they
+// are (a "pressing" full-back reads differently than a "holdingWidth" one at
+// the same coordinate), rendered as a JerseyDisc ring/icon variant. Only
+// meaningful alongside `timeline` (below) — a `state`-type timeline action
+// overrides whatever's set here at the point it fires; this top-level field
+// is just the t=0 starting state.
+export const PLAYER_STATE_KEYS = [
+  "pressing",
+  "marking",
+  "covering",
+  "holdingWidth",
+  "receiving",
+  "overlapping",
+  "underlapping",
+  "screening",
+  "dropping",
+  "checkingShoulder",
+  "waiting",
+  "carrying",
+] as const;
+
+// Named run identities — each maps to a distinct curve/dash treatment (see
+// RUN_TYPE_GEOMETRY in CurvedMovementArrow.tsx) instead of every player
+// movement reading as the same straight glide, regardless of what the run
+// actually means tactically.
+export const RUN_TYPE_KEYS = [
+  "standard",
+  "overlap",
+  "underlap",
+  "blindsideRun",
+  "thirdManRun",
+  "recoveryRun",
+  "counterRun",
+  "dummyRun",
+  "supportRun",
+  "diagonalRun",
+  "channelRun",
+  "halfSpaceRun",
+] as const;
 
 const tacticalPlayerSchema = z.object({
   id: z.string(),
@@ -105,6 +146,11 @@ const tacticalPlayerSchema = z.object({
   y: z.number().min(0).max(100),
   team: z.enum(["home", "away"]),
   label: z.string(),
+  // Optional t=0 behavior state / facing direction (degrees, 0 = attacking
+  // direction "up") — a `timeline` `state` action later overrides either.
+  // Absent for every script written before `timeline` existed.
+  state: z.enum(PLAYER_STATE_KEYS).optional(),
+  facing: z.number().min(0).max(360).optional(),
 });
 
 const tacticalArrowSchema = z.object({
@@ -179,6 +225,116 @@ const tacticalAnnotationSchema = z.object({
   x: z.number().min(0).max(100),
   y: z.number().min(0).max(100),
 });
+
+// Mirrors CameraStage["focus"] (src/model/Segment.ts) — CameraStage itself
+// has no Zod counterpart today since the scene-level "Camera:" field is
+// parsed from free text (parseCameraStage in parseSceneScript.ts), not JSON.
+// This is a separate schema purely for JSON-authored `timeline` camera
+// events; the scene-level Camera: field/behavior is untouched.
+const timelineFocusSchema = z.union([z.enum(["full", "left-half", "right-half", "box-left", "box-right"]), pitchPointSchema]);
+
+const tacticalBallSchema = z.object({
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  // Actor id currently holding the ball, absent = loose ball. `possession`
+  // timeline actions reassign this at the point they fire.
+  belongsTo: z.string().optional(),
+});
+
+// One beat in an evented tactical-board demonstration — see `timeline`
+// below. Unlike `tacticalPhaseSchema`'s full-roster snapshots, each entry
+// here describes ONE thing happening to ONE actor (or the camera/freeze) at
+// an author-given `startSeconds`, so several can overlap or stagger
+// arbitrarily instead of being locked to a fixed per-phase/per-arrow-index
+// timer. `type: "state"` doubles as this project's answer to "trigger"
+// framing (e.g. "IF ball enters half-space THEN press begins") — the author
+// places a state action at the moment the trigger fires; there's no
+// conditional-evaluation engine, since scripts are hand/LLM-authored with
+// the outcome already decided, not simulated.
+const timedActionSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("move"),
+    actorId: z.string(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.6),
+    to: pitchPointSchema,
+    runType: z.enum(RUN_TYPE_KEYS).default("standard"),
+    // Explicit override of RUN_TYPE_GEOMETRY's default curvature for this
+    // run type, for the rare case an author needs a sharper/shallower bend.
+    bow: z.number().optional(),
+  }),
+  z.object({
+    type: z.literal("state"),
+    actorId: z.string(),
+    startSeconds: z.number().min(0),
+    state: z.enum(PLAYER_STATE_KEYS).optional(),
+    facing: z.number().min(0).max(360).optional(),
+  }),
+  z.object({
+    type: z.literal("possession"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.6),
+    fromId: z.string().optional(),
+    toId: z.string().optional(),
+    // A shot/clearance may not have a receiving player — a bare pitch point
+    // the ball travels to instead of `toId`.
+    toPoint: pitchPointSchema.optional(),
+    action: z.enum(["pass", "carry", "shot", "clearance"]).default("pass"),
+  }),
+  z.object({
+    type: z.literal("camera"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(1),
+    focus: timelineFocusSchema,
+    zoom: z.number(),
+  }),
+  z.object({
+    type: z.literal("freeze"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.5),
+    annotations: z.array(tacticalAnnotationSchema).optional(),
+    circles: z.array(z.object({ x: pctNum, y: pctNum, radius: z.number() })).optional(),
+  }),
+]);
+
+// Tactical-relationship overlays beyond the existing rectangular
+// `highlightZone` — a defensive/compactness line, a passing lane that can
+// visually "close" (fade) as a press develops, or a triangle (a common
+// build-up-shape callout). `appearSeconds`/`disappearSeconds` (or
+// `closesAtSeconds` for a lane) are only meaningful alongside `timeline`;
+// on a plain (non-timeline) board they'd just mean "always visible."
+const tacticalObjectSchema = z.discriminatedUnion("shape", [
+  z.object({
+    shape: z.literal("zone"),
+    ...tacticalZoneSchema.shape,
+    appearSeconds: z.number().min(0).default(0),
+    disappearSeconds: z.number().min(0).optional(),
+  }),
+  z.object({
+    shape: z.literal("line"),
+    // Length-axis (goal-to-goal) position, matching every other coordinate
+    // in this file — a defensive/compactness line is fixed at one length
+    // value and spans the full width, same convention as tacticalPlayerSchema
+    // and pitchPointSchema (x = length, y = width; see TacticalBoard.tsx).
+    x: pctNum,
+    label: z.string().optional(),
+    appearSeconds: z.number().min(0).default(0),
+    disappearSeconds: z.number().min(0).optional(),
+  }),
+  z.object({
+    shape: z.literal("lane"),
+    from: pitchPointSchema,
+    to: pitchPointSchema,
+    closesAtSeconds: z.number().min(0).optional(),
+    appearSeconds: z.number().min(0).default(0),
+  }),
+  z.object({
+    shape: z.literal("triangle"),
+    points: z.array(pitchPointSchema).length(3),
+    appearSeconds: z.number().min(0).default(0),
+    disappearSeconds: z.number().min(0).optional(),
+  }),
+]);
 
 // A follow-on beat after the board's initial (top-level players/arrows)
 // arrangement — a full player arrangement, not a delta, so the component can
@@ -366,6 +522,15 @@ export const VISUAL_DEFINITIONS = [
       highlightZone: tacticalZoneSchema.optional(),
       annotations: z.array(tacticalAnnotationSchema).optional(),
       phases: z.array(tacticalPhaseSchema).min(1).optional(),
+      // Evented alternative to `phases`: a timed-action demonstration
+      // (players/ball/camera/freeze beats each with their own `startSeconds`)
+      // instead of full-roster snapshots. Mutually exclusive with `phases` in
+      // practice (not `.refine()`-enforced) — the renderer prefers `timeline`
+      // when both are present. `phases`-only scripts are completely
+      // unaffected: this and the two fields below are all new and optional.
+      ball: tacticalBallSchema.optional(),
+      timeline: z.array(timedActionSchema).min(1).optional(),
+      tacticalObjects: z.array(tacticalObjectSchema).optional(),
     }),
   },
   {

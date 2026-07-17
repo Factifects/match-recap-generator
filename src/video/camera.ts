@@ -3,6 +3,7 @@ import { PITCH_WIDTH, PITCH_HEIGHT, pitchX, pitchY } from "./compositions/Pitch"
 import { VERTICAL_PITCH_WIDTH, VERTICAL_PITCH_HEIGHT, vpitchX, vpitchY } from "./compositions/VerticalPitch";
 import { PERSPECTIVE_PITCH_WIDTH, PERSPECTIVE_PITCH_HEIGHT, perspectiveProject } from "./compositions/PerspectivePitch";
 import type { CameraStage } from "../model/Segment";
+import type { TacticalBoardData } from "./sharedVisualProps";
 
 type CameraFocus = CameraStage["focus"];
 
@@ -189,4 +190,55 @@ export function getCameraTransformPerspective(
     boardWidth,
     boardHeight,
   );
+}
+
+type TimelineCameraEvent = Extract<NonNullable<TacticalBoardData["timeline"]>[number], { type: "camera" }>;
+
+/** Sibling to getCameraTransformPerspective for a `timeline`-authored
+ * TacticalBoard scene — instead of at most 2 whole-scene stages, an
+ * arbitrary number of `camera` events can fire at their own `startSeconds`,
+ * each panning/zooming from wherever the camera currently was into its own
+ * `focus`/`zoom` over its own `durationSeconds` (same "transition into a new
+ * target" shape as a `move` action, not a 2-stage-only interpolation). `te`
+ * is nominal timeline seconds (see TacticalBoard.tsx's computeEffectiveSeconds
+ * — already freeze-adjusted by the caller), not a raw frame number. No
+ * events at all resolves to a static full-pitch framing, matching this
+ * board's own default `camera` prop. */
+export function getCameraTransformTimeline(
+  events: TimelineCameraEvent[],
+  te: number,
+  boardWidth: number = PERSPECTIVE_PITCH_WIDTH,
+  boardHeight: number = PERSPECTIVE_PITCH_HEIGHT,
+): string {
+  const sorted = events.slice().sort((a, b) => a.startSeconds - b.startSeconds);
+  let fromFocus: CameraFocus = "full";
+  let fromZoom = 1;
+  let active: TimelineCameraEvent | undefined;
+
+  for (const event of sorted) {
+    if (event.startSeconds > te) break;
+    const endSeconds = event.startSeconds + event.durationSeconds;
+    if (te < endSeconds) {
+      active = event;
+      break;
+    }
+    fromFocus = event.focus;
+    fromZoom = event.zoom;
+  }
+
+  if (!active) {
+    const { x, y } = resolveFocusPointPerspective(fromFocus, boardWidth, boardHeight);
+    return transformFor(x, y, fromZoom, boardWidth, boardHeight);
+  }
+
+  const p1 = resolveFocusPointPerspective(fromFocus, boardWidth, boardHeight);
+  const p2 = resolveFocusPointPerspective(active.focus, boardWidth, boardHeight);
+  const progress = interpolate(te, [active.startSeconds, active.startSeconds + active.durationSeconds], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const cx = interpolate(progress, [0, 1], [p1.x, p2.x]);
+  const cy = interpolate(progress, [0, 1], [p1.y, p2.y]);
+  const z = interpolate(progress, [0, 1], [fromZoom, active.zoom]);
+  return transformFor(cx, cy, z, boardWidth, boardHeight);
 }

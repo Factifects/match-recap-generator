@@ -7,6 +7,17 @@ import type { SharedVisualProps, CanvasData } from "../sharedVisualProps";
 
 const CANVAS_SIZE = { landscape: { width: 1400, height: 820 }, portrait: { width: 900, height: 1200 } };
 const DOT_RADIUS = 16;
+// Objects are authored on a 0-100 logical grid, but a shape near an edge can
+// still clip against the hard clip-container boundary once it scales up or
+// the camera zooms in — inset the logical grid into the middle
+// (100 - 2*EDGE_MARGIN_PERCENT)% of the canvas so there's always real room
+// to grow into, the same problem TacticalBoard already solved for pitch
+// markers (see its own EDGE_MARGIN) but bigger here since Canvas objects can
+// scale/zoom far more dramatically than a fixed-size player disc.
+const EDGE_MARGIN_PERCENT = 8;
+function insetPercent(value: number): number {
+  return EDGE_MARGIN_PERCENT + (value / 100) * (100 - 2 * EDGE_MARGIN_PERCENT);
+}
 
 // How long each phase of a multi-phase diagram holds the screen — exported so
 // parseSceneScript.ts's computeVisualMinDurationSeconds can reserve a real
@@ -134,16 +145,26 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
   const camX = entryCamera.x + (targetCamera.x - entryCamera.x) * cameraT;
   const camY = entryCamera.y + (targetCamera.y - entryCamera.y) * cameraT;
   const camZoom = entryCamera.zoom + (targetCamera.zoom - entryCamera.zoom) * cameraT;
-  const cameraTransform = `translate(${canvasWidth / 2 - (camX / 100) * canvasWidth * camZoom}px, ${
-    canvasHeight / 2 - (camY / 100) * canvasHeight * camZoom
+  const cameraTransform = `translate(${canvasWidth / 2 - (insetPercent(camX) / 100) * canvasWidth * camZoom}px, ${
+    canvasHeight / 2 - (insetPercent(camY) / 100) * canvasHeight * camZoom
   }px) scale(${camZoom})`;
 
   const project = (x: number, y: number): [number, number] => {
     const snappedX = snap ? Math.round(x / snap) * snap : x;
     const snappedY = snap ? Math.round(y / snap) * snap : y;
-    return [(snappedX / 100) * canvasWidth, (snappedY / 100) * canvasHeight];
+    return [(insetPercent(snappedX) / 100) * canvasWidth, (insetPercent(snappedY) / 100) * canvasHeight];
   };
-  const projectRadius = (radius: number) => (radius / 100) * canvasWidth;
+  // Sizes are scaled by the same inset factor as positions, so a radius/
+  // width/height percentage stays consistent with what "percent of canvas"
+  // means for x/y — otherwise a radius of e.g. 50 would read as literally
+  // half the FULL canvas width while positions only ever range across the
+  // inset 84%, two different scales for the same unit.
+  const SIZE_SCALE = (100 - 2 * EDGE_MARGIN_PERCENT) / 100;
+  // A circle is equally wide and tall, so its radius must be relative to
+  // whichever canvas dimension is SHORTER — basing it on canvasWidth alone
+  // (much bigger than canvasHeight in landscape) let a large-but-reasonable-
+  // looking radius overflow top/bottom even when perfectly centered.
+  const projectRadius = (radius: number) => (radius / 100) * Math.min(canvasWidth, canvasHeight) * SIZE_SCALE;
 
   const resolvedObjects = currentPhase.objects.map((object, index) => {
     const previous = previousPhase?.objects.find((o) => o.id === object.id);
@@ -342,14 +363,36 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                     })
                   : null;
 
+              // Labels below a round/point-anchored shape sit in the dark
+              // scene background, not on top of the shape's own fill — so
+              // plain white text (matching dot/label's own convention)
+              // always has enough contrast regardless of the shape's color.
+              const belowLabel = (offsetPx: number) =>
+                object.label && (
+                  <text
+                    x={px}
+                    y={py + offsetPx}
+                    textAnchor="middle"
+                    fontFamily={FONT_FAMILY}
+                    fontWeight={700}
+                    fontSize={22}
+                    fill={COLORS.text}
+                    opacity={opacity}
+                    style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
+                  >
+                    {object.label}
+                  </text>
+                );
+
               if (object.type === "circle") {
+                const r = projectRadius(radius);
                 return (
                   <React.Fragment key={object.id}>
                     {trailNodes}
                     <circle
                       cx={px}
                       cy={py}
-                      r={projectRadius(radius)}
+                      r={r}
                       fill={color}
                       fillOpacity={(object.fillOpacity ?? 0.18) * opacity}
                       stroke={color}
@@ -357,20 +400,22 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       opacity={opacity}
                       style={transformStyle}
                     />
+                    {belowLabel(r + 24)}
                   </React.Fragment>
                 );
               }
 
               if (object.type === "ellipse") {
+                const rx = ((width / 100) * canvasWidth * SIZE_SCALE) / 2;
+                const ry = ((height / 100) * canvasHeight * SIZE_SCALE) / 2;
                 return (
                   <React.Fragment key={object.id}>
                     {trailNodes}
                     <ellipse
-                      key={object.id}
                       cx={px}
                       cy={py}
-                      rx={(width / 100) * canvasWidth / 2}
-                      ry={(height / 100) * canvasHeight / 2}
+                      rx={rx}
+                      ry={ry}
                       fill={object.filled ? color : "none"}
                       fillOpacity={(object.fillOpacity ?? 1) * opacity}
                       stroke={color}
@@ -378,18 +423,18 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       opacity={opacity}
                       style={transformStyle}
                     />
+                    {belowLabel(ry + 24)}
                   </React.Fragment>
                 );
               }
 
               if (object.type === "rectangle" || object.type === "roundedRectangle") {
-                const w = (width / 100) * canvasWidth;
-                const h = (height / 100) * canvasHeight;
+                const w = (width / 100) * canvasWidth * SIZE_SCALE;
+                const h = (height / 100) * canvasHeight * SIZE_SCALE;
                 return (
                   <React.Fragment key={object.id}>
                     {trailNodes}
                     <rect
-                      key={object.id}
                       x={px - w / 2}
                       y={py - h / 2}
                       width={w}
@@ -402,42 +447,80 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       opacity={opacity}
                       style={transformStyle}
                     />
+                    {object.label && (
+                      // Rectangles default to a fully opaque, bright fill —
+                      // dark text centered inside reads far better there
+                      // than white-on-bright, matching the same convention
+                      // TreemapCard/PackedCirclesCard already use for
+                      // labels sitting directly on a solid color fill.
+                      <text
+                        x={px}
+                        y={py}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontFamily={FONT_FAMILY}
+                        fontWeight={700}
+                        fontSize={22}
+                        fill={object.filled ? "#111315" : COLORS.text}
+                        opacity={opacity}
+                        style={transformStyle}
+                      >
+                        {object.label}
+                      </text>
+                    )}
                   </React.Fragment>
                 );
               }
 
               if (object.type === "line") {
-                const lengthPx = (width / 100) * canvasWidth;
+                const lengthPx = (width / 100) * canvasWidth * SIZE_SCALE;
                 const rad = (rotation * Math.PI) / 180;
                 const x2 = px + lengthPx * Math.cos(rad);
                 const y2 = py + lengthPx * Math.sin(rad);
                 return (
-                  <line
-                    key={object.id}
-                    x1={px}
-                    y1={py}
-                    x2={x2}
-                    y2={y2}
-                    stroke={color}
-                    strokeWidth={object.strokeWidth ?? 2.5}
-                    opacity={opacity}
-                    style={{ transform: scale !== 1 ? `scale(${scale})` : undefined, transformOrigin: `${px}px ${py}px` }}
-                  />
+                  <React.Fragment key={object.id}>
+                    <line
+                      x1={px}
+                      y1={py}
+                      x2={x2}
+                      y2={y2}
+                      stroke={color}
+                      strokeWidth={object.strokeWidth ?? 2.5}
+                      opacity={opacity}
+                      style={{ transform: scale !== 1 ? `scale(${scale})` : undefined, transformOrigin: `${px}px ${py}px` }}
+                    />
+                    {object.label && (
+                      <text
+                        x={(px + x2) / 2}
+                        y={(py + y2) / 2 - 14}
+                        textAnchor="middle"
+                        fontFamily={FONT_FAMILY}
+                        fontWeight={700}
+                        fontSize={20}
+                        fill={COLORS.text}
+                        opacity={opacity}
+                        style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
+                      >
+                        {object.label}
+                      </text>
+                    )}
+                  </React.Fragment>
                 );
               }
 
               if (object.type === "polygon") {
-                const points = (object.points ?? [])
+                const offsets = object.points ?? [];
+                const points = offsets
                   .map((p) => {
                     const [ox, oy] = project(x + p.x, y + p.y);
                     return `${ox},${oy}`;
                   })
                   .join(" ");
+                const maxPointY = offsets.length > 0 ? Math.max(0, ...offsets.map((p) => p.y)) : 0;
                 return (
                   <React.Fragment key={object.id}>
                     {trailNodes}
                     <polygon
-                      key={object.id}
                       points={points}
                       fill={object.filled ? color : "none"}
                       fillOpacity={(object.fillOpacity ?? 1) * opacity}
@@ -446,6 +529,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       opacity={opacity}
                       style={transformStyle}
                     />
+                    {belowLabel((maxPointY / 100) * canvasHeight * SIZE_SCALE + 24)}
                   </React.Fragment>
                 );
               }

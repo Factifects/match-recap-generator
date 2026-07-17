@@ -23,12 +23,30 @@ const CAMERA_ARROW = /→|->/; // the "→" glyph used between multi-stage camer
 // floors real audio.
 const MIN_REAL_AUDIO_FLOOR_SECONDS = 2;
 
+// Held on screen after a `timeline`-authored tactical-board scene's last
+// action ends — enough for that action's own settle/idle-glow to read
+// before the scene cuts, same purpose as MIN_REAL_AUDIO_FLOOR_SECONDS above
+// but sized for "one beat just finished," not "a static visual just entered."
+const TIMELINE_SETTLE_BUFFER_SECONDS = 1;
+
 /** Only a visual with genuine multi-beat choreography earns a floor above
  * the bare minimum — right now that's a multi-phase TacticalBoard or Canvas,
  * each of whose phases hold the screen for a fixed per-phase frame count so a
  * real breakdown legitimately runs long because it has real content, not
  * because of an inflated word-count guess. */
 function computeVisualMinDurationSeconds(visual: Visual | undefined): number {
+  // A `timeline`-authored board's real choreographed length is knowable
+  // directly from its own authored timing — a genuinely better floor than
+  // guessing from phase count, since it reflects exactly how much action was
+  // actually authored rather than a per-phase constant. `state` actions have
+  // no `durationSeconds` (they're instantaneous), so they contribute just
+  // their own `startSeconds` as an end point.
+  if (visual?.kind === "tactical-board" && visual.timeline && visual.timeline.length > 0) {
+    const lastEndSeconds = Math.max(
+      ...visual.timeline.map((action) => (action.type === "state" ? action.startSeconds : action.startSeconds + action.durationSeconds)),
+    );
+    return lastEndSeconds + TIMELINE_SETTLE_BUFFER_SECONDS;
+  }
   if (visual?.kind === "tactical-board" && visual.phases && visual.phases.length > 0) {
     const phaseCount = 1 + visual.phases.length;
     return (phaseCount * PHASE_DURATION_FRAMES) / FPS;

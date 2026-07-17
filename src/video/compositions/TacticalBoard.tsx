@@ -1,6 +1,6 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE } from "../theme";
+import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, FPS } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import {
   PerspectivePitch,
@@ -11,11 +11,229 @@ import {
   perspectiveProject,
 } from "./PerspectivePitch";
 import { JerseyDisc } from "./JerseyDisc";
-import { CurvedMovementArrow, CURVED_ARROW_DRAW_DURATION } from "./CurvedMovementArrow";
+import { BallGlyph } from "./BallGlyph";
+import { CurvedMovementArrow, CURVED_ARROW_DRAW_DURATION, bezierPointAt, RUN_TYPE_GEOMETRY } from "./CurvedMovementArrow";
 import { fadeIn, drawIn, pulse } from "../motion";
-import { getCameraTransformPerspective } from "../camera";
+import { getCameraTransformPerspective, getCameraTransformTimeline } from "../camera";
 import type { CameraStage } from "../../model/Segment";
 import type { SharedVisualProps, TacticalBoardData } from "../sharedVisualProps";
+
+type TacticalActor = TacticalBoardData["players"][number];
+type TimelineAction = NonNullable<TacticalBoardData["timeline"]>[number];
+
+// Sorted-ascending `move` actions for one actor — a scene has at most a
+// handful of actions total, so a per-actor filter+sort per frame is cheap
+// and far simpler than pre-indexing by actorId.
+function movesFor(timeline: TimelineAction[], actorId: string) {
+  return timeline
+    .filter((a): a is Extract<TimelineAction, { type: "move" }> => a.type === "move" && a.actorId === actorId)
+    .sort((a, b) => a.startSeconds - b.startSeconds);
+}
+
+function statesFor(timeline: TimelineAction[], actorId: string) {
+  return timeline
+    .filter((a): a is Extract<TimelineAction, { type: "state" }> => a.type === "state" && a.actorId === actorId)
+    .sort((a, b) => a.startSeconds - b.startSeconds);
+}
+
+// A freeze holds the whole board at its own `startSeconds` for
+// `durationSeconds` of real elapsed time, then every later action resumes
+// exactly where it left off — authors write `startSeconds` on one nominal
+// timeline as if freezes took zero time, and this converts real elapsed
+// scene-seconds `t` down to that nominal timeline (`te`) for every other
+// fold below to consume. Freezes are assumed non-overlapping (the schema
+// doesn't enforce it, but an author authoring a teaching pause has no reason
+// to overlap two).
+function computeEffectiveSeconds(timeline: TimelineAction[] | undefined, t: number): number {
+  if (!timeline) return t;
+  const freezes = timeline
+    .filter((a): a is Extract<TimelineAction, { type: "freeze" }> => a.type === "freeze")
+    .sort((a, b) => a.startSeconds - b.startSeconds);
+  let shift = 0;
+  for (const freeze of freezes) {
+    const wallStart = freeze.startSeconds + shift;
+    const wallEnd = wallStart + freeze.durationSeconds;
+    if (t < wallStart) break;
+    if (t <= wallEnd) return freeze.startSeconds;
+    shift += freeze.durationSeconds;
+  }
+  return t - shift;
+}
+
+// Companion to computeEffectiveSeconds — that function tells every OTHER
+// fold "what nominal time is it," collapsing a freeze window to a single
+// held instant; this one tells the freeze's OWN rendering "am I currently
+// inside a freeze, and how far into its own (real, unfrozen) on-screen
+// duration am I" so its annotations/circles can fade in using real elapsed
+// seconds rather than the frozen nominal time everything else sees.
+function resolveActiveFreeze(
+  timeline: TimelineAction[],
+  t: number,
+): { freeze: Extract<TimelineAction, { type: "freeze" }>; localSeconds: number } | null {
+  const freezes = timeline
+    .filter((a): a is Extract<TimelineAction, { type: "freeze" }> => a.type === "freeze")
+    .sort((a, b) => a.startSeconds - b.startSeconds);
+  let shift = 0;
+  for (const freeze of freezes) {
+    const wallStart = freeze.startSeconds + shift;
+    const wallEnd = wallStart + freeze.durationSeconds;
+    if (t < wallStart) return null;
+    if (t <= wallEnd) return { freeze, localSeconds: t - wallStart };
+    shift += freeze.durationSeconds;
+  }
+  return null;
+}
+
+// Shared appear/disappear fade for a `tacticalObjects` entry — `disappear`
+// covers both `disappearSeconds` (zone/line/triangle) and a lane's
+// `closesAtSeconds`, which fade out identically (a closing passing lane IS
+// just an authored disappear moment, not different math).
+function objectOpacity(te: number, appearSeconds: number, disappearSeconds: number | undefined): number {
+  const appearOpacity = fadeIn(te * FPS, appearSeconds * FPS, 12);
+  if (disappearSeconds === undefined) return appearOpacity;
+  const disappearOpacity = 1 - fadeIn(te * FPS, disappearSeconds * FPS, 12);
+  return Math.min(appearOpacity, Math.max(0, disappearOpacity));
+}
+
+interface ActorFold {
+  cx: number;
+  cy: number;
+  state?: TacticalActor["state"];
+  facing?: number;
+  activeMove?: Extract<TimelineAction, { type: "move" }>;
+  moveProgress?: number;
+  // Pitch-percent position the active move glides FROM — the previous
+  // completed move's `to`, or the roster's t=0 position if this is the
+  // actor's first move. Not necessarily `players[]`'s own x/y once an actor
+  // has more than one move in its chain.
+  moveFromX?: number;
+  moveFromY?: number;
+}
+
+// Folds every `move`/`state` action for one actor up to nominal time `te`
+// into "where is this actor, and what are they doing, right now" — the
+// timed-action equivalent of the legacy path's phaseIndex snapshot lookup,
+// except a genuine fold over authored events rather than an array index.
+// `project` takes already-clamped PITCH-PERCENT coordinates (matching every
+// other call site in this file); the in-flight glide itself happens in
+// PIXEL space via bezierPointAt, same convention CurvedMovementArrow uses,
+// so a bowed run (from M4 on) curves identically whether it's the actor's
+// own glide or the arrow drawn alongside it.
+function resolveActorFold(
+  actor: TacticalActor,
+  timeline: TimelineAction[],
+  te: number,
+  project: (px: number, py: number) => [number, number],
+  clampPercent: (value: number) => number,
+): ActorFold {
+  let fromX = actor.x;
+  let fromY = actor.y;
+  let activeMove: Extract<TimelineAction, { type: "move" }> | undefined;
+  for (const move of movesFor(timeline, actor.id)) {
+    if (move.startSeconds > te) break;
+    const endSeconds = move.startSeconds + move.durationSeconds;
+    if (te < endSeconds) {
+      activeMove = move;
+      break;
+    }
+    fromX = move.to.x;
+    fromY = move.to.y;
+  }
+
+  let state = actor.state;
+  let facing = actor.facing;
+  for (const action of statesFor(timeline, actor.id)) {
+    if (action.startSeconds > te) break;
+    if (action.state !== undefined) state = action.state;
+    if (action.facing !== undefined) facing = action.facing;
+  }
+
+  if (!activeMove) {
+    const [cx, cy] = project(clampPercent(fromX), clampPercent(fromY));
+    return { cx, cy, state, facing };
+  }
+
+  // Real-time-authored duration is in seconds; drawIn works in frame units,
+  // so convert both ends of the window rather than teach it seconds.
+  const moveProgress = drawIn(
+    te * FPS,
+    activeMove.startSeconds * FPS,
+    Math.max(activeMove.durationSeconds, 1 / FPS) * FPS,
+  );
+  // Explicit per-action `bow` overrides the run type's default curvature;
+  // absent that, RUN_TYPE_GEOMETRY supplies it (see CurvedMovementArrow.tsx).
+  const bow = activeMove.bow ?? RUN_TYPE_GEOMETRY[activeMove.runType].bow;
+  const [x1, y1] = project(clampPercent(fromX), clampPercent(fromY));
+  const [x2, y2] = project(clampPercent(activeMove.to.x), clampPercent(activeMove.to.y));
+  const { x: cx, y: cy } = bezierPointAt(x1, y1, x2, y2, bow, moveProgress);
+  return { cx, cy, state, facing, activeMove, moveProgress, moveFromX: fromX, moveFromY: fromY };
+}
+
+interface BallFold {
+  cx: number;
+  cy: number;
+  activePossession?: Extract<TimelineAction, { type: "possession" }>;
+  progress?: number;
+}
+
+// Folds every `possession` action up to nominal time `te` into "where is the
+// ball, and is it currently mid-pass" — outside of an in-flight pass window
+// the ball simply snaps to its current holder's LIVE folded position every
+// frame (so it visibly moves WITH a possessor who's also mid-`move`, not
+// just during the pass itself), which is what makes "the eye follows the
+// ball" true for a whole scene rather than only its travel moments.
+// `actorPixelById` is this frame's already-computed per-actor pixel
+// positions (see resolveActorFold) — reused so the ball's pass target
+// tracks a moving receiver's real position, not a static roster coordinate.
+function resolveBallFold(
+  ball: NonNullable<TacticalBoardData["ball"]> | undefined,
+  timeline: TimelineAction[],
+  te: number,
+  actorPixelById: Map<string, { cx: number; cy: number }>,
+  project: (px: number, py: number) => [number, number],
+): BallFold | null {
+  if (!ball) return null;
+  const possessions = timeline
+    .filter((a): a is Extract<TimelineAction, { type: "possession" }> => a.type === "possession")
+    .sort((a, b) => a.startSeconds - b.startSeconds);
+
+  const [initialCx, initialCy] = project(ball.x, ball.y);
+  let restCx = initialCx;
+  let restCy = initialCy;
+  let holderId: string | undefined = ball.belongsTo;
+
+  for (const action of possessions) {
+    if (action.startSeconds > te) break;
+    const endSeconds = action.startSeconds + action.durationSeconds;
+    if (te < endSeconds) {
+      const fromPos = holderId ? actorPixelById.get(holderId) : undefined;
+      const [fx, fy] = fromPos ? [fromPos.cx, fromPos.cy] : [restCx, restCy];
+      const toPos = action.toId ? actorPixelById.get(action.toId) : undefined;
+      const [tx, ty] = toPos ? [toPos.cx, toPos.cy] : action.toPoint ? project(action.toPoint.x, action.toPoint.y) : [fx, fy];
+      const progress = drawIn(te * FPS, action.startSeconds * FPS, Math.max(action.durationSeconds, 1 / FPS) * FPS);
+      const { x: cx, y: cy } = bezierPointAt(fx, fy, tx, ty, 0, progress);
+      return { cx, cy, activePossession: action, progress };
+    }
+    // Fully completed before te — advance the resting reference and continue.
+    if (action.toId) {
+      holderId = action.toId;
+      const pos = actorPixelById.get(action.toId);
+      if (pos) {
+        restCx = pos.cx;
+        restCy = pos.cy;
+      }
+    } else if (action.toPoint) {
+      holderId = undefined;
+      [restCx, restCy] = project(action.toPoint.x, action.toPoint.y);
+    }
+  }
+
+  if (holderId) {
+    const pos = actorPixelById.get(holderId);
+    if (pos) return { cx: pos.cx, cy: pos.cy };
+  }
+  return { cx: restCx, cy: restCy };
+}
 
 const PLAYER_RADIUS = 15;
 const HOME_COLOR = COLORS.homeTeam;
@@ -105,7 +323,7 @@ interface ResolvedPhase {
  * every timing constant below reduces to today's plain single-arrangement
  * board). */
 export const TacticalBoard: React.FC<{ data: TacticalBoardData } & SharedVisualProps> = ({
-  data: { title, players, arrows = [], highlight = [], highlightZone, annotations = [], phases: dataPhases },
+  data: { title, players, arrows = [], highlight = [], highlightZone, annotations = [], phases: dataPhases, timeline, ball, tacticalObjects = [] },
   camera = [{ focus: "full", zoom: 1 }],
   durationInFrames = 90,
   backgroundImage,
@@ -424,6 +642,308 @@ export const TacticalBoard: React.FC<{ data: TacticalBoardData } & SharedVisualP
     </>
   );
 
+  // Evented alternative to the snapshot/glide model above — computed
+  // independently from allPhases/phaseIndex/currentPhase (which stay exactly
+  // as they were, still evaluated above from an untouched `dataPhases`, now
+  // simply unused when `timeline` is present) rather than folded into that
+  // logic, so a `phases`-authored scene's rendering can never regress. See
+  // resolveActorFold/computeEffectiveSeconds above for the actual fold.
+  const te = timeline ? computeEffectiveSeconds(timeline, frame / FPS) : 0;
+  const actorFolds = timeline ? players.map((player) => resolveActorFold(player, timeline, te, project, clampPercent)) : [];
+  const actorPixelById = new Map(
+    actorFolds.map((fold, index) => [players[index].id, { cx: fold.cx, cy: fold.cy }]),
+  );
+  const ballFold = timeline ? resolveBallFold(ball, timeline, te, actorPixelById, project) : null;
+  // A timeline scene with no `camera`-type actions at all still respects the
+  // scene-level Camera: field (falls back to the same `cameraTransform` the
+  // legacy path uses) — only a scene that actually authors camera events on
+  // its timeline gets the finer-grained, arbitrary-event-count behavior.
+  const timelineCameraEvents = timeline
+    ? timeline.filter((a): a is Extract<TimelineAction, { type: "camera" }> => a.type === "camera")
+    : [];
+  const timelineCameraTransform =
+    timeline && timelineCameraEvents.length > 0
+      ? getCameraTransformTimeline(timelineCameraEvents, te, boardWidth, boardHeight)
+      : cameraTransform;
+  const activeFreeze = timeline ? resolveActiveFreeze(timeline, frame / FPS) : null;
+
+  // Guarded at construction, not just at the point it's chosen for output
+  // below (`{timeline ? timelineBoardBlock : ...}`) — a plain `const x =
+  // (<jsx/>)` still runs every .map() inside it eagerly on EVERY render
+  // regardless of which branch the JSX tree ends up using, so a legacy
+  // (non-timeline) scene was still executing every `actorFolds[index]`/
+  // `ballFold`-dependent loop below against empty/mismatched data and
+  // crashing before React ever got to discard the unused branch. Skipping
+  // construction entirely here is the actual fix — the two crashes hit
+  // during the regression check (actorPixelById, then this block's own
+  // arrow-render loop) were both this same root cause, not two unrelated bugs.
+  const timelineBoardBlock = !timeline ? null : (
+    <>
+      <div style={{ width: boardWidth, height: boardHeight, overflow: "hidden", position: "relative" }}>
+        <svg
+          width={boardWidth}
+          height={boardHeight}
+          viewBox={`0 0 ${boardWidth} ${boardHeight}`}
+          style={{ overflow: "visible", transform: timelineCameraTransform, transformOrigin: "0 0", position: "absolute", top: 0, left: 0 }}
+        >
+          <g opacity={pitchOpacity}>
+            <PerspectivePitch width={boardWidth} height={boardHeight} />
+          </g>
+
+          {activeZone && (
+            <path
+              d={(() => {
+                const corners: [number, number][] = [
+                  [activeZone.x, activeZone.y],
+                  [activeZone.x, activeZone.y + activeZone.height],
+                  [activeZone.x + activeZone.width, activeZone.y + activeZone.height],
+                  [activeZone.x + activeZone.width, activeZone.y],
+                ];
+                const pts = corners.map(([l, w]) => project(l, w));
+                return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} L ${pts[2][0]} ${pts[2][1]} L ${pts[3][0]} ${pts[3][1]} Z`;
+              })()}
+              fill={COLORS.highlight}
+              opacity={zoneOpacity}
+            />
+          )}
+
+          {tacticalObjects.map((object, index) => {
+            if (object.shape === "zone") {
+              const opacity = objectOpacity(te, object.appearSeconds, object.disappearSeconds);
+              const corners: [number, number][] = [
+                [object.x, object.y],
+                [object.x, object.y + object.height],
+                [object.x + object.width, object.y + object.height],
+                [object.x + object.width, object.y],
+              ];
+              const pts = corners.map(([l, w]) => project(l, w));
+              return (
+                <path
+                  key={index}
+                  d={`M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} L ${pts[2][0]} ${pts[2][1]} L ${pts[3][0]} ${pts[3][1]} Z`}
+                  fill={COLORS.highlight}
+                  opacity={opacity * 0.3}
+                />
+              );
+            }
+            if (object.shape === "line") {
+              const opacity = objectOpacity(te, object.appearSeconds, object.disappearSeconds);
+              const [x1, y1] = project(object.x, 0);
+              const [x2, y2] = project(object.x, 100);
+              return (
+                <g key={index} opacity={opacity}>
+                  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={COLORS.movement} strokeWidth={2} strokeDasharray="10 6" />
+                  {object.label && (
+                    <text
+                      x={(x1 + x2) / 2}
+                      y={Math.min(y1, y2) - 10}
+                      textAnchor="middle"
+                      fontFamily={FONT_FAMILY}
+                      fontWeight={700}
+                      fontSize={15}
+                      fill={COLORS.text}
+                    >
+                      {object.label}
+                    </text>
+                  )}
+                </g>
+              );
+            }
+            if (object.shape === "lane") {
+              const opacity = objectOpacity(te, object.appearSeconds, object.closesAtSeconds);
+              const [x1, y1] = project(object.from.x, object.from.y);
+              const [x2, y2] = project(object.to.x, object.to.y);
+              return (
+                <line
+                  key={index}
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={COLORS.highlight}
+                  strokeWidth={2.5}
+                  strokeDasharray="4 5"
+                  opacity={opacity}
+                />
+              );
+            }
+            // triangle
+            const opacity = objectOpacity(te, object.appearSeconds, object.disappearSeconds);
+            const pts = object.points.map((p) => project(p.x, p.y));
+            return (
+              <polygon
+                key={index}
+                points={pts.map(([x, y]) => `${x},${y}`).join(" ")}
+                fill={COLORS.highlight}
+                fillOpacity={0.12 * opacity}
+                stroke={COLORS.highlight}
+                strokeWidth={1.5}
+                opacity={opacity}
+              />
+            );
+          })}
+
+          {players.map((player, index) => {
+            const fold = actorFolds[index];
+            if (!fold.activeMove) return null;
+            // A visual trail alongside the gliding disc below, exactly like
+            // a legacy phase's "outgoing run arrow" — same component, now
+            // curved/dashed per the move's runType (RUN_TYPE_GEOMETRY), same
+            // bow the disc itself glides along (see resolveActorFold).
+            const geometry = RUN_TYPE_GEOMETRY[fold.activeMove.runType];
+            return (
+              <CurvedMovementArrow
+                key={player.id}
+                fromX={fold.moveFromX ?? player.x}
+                fromY={fold.moveFromY ?? player.y}
+                toX={fold.activeMove.to.x}
+                toY={fold.activeMove.to.y}
+                startFrame={fold.activeMove.startSeconds * FPS}
+                duration={Math.max(fold.activeMove.durationSeconds, 1 / FPS) * FPS}
+                color={COLORS.movement}
+                bow={fold.activeMove.bow ?? geometry.bow}
+                project={project}
+                kind="run"
+                style={geometry.style}
+              />
+            );
+          })}
+
+          {players.map((player, index) => {
+            const fold = actorFolds[index];
+            // Deliberately NOT the legacy per-index stagger (14 + index*4) —
+            // that spreads an 8-player roster's entrance across ~1.8s, which
+            // collides with authored choreography that (correctly) starts
+            // acting within that same window, so a later-indexed player can
+            // end up mid-`move` before it's even finished fading in. A
+            // timeline scene's only staggering should be the authored
+            // `startSeconds`, not an incidental array-index entrance effect —
+            // every actor fades in together, quickly, before frame 0's `te`
+            // can meaningfully differ from any action's startSeconds.
+            const opacity = fadeIn(frame, 4, 14);
+            const color = player.team === "home" ? HOME_COLOR : AWAY_COLOR;
+            const isHighlighted = highlight.includes(player.id);
+            return (
+              <g key={player.id} opacity={opacity}>
+                <JerseyDisc
+                  cx={fold.cx}
+                  cy={fold.cy}
+                  radius={PLAYER_RADIUS}
+                  color={color}
+                  highlighted={isHighlighted}
+                  facing={fold.facing}
+                  state={fold.state}
+                />
+                <text x={fold.cx} y={fold.cy + PLAYER_RADIUS + 15} textAnchor="middle" fill={COLORS.text} style={PLAYER_LABEL_STYLE}>
+                  {player.label}
+                </text>
+              </g>
+            );
+          })}
+
+          {ballFold && (
+            // Rendered on top of every player disc — the eye should always
+            // be able to find the ball, including while it's resting on a
+            // possessor who's themselves mid-`move` (resolveBallFold snaps
+            // to that possessor's LIVE position every frame, not just during
+            // an active `possession` window). Reuses BallGlyph directly
+            // rather than routing through CurvedMovementArrow's kind="pass"
+            // rendering — that component projects raw pitch-percent
+            // endpoints, but the ball's endpoints here are already-resolved
+            // PIXEL positions of (possibly independently moving) actors, so
+            // the two don't compose; a ghost trail matching
+            // CurvedMovementArrow's is a reasonable follow-up, not done here.
+            <BallGlyph cx={ballFold.cx} cy={ballFold.cy} size={9} opacity={fadeIn(frame, 4, 14)} />
+          )}
+
+          {activeFreeze && (
+            <>
+              {/* Dims the whole board (pitch, arrows, players, ball — every-
+                  thing already drawn above this point in the svg) so the
+                  freeze's own circle/annotation callouts below read as the
+                  bright, singled-out thing to look at, matching the "pause,
+                  then draw over it" coaching-analysis technique this is
+                  modeled on. */}
+              <rect
+                x={0}
+                y={0}
+                width={boardWidth}
+                height={boardHeight}
+                fill="#000000"
+                opacity={fadeIn(activeFreeze.localSeconds * FPS, 0, 8) * 0.4}
+              />
+              {activeFreeze.freeze.circles?.map((circle, index) => {
+                const [cx, cy] = project(circle.x, circle.y);
+                return (
+                  <circle
+                    key={index}
+                    cx={cx}
+                    cy={cy}
+                    r={circle.radius}
+                    fill="none"
+                    stroke={COLORS.highlight}
+                    strokeWidth={3}
+                    opacity={fadeIn(activeFreeze.localSeconds * FPS, 6, 10)}
+                  />
+                );
+              })}
+              {activeFreeze.freeze.annotations?.map((annotation, index) => {
+                const [x, y] = project(annotation.x, annotation.y);
+                return (
+                  <text
+                    key={index}
+                    x={x}
+                    y={y - 26}
+                    textAnchor="middle"
+                    fontFamily={FONT_FAMILY}
+                    fontWeight={700}
+                    fontSize={22}
+                    fill={COLORS.text}
+                    opacity={fadeIn(activeFreeze.localSeconds * FPS, 10, 12)}
+                    style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
+                  >
+                    {annotation.text}
+                  </text>
+                );
+              })}
+            </>
+          )}
+
+          {annotations.map((annotation, index) => {
+            const opacity = fadeIn(frame, 40 + index * 10, 14);
+            return (
+              <text
+                key={index}
+                x={toPixelX(annotation.x, annotation.y)}
+                y={toPixelY(annotation.x, annotation.y)}
+                textAnchor="middle"
+                fontFamily={FONT_FAMILY}
+                fontWeight={700}
+                fontSize={19}
+                fill={COLORS.text}
+                opacity={opacity}
+                style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
+              >
+                {annotation.text}
+              </text>
+            );
+          })}
+        </svg>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: boardWidth,
+            height: boardHeight,
+            pointerEvents: "none",
+            background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 46%, rgba(0,0,0,0.5) 100%)",
+          }}
+        />
+      </div>
+    </>
+  );
+
   return (
     <SceneFrame
       backgroundColor={backgroundColor}
@@ -435,7 +955,9 @@ export const TacticalBoard: React.FC<{ data: TacticalBoardData } & SharedVisualP
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 24 }}>{title}</div>
 
-        {isSideLayout ? (
+        {timeline ? (
+          timelineBoardBlock
+        ) : isSideLayout ? (
           <div style={{ display: "flex", alignItems: "center", gap: 64 }}>
             {boardPosition === "left" ? (
               <>
@@ -453,7 +975,7 @@ export const TacticalBoard: React.FC<{ data: TacticalBoardData } & SharedVisualP
           boardBlock
         )}
 
-        {allPhases.length > 1 && (
+        {!timeline && allPhases.length > 1 && (
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             {allPhases.map((_, index) => (
               <div

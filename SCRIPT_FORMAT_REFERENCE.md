@@ -104,7 +104,7 @@ actually fits the content (see "Chapter and Statement" below).
 
 | Scene Type (key) | Data JSON shape |
 |---|---|
-| `TacticalBoard` | See "TacticalBoard specifics" — supports both a hand-authored `Data` block and a named-`Pattern` shortcut. `{ title: string, players: [{id, x, y, team: "home"\|"away", label}] (min 1), arrows?: [{from, to: {x,y}, kind?: "run"\|"pass", style?: "standard"\|"press"\|"recovery"\|"third-man-run"}], highlight?: string[], highlightZone?: {x,y,width,height}, annotations?: [{text,x,y}], phases?: [{players, arrows?, highlightZone?, caption?, dataPoint?}] (min 1) }` |
+| `TacticalBoard` | See "TacticalBoard specifics" — supports a hand-authored `Data` block, a named-`Pattern` shortcut, or (new, see "TacticalBoard evented timeline" below) an evented `timeline`. `{ title: string, players: [{id, x, y, team: "home"\|"away", label, state?, facing?}] (min 1), arrows?: [{from, to: {x,y}, kind?: "run"\|"pass", style?: "standard"\|"press"\|"recovery"\|"third-man-run"}], highlight?: string[], highlightZone?: {x,y,width,height}, annotations?: [{text,x,y}], phases?: [{players, arrows?, highlightZone?, caption?, dataPoint?}] (min 1), ball?: {x,y,belongsTo?}, timeline?: TimelineAction[] (min 1), tacticalObjects?: TacticalObject[] }` |
 | `VerticalTacticalBoard` | `{ title: string, players: [{id, x, y, team, label, role?}] (min 1), arrows?: [{from, to:{x,y}, curve?: bool, bow?: number}], sideText?: string }` |
 | `Formation` | `{ title?: string, sides: [{team: string, formationName: "4-3-3"\|"4-2-3-1"\|"3-4-2-1"\|"5-4-1"\|"4-4-2", players: [{name}] (min 1), side?: "home"\|"away"}] (1-2 entries) }` — see "Formation position reference" below; `players` array order must match that formation's canonical slot order. |
 | `ShotMap` | `{ title: string, shots: [{x, y, team: "home"\|"away", result: "goal"\|"saved"\|"blocked"\|"off-target", xg?: 0-1}] (min 1) }` |
@@ -226,6 +226,48 @@ Valid icon keys: `goal`, `card`, `save`, `whistle`, `clock`, `star`, `assist`, `
    Statement). The full named-pattern list lives in `src/video/tacticalPatterns.ts` — check there
    for the current set and each pattern's exact role layout before using one; don't guess a name.
    An explicit `Data` block always overrides a `Pattern` field if both are present.
+
+### TacticalBoard evented timeline (real per-actor timing, ball possession, run identities)
+
+For a demonstration that needs actions to start at different, author-chosen moments (a press
+trigger, a build-up sequence, a rotation) rather than everyone re-arranging together on a fixed
+per-phase clock, add `timeline` (and optionally `ball`/`tacticalObjects`) to the `Data` block
+instead of `phases`. `players`/`arrows`/`highlight`/`highlightZone`/`annotations` still mean
+exactly what they always have and still work unchanged — `timeline` is a new, independent way to
+animate the same roster. If both `phases` and `timeline` are present, `timeline` wins.
+
+`timeline` is an array of actions, each with its own `startSeconds` (seconds from the scene's
+start) — several can overlap or stagger arbitrarily:
+
+| `type` | Fields | What it does |
+|---|---|---|
+| `move` | `actorId`, `startSeconds`, `durationSeconds?` (default 0.6), `to: {x,y}`, `runType?` (see below, default `standard`), `bow?` (override the runType's default curvature) | Glides that player's own marker to `to`, drawing a matching curved trail arrow alongside it. |
+| `state` | `actorId`, `startSeconds`, `state?`, `facing?` (degrees, 0 = attacking-direction "up") | Sets that player's behavior badge and/or body-orientation wedge from this moment on — this is also how you express a "trigger" ("the press begins the instant the ball arrives" = a `state` action timed to fire right then, no conditional logic needed). |
+| `possession` | `startSeconds`, `durationSeconds?` (default 0.6), `fromId?`, `toId?`, `toPoint?` (for a shot/clearance with no receiving player), `action?`: `"pass"\|"carry"\|"shot"\|"clearance"` (default `"pass"`) | Reassigns the ball; while in-flight the ball visibly travels between the *current* live positions of `fromId`/`toId` (or `toPoint`). Add a top-level `ball: {x, y, belongsTo?}` for the starting position/owner. |
+| `camera` | `startSeconds`, `durationSeconds?` (default 1), `focus`: `"full"\|"left-half"\|"right-half"\|"box-left"\|"box-right"` or `{x,y}`, `zoom` | Pans/zooms from wherever the camera currently was into this framing. Any number of these can fire across the scene (not limited to 2 stages like the scene-level `**Camera:**` field). Keep zoom conservative (~1.1-1.3x) for anything with multiple players still in play — a tighter zoom (1.4x+) is safest reserved for a moment already narrowed to one or two actors (e.g. paired with a `freeze`), since the camera clamps to the pitch's own edges but does NOT guarantee any particular player stays in frame. |
+| `freeze` | `startSeconds`, `durationSeconds` (min 0.5), `annotations?: [{text,x,y}]`, `circles?: [{x,y,radius}]` | Pauses every other action at this instant, dims the board, and draws the given circles/callouts — the "pause, then draw over it" coaching-analysis technique. Everything resumes exactly where it left off afterward. |
+
+`state` values: `pressing`, `marking`, `covering`, `holdingWidth`, `receiving`, `overlapping`,
+`underlapping`, `screening`, `dropping`, `checkingShoulder`, `waiting`, `carrying`.
+
+`runType` values (each renders with its own curve/dash so different runs read as visually
+distinct, not identical straight lines): `standard`, `overlap`, `underlap`, `blindsideRun`,
+`thirdManRun`, `recoveryRun`, `counterRun`, `dummyRun`, `supportRun`, `diagonalRun`, `channelRun`,
+`halfSpaceRun`.
+
+`tacticalObjects` (optional array, each entry also takes `appearSeconds?` default 0 and
+`disappearSeconds?`): `{shape:"zone", x,y,width,height}` (a highlighted area, like `highlightZone`
+but with its own appear/disappear timing), `{shape:"line", x, label?}` (a defensive/compactness
+line at that length-axis position, spanning the full width), `{shape:"lane", from:{x,y},
+to:{x,y}, closesAtSeconds?}` (a dashed passing lane that can fade closed), `{shape:"triangle",
+points:[{x,y},{x,y},{x,y}]}` (a build-up-shape callout).
+
+A scene's on-screen floor duration for a `timeline` board is derived from the last action's own
+end time (+ a short settle buffer) — you don't need to separately calculate a `Duration` field to
+match; a real `Duration` still drives the no-`--audio` estimate render.
+
+See `analyses/gegenpressing-press-trigger-demo-2026-07-16.txt` for a fully worked example
+exercising every action type.
 
 ## Formation position reference
 

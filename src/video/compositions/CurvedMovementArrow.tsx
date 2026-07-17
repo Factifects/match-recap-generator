@@ -4,10 +4,37 @@ import { COLORS } from "../theme";
 import { drawIn, pulse } from "../motion";
 import { vpitchX, vpitchY } from "./VerticalPitch";
 import { BallGlyph } from "./BallGlyph";
+import type { RUN_TYPE_KEYS } from "../../model/visualDefinitions";
+
+export type RunType = (typeof RUN_TYPE_KEYS)[number];
 
 export const CURVED_ARROW_DRAW_DURATION = 18;
 
 export type ArrowStyle = "standard" | "press" | "recovery" | "third-man-run";
+
+// Pure pixel-space quadratic-bezier point, factored out of the component
+// below so TacticalBoard's evented timeline fold (resolveActorFold) can
+// interpolate a gliding player's position along the exact same curve shape
+// an arrow of the same `bow` would draw, instead of a second slightly-
+// different curve implementation. Takes already-projected pixel coordinates
+// (not pitch percent) — same convention as the component's own internal
+// bezierPoint below, which this does not replace (left untouched to avoid
+// any risk to its already-proven rendering).
+export function bezierPointAt(x1: number, y1: number, x2: number, y2: number, bow: number, t: number): { x: number; y: number } {
+  const midX = (x1 + x2) / 2;
+  const midY = (y1 + y2) / 2;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len;
+  const ny = dx / len;
+  const controlX = midX + nx * bow;
+  const controlY = midY + ny * bow;
+  return {
+    x: (1 - t) * (1 - t) * x1 + 2 * (1 - t) * t * controlX + t * t * x2,
+    y: (1 - t) * (1 - t) * y1 + 2 * (1 - t) * t * controlY + t * t * y2,
+  };
+}
 
 // Purely visual per-concept treatment, independent of `kind` (which governs
 // ball-vs-player-glide semantics, not appearance) — a real render showed
@@ -23,6 +50,31 @@ const ARROW_STYLE_PRESETS: Record<ArrowStyle, { color?: string; strokeWidth: num
   press: { color: COLORS.danger, strokeWidth: 3.5 },
   recovery: { color: COLORS.textDim, strokeWidth: 2, dash: "0.05 0.035" },
   "third-man-run": { strokeWidth: 1.5, dash: "0.012 0.03" },
+};
+
+// Per-named-run-type curvature + (optional) reuse of an existing ArrowStyle
+// preset — maps TacticalBoard's evented `timeline` `move` actions onto this
+// component's already-proven `bow`/`style` parameters instead of inventing
+// new geometry per run type. Sign of `bow` only matters relative to travel
+// direction (positive = curves to the right of travel, negative = left);
+// magnitude is a starting point tuned by eye against the Gegenpressing test
+// scene, not a precise tactical measurement. `standard`/`counterRun`/
+// `diagonalRun` stay straight (bow 0) — their identity comes from the
+// authored `to` point (a diagonal/counter run IS its direction), not from
+// added curvature.
+export const RUN_TYPE_GEOMETRY: Record<RunType, { bow: number; style?: ArrowStyle }> = {
+  standard: { bow: 0 },
+  overlap: { bow: 55 },
+  underlap: { bow: -35 },
+  blindsideRun: { bow: 10 },
+  diagonalRun: { bow: 0 },
+  thirdManRun: { bow: 20, style: "third-man-run" },
+  recoveryRun: { bow: -15, style: "recovery" },
+  counterRun: { bow: 0 },
+  dummyRun: { bow: 15 },
+  supportRun: { bow: 25 },
+  channelRun: { bow: 45 },
+  halfSpaceRun: { bow: 30 },
 };
 
 // A real render showed a "pass" arrow reading as just a static colored line
