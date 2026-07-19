@@ -54,18 +54,19 @@ export const ChapterCard: React.FC<{ title: string; backgroundColor?: PanelColor
           transform: `translateX(${titleX}px)`,
           opacity: titleOpacity,
           fontFamily: DISPLAY_FONT_FAMILY,
+          fontWeight: 800,
           fontSize: 128,
           letterSpacing: 4,
           color: COLORS.text,
           textAlign: "center",
           textTransform: "uppercase",
-          // Titles are meant to be short (2-5 words per SCRIPT_TEMPLATE.md), so
-          // nowrap was safe in the 1920px landscape frame. Portrait's 1080px
-          // width is tight enough that even a normal short title can hit the
-          // edge — let it wrap onto a second line (the tall portrait frame has
-          // room) rather than clip or need a smaller font.
-          whiteSpace: isPortrait ? "normal" : "nowrap",
-          maxWidth: isPortrait ? 900 : undefined,
+          // Titles are meant to be short (2-5 words per SCRIPT_TEMPLATE.md),
+          // but a longer one (a full question, say) still needs to not clip —
+          // wrapping onto a second line beats running off the edge of the
+          // frame. Both orientations wrap now; landscape's cap is just wider
+          // since the frame itself is (1920px vs portrait's 1080px).
+          whiteSpace: "normal",
+          maxWidth: isPortrait ? 900 : 1600,
         }}
       >
         {title}

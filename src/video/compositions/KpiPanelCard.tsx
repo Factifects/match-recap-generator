@@ -108,7 +108,7 @@ export const KpiPanelCard: React.FC<{ data: KpiPanelData } & SharedVisualProps> 
                 >
                   {stat.label}
                 </div>
-                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 76, color: COLORS.text, lineHeight: 1 }}>
+                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 76, color: COLORS.text, lineHeight: 1 }}>
                   {stat.value}
                 </div>
                 {stat.delta && (

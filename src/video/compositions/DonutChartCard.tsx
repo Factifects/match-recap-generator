@@ -76,6 +76,7 @@ export const DonutChartCard: React.FC<{ data: DonutChartData } & SharedVisualPro
                   fill={color}
                   opacity={labelOpacity}
                   fontFamily={DISPLAY_FONT_FAMILY}
+                  fontWeight={800}
                   fontSize={42}
                   textAnchor="middle"
                   dominantBaseline="middle"
@@ -97,7 +98,7 @@ export const DonutChartCard: React.FC<{ data: DonutChartData } & SharedVisualPro
             opacity: titleOpacity,
           }}
         >
-          <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 92, color: COLORS.text, lineHeight: 1 }}>
+          <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 92, color: COLORS.text, lineHeight: 1 }}>
             {Number.isInteger(total) ? total : total.toFixed(2)}
           </div>
           <div

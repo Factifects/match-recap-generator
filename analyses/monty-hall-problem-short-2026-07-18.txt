@@ -1,0 +1,260 @@
+### SCENE 1
+
+**Scene Type:** Icon
+
+**Narration:** This is based on a real game show. Behind one door: a car. Behind the other two: goats. You pick a door, hoping for the car.
+
+**Duration:** 7 seconds
+
+**Story Beat:** hook
+
+**Transition Style:** zoom in
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "icon": "trophy",
+  "headline": "One Prize. Two Goats.",
+  "caption": "You pick a door, hoping to drive home the car."
+}
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** Let's say you pick door number one.
+
+**Duration:** 5 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Which Door?",
+  "objects": [
+    { "id": "door1", "type": "roundedRectangle", "x": 25, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#f59e0b", "filled": true, "label": "1" },
+    { "id": "door2", "type": "roundedRectangle", "x": 50, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#2563eb", "filled": true, "label": "2" },
+    { "id": "door3", "type": "roundedRectangle", "x": 75, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#16a34a", "filled": true, "label": "3" },
+    { "id": "pickLabel", "type": "label", "x": 25, "y": 80, "label": "Your Pick", "color": "#fbbf24", "opacity": 0 }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "door1", "type": "roundedRectangle", "x": 25, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#f59e0b", "filled": true, "label": "1", "scale": 1.08 },
+        { "id": "door2", "type": "roundedRectangle", "x": 50, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#2563eb", "filled": true, "label": "2" },
+        { "id": "door3", "type": "roundedRectangle", "x": 75, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#16a34a", "filled": true, "label": "3" },
+        { "id": "pickLabel", "type": "label", "x": 25, "y": 80, "label": "Your Pick", "color": "#fbbf24", "opacity": 1 }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Canvas
+
+**Narration:** Here's the key rule: the host knows exactly what's behind every door, and by the rules of the game, he always opens a different door to reveal a goat — never the car.
+
+**Duration:** 9 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "The Host's Fixed Rule",
+  "objects": [
+    { "id": "door1", "type": "roundedRectangle", "x": 25, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#f59e0b", "filled": true, "label": "1", "scale": 1.05 },
+    { "id": "door2", "type": "roundedRectangle", "x": 50, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#2563eb", "filled": true, "label": "2" },
+    { "id": "door3", "type": "roundedRectangle", "x": 75, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#16a34a", "filled": true, "label": "3" },
+    { "id": "pickLabel", "type": "label", "x": 25, "y": 80, "label": "Your Pick", "color": "#fbbf24" },
+    { "id": "goatLabel", "type": "label", "x": 50, "y": 36, "label": "GOAT", "color": "#ffffff", "opacity": 0 },
+    { "id": "ruleLabel", "type": "label", "x": 50, "y": 88, "label": "Never opens the car door", "color": "#93c5fd", "opacity": 0 }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "door1", "type": "roundedRectangle", "x": 25, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#f59e0b", "filled": true, "label": "1", "scale": 1.05 },
+        { "id": "door2", "type": "roundedRectangle", "x": 50, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#6b7280", "filled": true, "label": "2", "opacity": 0.6 },
+        { "id": "door3", "type": "roundedRectangle", "x": 75, "y": 50, "width": 20, "height": 50, "radius": 4, "color": "#16a34a", "filled": true, "label": "3" },
+        { "id": "pickLabel", "type": "label", "x": 25, "y": 80, "label": "Your Pick", "color": "#fbbf24" },
+        { "id": "goatLabel", "type": "label", "x": 50, "y": 36, "label": "GOAT", "color": "#ffffff", "opacity": 1 },
+        { "id": "ruleLabel", "type": "label", "x": 50, "y": 88, "label": "Never opens the car door", "color": "#93c5fd", "opacity": 1 }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Canvas
+
+**Narration:** Now, before I tell you the answer — pause for a second. Would you stick with your door, or switch to the other one? Most people say it doesn't matter.
+
+**Duration:** 9 seconds
+
+**Story Beat:** question
+
+**Panel Color:** yellow
+
+**Data:**
+{
+  "title": "Pause. What Would You Do?",
+  "objects": [
+    { "id": "door1", "type": "roundedRectangle", "x": 25, "y": 52, "width": 20, "height": 50, "radius": 4, "color": "#f59e0b", "filled": true, "label": "1" },
+    { "id": "door2", "type": "roundedRectangle", "x": 50, "y": 52, "width": 20, "height": 50, "radius": 4, "color": "#6b7280", "filled": true, "label": "2", "opacity": 0.4 },
+    { "id": "door3", "type": "roundedRectangle", "x": 75, "y": 52, "width": 20, "height": 50, "radius": 4, "color": "#16a34a", "filled": true, "label": "3" },
+    { "id": "stayLabel", "type": "label", "x": 25, "y": 82, "label": "STAY?", "color": "#fbbf24" },
+    { "id": "switchLabel", "type": "label", "x": 75, "y": 82, "label": "SWITCH?", "color": "#38bdf8" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "door1", "type": "roundedRectangle", "x": 25, "y": 52, "width": 20, "height": 50, "radius": 4, "color": "#f59e0b", "filled": true, "label": "1", "scale": 1.08 },
+        { "id": "door2", "type": "roundedRectangle", "x": 50, "y": 52, "width": 20, "height": 50, "radius": 4, "color": "#6b7280", "filled": true, "label": "2", "opacity": 0.4 },
+        { "id": "door3", "type": "roundedRectangle", "x": 75, "y": 52, "width": 20, "height": 50, "radius": 4, "color": "#16a34a", "filled": true, "label": "3" },
+        { "id": "stayLabel", "type": "label", "x": 25, "y": 82, "label": "STAY?", "color": "#fbbf24" },
+        { "id": "switchLabel", "type": "label", "x": 75, "y": 82, "label": "SWITCH?", "color": "#38bdf8" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "door1", "type": "roundedRectangle", "x": 25, "y": 52, "width": 20, "height": 50, "radius": 4, "color": "#f59e0b", "filled": true, "label": "1" },
+        { "id": "door2", "type": "roundedRectangle", "x": 50, "y": 52, "width": 20, "height": 50, "radius": 4, "color": "#6b7280", "filled": true, "label": "2", "opacity": 0.4 },
+        { "id": "door3", "type": "roundedRectangle", "x": 75, "y": 52, "width": 20, "height": 50, "radius": 4, "color": "#16a34a", "filled": true, "label": "3", "scale": 1.08 },
+        { "id": "stayLabel", "type": "label", "x": 25, "y": 82, "label": "STAY?", "color": "#fbbf24" },
+        { "id": "switchLabel", "type": "label", "x": 75, "y": 82, "label": "SWITCH?", "color": "#38bdf8" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Canvas
+
+**Narration:** When this exact question ran in a magazine column back in 1990, thousands of readers wrote in furious — including mathematicians with PhDs — insisting the columnist was wrong. She wasn't.
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "This Really Happened",
+  "objects": [
+    { "id": "paperBg", "type": "roundedRectangle", "x": 50, "y": 50, "width": 74, "height": 64, "radius": 6, "color": "#1f2937", "filled": true },
+    { "id": "yearLabel", "type": "label", "x": 50, "y": 26, "label": "1990", "color": "#fbbf24", "scale": 1.6 },
+    { "id": "subLabel", "type": "label", "x": 50, "y": 38, "label": "A Magazine Puzzle", "color": "#f8fafc" },
+    { "id": "line1", "type": "label", "x": 50, "y": 54, "label": "Thousands wrote in furious.", "color": "#cbd5e1" },
+    { "id": "line2", "type": "label", "x": 50, "y": 66, "label": "Even PhDs said she was wrong.", "color": "#cbd5e1" },
+    { "id": "verdictLabel", "type": "label", "x": 50, "y": 80, "label": "She wasn't.", "color": "#4ade80", "opacity": 0 }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "paperBg", "type": "roundedRectangle", "x": 50, "y": 50, "width": 74, "height": 64, "radius": 6, "color": "#1f2937", "filled": true },
+        { "id": "yearLabel", "type": "label", "x": 50, "y": 26, "label": "1990", "color": "#fbbf24", "scale": 1.6 },
+        { "id": "subLabel", "type": "label", "x": 50, "y": 38, "label": "A Magazine Puzzle", "color": "#f8fafc" },
+        { "id": "line1", "type": "label", "x": 50, "y": 54, "label": "Thousands wrote in furious.", "color": "#cbd5e1" },
+        { "id": "line2", "type": "label", "x": 50, "y": 66, "label": "Even PhDs said she was wrong.", "color": "#cbd5e1" },
+        { "id": "verdictLabel", "type": "label", "x": 50, "y": 80, "label": "She wasn't.", "color": "#4ade80", "opacity": 1, "scale": 1.2 }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Donut
+
+**Narration:** Switching wins the car two times out of three. Staying only wins it one time out of three. It's not close.
+
+**Duration:** 8 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "1,000 Simulated Games",
+  "segments": [
+    { "label": "Stay", "value": 33 },
+    { "label": "Switch", "value": 67 }
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** Here's the shift in thinking: don't focus on your one door. Focus on the group of two doors you didn't pick — together, they always had double the chance of hiding the car.
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Where The Odds Actually Go",
+  "objects": [
+    { "id": "pickBlock", "type": "roundedRectangle", "x": 25, "y": 50, "width": 26, "height": 34, "radius": 4, "color": "#f59e0b", "filled": true, "label": "Your Door" },
+    { "id": "otherBlock", "type": "roundedRectangle", "x": 70, "y": 50, "width": 36, "height": 34, "radius": 4, "color": "#2563eb", "filled": true, "label": "The Other Two" },
+    { "id": "arrowDown", "type": "line", "x": 70, "y": 68, "width": 14, "rotation": 90, "color": "#93c5fd", "strokeWidth": 3, "opacity": 0 },
+    { "id": "collapsedLabel", "type": "label", "x": 70, "y": 88, "label": "All that extra chance lands here", "color": "#f8fafc", "opacity": 0 }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "pickBlock", "type": "roundedRectangle", "x": 25, "y": 50, "width": 26, "height": 34, "radius": 4, "color": "#f59e0b", "filled": true, "label": "Your Door" },
+        { "id": "otherBlock", "type": "roundedRectangle", "x": 76, "y": 50, "width": 24, "height": 34, "radius": 4, "color": "#2563eb", "filled": true, "label": "Door 3" },
+        { "id": "arrowDown", "type": "line", "x": 76, "y": 68, "width": 14, "rotation": 90, "color": "#93c5fd", "strokeWidth": 3, "opacity": 1 },
+        { "id": "collapsedLabel", "type": "label", "x": 76, "y": 88, "label": "All that extra chance lands here", "color": "#f8fafc", "opacity": 1 }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Icon
+
+**Narration:** So switching isn't just a math trick. It doubles your real shot at driving home with the car.
+
+**Duration:** 7 seconds
+
+**Story Beat:** payoff
+
+**Transition Style:** fade
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "icon": "trophy",
+  "headline": "Switch. Every Time.",
+  "caption": "It doubles your real shot at driving home with the car."
+}

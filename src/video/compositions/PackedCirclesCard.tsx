@@ -121,7 +121,7 @@ export const PackedCirclesCard: React.FC<{ data: PackedCirclesData } & SharedVis
                   gap: 4,
                 }}
               >
-                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: valueFontSize, color: "#111315", lineHeight: 1 }}>
+                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: valueFontSize, color: "#111315", lineHeight: 1 }}>
                   {prefix}
                   {Number.isInteger(circle.value) ? circle.value : circle.value.toFixed(1)}
                   {suffix}

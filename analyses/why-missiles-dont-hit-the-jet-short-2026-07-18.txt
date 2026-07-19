@@ -1,0 +1,301 @@
+### SCENE 1
+
+**Scene Type:** Icon
+
+**Narration:** A missile's rocket motor ignites just a few feet from the jet that fired it. So why doesn't it fly straight back into the plane?
+
+**Duration:** 7 seconds
+
+**Story Beat:** hook
+
+**Transition Style:** zoom in
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "icon": "clock",
+  "headline": "It Should Hit The Jet.",
+  "caption": "The rocket motor lights just feet from the plane that fired it."
+}
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** Before the motor ever lights, a hydraulic piston physically shoves the missile off the rail — down and away from the wing, in a fraction of a second.
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Step One: Push, Not Light",
+  "objects": [
+    { "id": "jet", "type": "icon", "icon": "jet", "x": 40, "y": 28, "color": "#94a3b8", "radius": 11 },
+    { "id": "pylon", "type": "rectangle", "x": 32, "y": 38, "width": 5, "height": 8, "color": "#475569" },
+    { "id": "missile", "type": "icon", "icon": "rocket", "x": 30, "y": 39, "color": "#6b7280", "radius": 8, "rotation": 130 },
+    { "id": "piston", "type": "rectangle", "x": 30, "y": 42, "width": 2, "height": 3, "color": "#38bdf8" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Mounted — motor is OFF", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "jet", "type": "icon", "icon": "jet", "x": 40, "y": 28, "color": "#94a3b8", "radius": 11 },
+        { "id": "pylon", "type": "rectangle", "x": 32, "y": 38, "width": 5, "height": 8, "color": "#475569" },
+        { "id": "missile", "type": "icon", "icon": "rocket", "x": 25, "y": 55, "color": "#6b7280", "radius": 8, "rotation": 130, "trail": true },
+        { "id": "piston", "type": "rectangle", "x": 28, "y": 48, "width": 2, "height": 12, "color": "#38bdf8" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Piston fires — pure mechanical push", "color": "#7dd3fc" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "jet", "type": "icon", "icon": "jet", "x": 40, "y": 28, "color": "#94a3b8", "radius": 11 },
+        { "id": "pylon", "type": "rectangle", "x": 32, "y": 38, "width": 5, "height": 8, "color": "#475569" },
+        { "id": "missile", "type": "icon", "icon": "rocket", "x": 16, "y": 72, "color": "#6b7280", "radius": 8, "rotation": 130, "trail": true },
+        { "id": "piston", "type": "rectangle", "x": 28, "y": 48, "width": 2, "height": 12, "color": "#38bdf8", "opacity": 0.5 },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Clear of the wing — motor still off", "color": "#7dd3fc" }
+      ],
+      "arrows": [
+        { "from": "jet", "to": "missile", "style": "dashed", "color": "#7dd3fc", "strokeWidth": 2, "label": "Clearance" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Canvas
+
+**Narration:** Only once it's clear — call it a third of a second later — does the rocket motor actually light. By then, there's already daylight between the missile and the jet.
+
+**Duration:** 10 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "Step Two: Light The Motor",
+  "objects": [
+    { "id": "jet", "type": "icon", "icon": "jet", "x": 40, "y": 24, "color": "#94a3b8", "radius": 11 },
+    { "id": "missile", "type": "icon", "icon": "rocket", "x": 18, "y": 68, "color": "#6b7280", "radius": 8, "rotation": 130 },
+    { "id": "flame", "type": "ellipse", "x": 26, "y": 62, "width": 8, "height": 5, "color": "#f97316", "opacity": 0 },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 12, "label": "T+0.3s — still coasting, unlit", "color": "#e2e8f0" }
+  ],
+  "camera": { "x": 42, "y": 48, "zoom": 1 },
+  "phases": [
+    {
+      "objects": [
+        { "id": "jet", "type": "icon", "icon": "jet", "x": 40, "y": 24, "color": "#94a3b8", "radius": 11 },
+        { "id": "missile", "type": "icon", "icon": "rocket", "x": 8, "y": 76, "color": "#f97316", "radius": 9, "rotation": 130, "trail": true },
+        { "id": "flame", "type": "ellipse", "x": 16, "y": 68, "width": 12, "height": 7, "color": "#fb923c", "opacity": 1, "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 12, "label": "Motor ignites — already clear", "color": "#fdba74" }
+      ],
+      "camera": { "x": 15, "y": 65, "zoom": 1.7 }
+    },
+    {
+      "objects": [
+        { "id": "jet", "type": "icon", "icon": "jet", "x": 40, "y": 24, "color": "#94a3b8", "radius": 11 },
+        { "id": "missile", "type": "icon", "icon": "rocket", "x": 2, "y": 82, "color": "#f97316", "radius": 9, "rotation": 130, "trail": true },
+        { "id": "flame", "type": "ellipse", "x": 12, "y": 75, "width": 14, "height": 7, "color": "#fb923c", "opacity": 1 },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 12, "label": "Already outrunning the jet", "color": "#fdba74" }
+      ],
+      "camera": { "x": 22, "y": 62, "zoom": 1.2 }
+    }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** StatBurst
+
+**Narration:** At launch, the missile is barely moving faster than the jet itself. Two seconds after ignition, it's already outrunning it by well over two thousand miles an hour.
+
+**Duration:** 7 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "label": "Speed: At Launch vs. 2 Seconds Later",
+  "leftLabel": "At Separation",
+  "leftValue": 550,
+  "rightLabel": "2s After Ignition",
+  "rightValue": 2800,
+  "format": "integer",
+  "suffix": " mph"
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Canvas
+
+**Narration:** From the instant it clears the rail, the two are on completely different trajectories. The jet keeps flying its own line — the missile is now accelerating away faster than the jet could ever catch. The gap only ever grows.
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "The Gap Only Grows",
+  "objects": [
+    { "id": "jet", "type": "icon", "icon": "jet", "x": 16, "y": 46, "color": "#38bdf8", "radius": 11 },
+    { "id": "missile", "type": "icon", "icon": "rocket", "x": 18, "y": 58, "color": "#f97316", "radius": 9, "rotation": 130 },
+    { "id": "flame", "type": "ellipse", "x": 6, "y": 56, "width": 6, "height": 4, "color": "#fb923c" },
+    { "id": "gapLabel", "type": "label", "x": 50, "y": 12, "label": "Same heading. Very different speed.", "color": "#e2e8f0" }
+  ],
+  "camera": { "x": 25, "y": 52, "zoom": 1.3 },
+  "phases": [
+    {
+      "objects": [
+        { "id": "jet", "type": "icon", "icon": "jet", "x": 40, "y": 46, "color": "#38bdf8", "radius": 11, "trail": true },
+        { "id": "missile", "type": "icon", "icon": "rocket", "x": 62, "y": 60, "color": "#f97316", "radius": 9, "rotation": 130, "trail": true },
+        { "id": "flame", "type": "ellipse", "x": 48, "y": 58, "width": 9, "height": 5, "color": "#fb923c", "trail": true },
+        { "id": "gapLabel", "type": "label", "x": 50, "y": 12, "label": "The missile is already ahead", "color": "#fdba74" }
+      ],
+      "camera": { "x": 50, "y": 54, "zoom": 1.1 }
+    },
+    {
+      "objects": [
+        { "id": "jet", "type": "icon", "icon": "jet", "x": 62, "y": 46, "color": "#38bdf8", "radius": 11, "trail": true },
+        { "id": "missile", "type": "icon", "icon": "rocket", "x": 96, "y": 63, "color": "#f97316", "radius": 9, "rotation": 130, "trail": true },
+        { "id": "flame", "type": "ellipse", "x": 82, "y": 60, "width": 11, "height": 5, "color": "#fb923c", "trail": true },
+        { "id": "gapLabel", "type": "label", "x": 50, "y": 12, "label": "Never closes. Only grows.", "color": "#fdba74" }
+      ],
+      "camera": { "x": 62, "y": 52, "zoom": 0.9 }
+    }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Canvas
+
+**Narration:** Modern missiles can also just turn. The instant it's clear, steering fins can snap the nose almost ninety degrees onto the target — sending it away from the jet's own flight path entirely, not just outrunning it.
+
+**Duration:** 10 seconds
+
+**Story Beat:** comparison
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Or It Just Turns",
+  "objects": [
+    { "id": "jet", "type": "icon", "icon": "jet", "x": 24, "y": 55, "color": "#38bdf8", "radius": 11 },
+    { "id": "missile", "type": "icon", "icon": "rocket", "x": 30, "y": 60, "color": "#f97316", "radius": 9, "rotation": 130 },
+    { "id": "target", "type": "dot", "x": 84, "y": 16, "color": "#facc15", "label": "Target" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Locked on, still pointed the jet's own way", "color": "#e2e8f0" }
+  ],
+  "camera": { "x": 45, "y": 42, "zoom": 1.05 },
+  "phases": [
+    {
+      "objects": [
+        { "id": "jet", "type": "icon", "icon": "jet", "x": 38, "y": 55, "color": "#38bdf8", "radius": 11 },
+        { "id": "missile", "type": "icon", "icon": "rocket", "x": 46, "y": 42, "color": "#f97316", "radius": 9, "rotation": 85, "trail": true },
+        { "id": "target", "type": "dot", "x": 84, "y": 16, "color": "#facc15", "label": "Target" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Turning hard — steering away from the jet", "color": "#7dd3fc" }
+      ],
+      "arrows": [
+        { "from": "missile", "to": "target", "style": "dashed", "color": "#fde68a", "strokeWidth": 2 }
+      ],
+      "camera": { "x": 50, "y": 36, "zoom": 1.1 }
+    },
+    {
+      "objects": [
+        { "id": "jet", "type": "icon", "icon": "jet", "x": 52, "y": 55, "color": "#38bdf8", "radius": 11 },
+        { "id": "missile", "type": "icon", "icon": "rocket", "x": 62, "y": 26, "color": "#f97316", "radius": 9, "rotation": 55, "trail": true },
+        { "id": "target", "type": "dot", "x": 84, "y": 16, "color": "#facc15", "label": "Target" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "A different path entirely", "color": "#fdba74" }
+      ],
+      "arrows": [
+        { "from": "missile", "to": "target", "style": "dashed", "color": "#fde68a", "strokeWidth": 2 }
+      ],
+      "camera": { "x": 60, "y": 34, "zoom": 1.0 }
+    }
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** Stealth fighters hide their missiles inside the fuselage, so the stakes are even higher. Bay doors swing open, the same piston shoves the missile down into the airstream, clear of the jet's own belly — and only then does the motor light.
+
+**Duration:** 10 seconds
+
+**Story Beat:** comparison
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Even Trickier: Inside The Fuselage",
+  "objects": [
+    { "id": "fuselage", "type": "rectangle", "x": 50, "y": 30, "width": 42, "height": 13, "color": "#475569", "label": "Fuselage" },
+    { "id": "bayDoorL", "type": "rectangle", "x": 40, "y": 38, "width": 9, "height": 2, "color": "#64748b" },
+    { "id": "bayDoorR", "type": "rectangle", "x": 60, "y": 38, "width": 9, "height": 2, "color": "#64748b" },
+    { "id": "missile", "type": "icon", "icon": "rocket", "x": 50, "y": 33, "color": "#6b7280", "radius": 8, "rotation": 220, "opacity": 0 },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 12, "label": "Bay closed — missile hidden inside", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "fuselage", "type": "rectangle", "x": 50, "y": 30, "width": 42, "height": 13, "color": "#475569", "label": "Fuselage" },
+        { "id": "bayDoorL", "type": "rectangle", "x": 30, "y": 42, "width": 9, "height": 2, "color": "#64748b" },
+        { "id": "bayDoorR", "type": "rectangle", "x": 70, "y": 42, "width": 9, "height": 2, "color": "#64748b" },
+        { "id": "missile", "type": "icon", "icon": "rocket", "x": 50, "y": 56, "color": "#6b7280", "radius": 8, "rotation": 220, "trail": true },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 12, "label": "Doors open — piston shoves it out", "color": "#7dd3fc" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "fuselage", "type": "rectangle", "x": 50, "y": 30, "width": 42, "height": 13, "color": "#475569", "label": "Fuselage" },
+        { "id": "bayDoorL", "type": "rectangle", "x": 30, "y": 42, "width": 9, "height": 2, "color": "#64748b" },
+        { "id": "bayDoorR", "type": "rectangle", "x": 70, "y": 42, "width": 9, "height": 2, "color": "#64748b" },
+        { "id": "missile", "type": "icon", "icon": "rocket", "x": 50, "y": 82, "color": "#f97316", "radius": 9, "rotation": 220, "trail": true },
+        { "id": "flame", "type": "ellipse", "x": 50, "y": 68, "width": 8, "height": 13, "color": "#fb923c", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 12, "label": "Same rule. Higher stakes.", "color": "#fdba74" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Statement
+
+**Narration:** It's not luck, and it's not an aerodynamic accident. It's a few hundred milliseconds of engineered choreography — push it clear, then light it — every single time a jet fires.
+
+**Duration:** 7 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+**Panel Color:** neutral

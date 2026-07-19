@@ -41,7 +41,7 @@ export const QuoteCard: React.FC<{ data: QuoteData } & SharedVisualProps> = ({
       orientation={orientation}
     >
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: isPortrait ? 900 : 1200 }}>
-        <div style={{ opacity: markOpacity, fontFamily: DISPLAY_FONT_FAMILY, fontSize: 112, color: COLORS.accent, lineHeight: 0.6, marginBottom: 8 }}>
+        <div style={{ opacity: markOpacity, fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 112, color: COLORS.accent, lineHeight: 0.6, marginBottom: 8 }}>
           “
         </div>
         <div

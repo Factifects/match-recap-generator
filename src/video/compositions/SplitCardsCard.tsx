@@ -55,7 +55,7 @@ export const SplitCardsCard: React.FC<{ data: SplitCardsData } & SharedVisualPro
       >
         {label}
       </div>
-      <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 96, color: COLORS.accent, lineHeight: 1, textAlign: "center" }}>{value}</div>
+      <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 96, color: COLORS.accent, lineHeight: 1, textAlign: "center" }}>{value}</div>
       {caption && (
         <div style={{ fontFamily: FONT_FAMILY, fontWeight: 600, fontSize: 24, color: COLORS.text, textAlign: "center" }}>{caption}</div>
       )}

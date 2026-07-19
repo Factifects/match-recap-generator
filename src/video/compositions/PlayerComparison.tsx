@@ -29,8 +29,8 @@ export const PlayerComparison: React.FC<{ data: PlayerComparisonData } & SharedV
     <SceneFrame backgroundColor={backgroundColor}>
       <div style={{ width: isPortrait ? 900 : 1100 }}>
         <div style={{ display: "flex", justifyContent: "space-between", opacity: headerOpacity, marginBottom: 36 }}>
-          <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 62, color: COLORS.homeTeam }}>{leftPlayer}</div>
-          <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 62, color: COLORS.awayTeam }}>{rightPlayer}</div>
+          <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 62, color: COLORS.homeTeam }}>{leftPlayer}</div>
+          <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 62, color: COLORS.awayTeam }}>{rightPlayer}</div>
         </div>
 
         {stats.map((row, index) => {
@@ -49,7 +49,7 @@ export const PlayerComparison: React.FC<{ data: PlayerComparisonData } & SharedV
           return (
             <div key={row.label} style={{ opacity, transform: `translateY(${y}px)`, height: ROW_HEIGHT }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 48, color: COLORS.homeTeam, minWidth: 120 }}>
+                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 48, color: COLORS.homeTeam, minWidth: 120 }}>
                   {formatValue(leftValue)}
                 </div>
                 <div
@@ -65,7 +65,7 @@ export const PlayerComparison: React.FC<{ data: PlayerComparisonData } & SharedV
                 >
                   {row.label}
                 </div>
-                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 48, color: COLORS.awayTeam, minWidth: 120, textAlign: "right" }}>
+                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 48, color: COLORS.awayTeam, minWidth: 120, textAlign: "right" }}>
                   {formatValue(rightValue)}
                 </div>
               </div>

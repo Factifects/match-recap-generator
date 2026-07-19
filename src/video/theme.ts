@@ -30,25 +30,28 @@ export const COLORS = {
   highlight: "#ffd54f",
 };
 
-// Broadcast-style typography — Bebas Neue for headlines/captions, Barlow Condensed
-// for body/dialogue. Still the right choice for on-screen text even outside the
-// football-recap context this was originally picked for.
-import { loadFont as loadDisplayFont, fontFamily as displayFontFamily } from "@remotion/google-fonts/BebasNeue";
-import { loadFont as loadBodyFont, fontFamily as bodyFontFamilyName } from "@remotion/google-fonts/BarlowCondensed";
+// Montserrat for both headlines/captions and body/dialogue — one family,
+// weight does the differentiating (800/900 for display, 500-700 for body).
+// Previously Bebas Neue + Barlow Condensed; switched project-wide per user
+// request. Every card imports DISPLAY_FONT_FAMILY/FONT_FAMILY from here
+// rather than hardcoding a font, so this one file is the whole swap.
+import { loadFont, fontFamily as montserratFontFamily } from "@remotion/google-fonts/Montserrat";
 
-loadDisplayFont();
-loadBodyFont("normal", { weights: ["500", "600", "700"] });
+loadFont("normal", { weights: ["500", "600", "700", "800", "900"] });
 
-export const DISPLAY_FONT_FAMILY = `"${displayFontFamily}", sans-serif`;
-export const FONT_FAMILY = `"${bodyFontFamilyName}", sans-serif`;
+export const DISPLAY_FONT_FAMILY = `"${montserratFontFamily}", sans-serif`;
+export const FONT_FAMILY = `"${montserratFontFamily}", sans-serif`;
 
 // Shared "eyebrow" title style for every card's small header line (e.g.
 // "INSIDE CHANNEL", "FIRST-HALF SHOT CLUSTER") — bigger/bolder/brighter than
 // the old small textDim label so it reads as a headline, not a caption.
+// fontWeight is explicit (Bebas Neue was inherently heavy at any weight;
+// Montserrat needs it stated or it renders as a weak regular 400).
 export const TITLE_STYLE = {
   fontFamily: DISPLAY_FONT_FAMILY,
+  fontWeight: 800,
   fontSize: 54,
-  letterSpacing: 3,
+  letterSpacing: 2,
   color: COLORS.text,
   textAlign: "center" as const,
   textTransform: "uppercase" as const,

@@ -53,7 +53,7 @@ export const SingleStatCard: React.FC<{ data: SingleStatData } & SharedVisualPro
     >
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", transform: `translateX(${sideShift}px)` }}>
         <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 24 }}>{title}</div>
-        <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 200, color: COLORS.accent, lineHeight: 1 }}>
+        <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 200, color: COLORS.accent, lineHeight: 1 }}>
           {prefix}
           {formatValue(count)}
           {suffix}

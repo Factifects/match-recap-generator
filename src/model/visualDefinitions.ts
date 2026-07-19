@@ -86,9 +86,43 @@ export const ICON_KEYS = [
   "case",
 ] as const;
 export const ZONE_KEYS = ["defensive", "middle", "attacking"] as const;
+
+// Canvas's icon vocabulary — a curated allow-list of Heroicons (not
+// arbitrary icon-library names), same convention as ICON_KEYS above but for
+// the generic-diagram Canvas scene rather than the football Icon scene. The
+// actual icon components (React, Heroicons) live in
+// ../video/canvasIcons.ts's CANVAS_ICON_COMPONENTS — this file only owns the
+// data-level key list, so the model layer never imports from video/.
+export const CANVAS_ICON_KEYS = [
+  "jet",
+  "rocket",
+  "server",
+  "database",
+  "cloud",
+  "globe",
+  "device",
+  "camera",
+  "signal",
+  "wifi",
+  "shield",
+  "bolt",
+  "lock",
+  "search",
+  "warning",
+  "check",
+  "cross",
+  "chip",
+  "target",
+  "scale",
+] as const;
+export type CanvasIconKey = (typeof CANVAS_ICON_KEYS)[number];
 export const FORMATION_NAMES = ["4-3-3", "4-2-3-1", "3-4-2-1", "5-4-1", "4-4-2"] as const;
 
-const formationPlayerSchema = z.object({ name: z.string() });
+// role is optional — when a script doesn't specify one, Formation.tsx falls
+// back to FORMATION_TEMPLATES' per-slot default (e.g. slot index 9 in 4-3-3
+// defaults to "TF") so every pod still has a label without every script
+// needing to author one.
+const formationPlayerSchema = z.object({ name: z.string(), role: z.string().optional() });
 
 const formationSideSchema = z.object({
   team: z.string(),
@@ -404,21 +438,30 @@ const gridItemSchema = z.object({
 // diagram (a plane, a node, a particle), "circle"/"ellipse"/"rectangle"/
 // "roundedRectangle"/"polygon"/"line" are generic shape primitives, "label"
 // is free floating text with no marker (a "Safe"/"Warning" callout appearing
-// mid-diagram). Kept deliberately generic rather than domain-specific (no
-// "plane"/"node" type) so the same primitives cover any topic a script
-// author reaches for. Every field below besides id/type/x/y is optional
-// with a default that reproduces v1's exact behavior, so a v1 script (no
-// rotation/scale/enter/exit/etc.) renders byte-for-byte identically.
+// mid-diagram, or a big standalone emoji), "icon" is a real pictogram from
+// Canvas's curated Heroicons vocabulary (CANVAS_ICON_KEYS in
+// ../video/canvasIcons.ts) — reach for this instead of a plain rectangle/dot
+// whenever a real-world object (a server, a jet, a phone) has a clearer
+// pictorial stand-in than a labeled box. Kept deliberately generic rather
+// than domain-specific beyond that icon vocabulary, so the same primitives
+// cover any topic a script author reaches for. Every field below besides
+// id/type/x/y is optional with a default that reproduces v1's exact
+// behavior, so a v1 script (no rotation/scale/enter/exit/etc.) renders
+// byte-for-byte identically.
 const canvasObjectSchema = z.object({
   id: z.string(),
-  type: z.enum(["dot", "circle", "label", "rectangle", "roundedRectangle", "ellipse", "line", "polygon"]),
+  type: z.enum(["dot", "circle", "label", "rectangle", "roundedRectangle", "ellipse", "line", "polygon", "icon"]),
   x: z.number().min(0).max(100),
   y: z.number().min(0).max(100),
   label: z.string().optional(),
   color: z.string().optional(),
-  // "circle"/"ellipse" radius, OR "roundedRectangle" corner radius — percent
-  // of canvas width, so a growing radar bubble/zone can be authored without
-  // pixel math (same convention as pitch coordinates).
+  // "icon" type only — which Heroicon to render. Required for that type to
+  // render anything (an "icon" object with no `icon` key renders nothing).
+  icon: z.enum(CANVAS_ICON_KEYS).optional(),
+  // "circle"/"ellipse" radius, OR "roundedRectangle" corner radius, OR
+  // "icon" half-size — percent of canvas width, so a growing radar bubble/
+  // zone can be authored without pixel math (same convention as pitch
+  // coordinates).
   radius: z.number().min(0).max(100).optional(),
   // "rectangle"/"roundedRectangle"/"ellipse"/"line" — percent of canvas
   // width/height. For "line", `width` is the segment length and `rotation`

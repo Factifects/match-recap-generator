@@ -53,7 +53,7 @@ export const HeroMetricCard: React.FC<{ data: HeroMetricData } & SharedVisualPro
             <div style={{ width: `${barProgress * barGrowth * 100}%`, height: "100%", background: COLORS.accent }} />
           </div>
         )}
-        <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: isPortrait ? 190 : 240, color: COLORS.accent, lineHeight: 1 }}>
+        <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: isPortrait ? 190 : 240, color: COLORS.accent, lineHeight: 1 }}>
           {prefix}
           {formatValue(count)}
           {suffix}

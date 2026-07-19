@@ -1,0 +1,547 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** Michael Carrick just won the Manchester United job outright — a new contract to 2028, after turning eleven wins from sixteen games into a Champions League return. Now the transfer window has to prove that rebuild is for real. The target this time: nothing less than third place.
+
+**Annotation:** UNITED'S NEXT CHAPTER
+
+**Duration:** 12 seconds
+
+**Story Beat:** hook
+
+---
+
+### SCENE 2
+
+**Scene Type:** Grid
+
+**Narration:** Three faces have arrived at Old Trafford this summer. Andrey Santos, a fifty-million-pound central midfielder from Chelsea. Cristian Orozco, a Colombian teenager some are already calling the next Casemiro. And Karl Darlow, in as free backup cover in goal.
+
+**Duration:** 11 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "The Summer Arrivals",
+  "items": [
+    { "label": "Andrey Santos", "caption": "£48m + £2m from Chelsea", "icon": "sub" },
+    { "label": "Cristian Orozco", "caption": "From Fortaleza — 'the next Casemiro'", "icon": "star" },
+    { "label": "Karl Darlow", "caption": "Free transfer — backup goalkeeper", "icon": "save" }
+  ]
+}
+
+**Animation:**
+{
+  "staggerSeconds": 0.5
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Grid
+
+**Narration:** And five have left. Casemiro and Jadon Sancho, both released at the end of their contracts. Rasmus Højlund, sold to Napoli for forty-three million. Tyrell Malacia, released. And Altay Bayındır, moved on as Senne Lammens takes over as first-choice goalkeeper.
+
+**Duration:** 12 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "The Summer Exits",
+  "items": [
+    { "label": "Casemiro", "caption": "Released — contract expired" },
+    { "label": "Jadon Sancho", "caption": "Released — contract expired" },
+    { "label": "Rasmus Højlund", "caption": "£43m to Napoli" },
+    { "label": "Tyrell Malacia", "caption": "Released" },
+    { "label": "Altay Bayındır", "caption": "Moved on — Lammens now #1" }
+  ]
+}
+
+**Animation:**
+{
+  "staggerSeconds": 0.5
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Bar Chart
+
+**Narration:** Put the money side by side and the business looks disciplined, not desperate. Fifty million spent on Santos, forty-three million recouped from Højlund alone — before Orozco's fee or any sales still to come are even counted.
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "Summer Spend vs. Recouped",
+  "bars": [
+    { "label": "Spent — Santos", "value": 50 },
+    { "label": "Recouped — Højlund", "value": 43 }
+  ],
+  "suffix": "m",
+  "prefix": "£"
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Sequence
+
+**Narration:** Look closer at Santos and the signing makes more sense. Twenty-one years old — five years younger than the man he's replacing. Fifty million paid to Chelsea. And bought for one specific job: the double pivot, right in front of the back four.
+
+**Duration:** 11 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "Andrey Santos — The Profile",
+  "beats": [
+    { "marker": "21", "label": "Five years younger than the man he replaces" },
+    { "marker": "£50m", "label": "Fee paid to Chelsea" },
+    { "marker": "DM", "label": "Signed for one job: the double pivot" }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** TacticalBoard
+
+**Narration:** Here's what that pivot actually looks like in motion. The ball goes center-back to center-back, into midfield — and when the press finally arrives, it isn't panic. It's a release: a quick pass out to the free man, exactly the kind of pass Santos was bought to make, before the ball finds space further up the pitch.
+
+**Duration:** 13 seconds
+
+**Story Beat:** explanation
+
+**Camera:** central channel
+
+**Annotation:** Building Through The Pivot
+
+**Data:**
+{
+  "title": "Building Through The Pivot",
+  "players": [
+    { "id": "lammens", "x": 8, "y": 50, "team": "home", "label": "Lammens" },
+    { "id": "deligt", "x": 20, "y": 36, "team": "home", "label": "De Ligt" },
+    { "id": "yoro", "x": 20, "y": 64, "team": "home", "label": "Yoro" },
+    { "id": "mainoo", "x": 36, "y": 42, "team": "home", "label": "Mainoo" },
+    { "id": "santos", "x": 36, "y": 60, "team": "home", "label": "Santos" },
+    { "id": "bruno", "x": 55, "y": 50, "team": "home", "label": "Bruno" },
+    { "id": "presser1", "x": 55, "y": 38, "team": "away", "label": "Press" }
+  ],
+  "ball": { "x": 8, "y": 50, "belongsTo": "lammens" },
+  "timeline": [
+    { "type": "possession", "startSeconds": 0.4, "durationSeconds": 0.7, "fromId": "lammens", "toId": "deligt", "action": "pass" },
+    { "type": "possession", "startSeconds": 1.4, "durationSeconds": 0.7, "fromId": "deligt", "toId": "mainoo", "action": "pass" },
+    { "type": "state", "startSeconds": 2.1, "actorId": "presser1", "state": "pressing", "facing": 250 },
+    { "type": "move", "startSeconds": 2.1, "durationSeconds": 0.8, "actorId": "presser1", "to": { "x": 38, "y": 44 }, "runType": "standard" },
+    { "type": "possession", "startSeconds": 2.4, "durationSeconds": 0.6, "fromId": "mainoo", "toId": "santos", "action": "pass" },
+    { "type": "state", "startSeconds": 3.0, "actorId": "santos", "state": "receiving" },
+    { "type": "possession", "startSeconds": 3.2, "durationSeconds": 0.9, "fromId": "santos", "toId": "bruno", "action": "pass" },
+    { "type": "camera", "startSeconds": 3.2, "durationSeconds": 1, "focus": { "x": 55, "y": 50 }, "zoom": 1.25 },
+    { "type": "freeze", "startSeconds": 4.3, "durationSeconds": 2, "annotations": [{ "text": "Press bypassed — pivot found the gap", "x": 55, "y": 32 }] }
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** SplitCards
+
+**Narration:** But not every target got over the line. United pushed hard for West Ham's Mateus Fernandes and lost him to Tottenham for eighty-five million. They made Elliot Anderson a top priority early — and watched Manchester City pay a hundred and sixteen million to take him instead.
+
+**Duration:** 11 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "The Ones That Got Away",
+  "left": {
+    "label": "Mateus Fernandes",
+    "value": "Lost to Spurs",
+    "caption": "£85m — West Ham to Tottenham"
+  },
+  "right": {
+    "label": "Elliot Anderson",
+    "value": "Lost to City",
+    "caption": "£116m — Forest to Man City"
+  }
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Icon
+
+**Narration:** The window isn't closed yet, either. Youri Tielemans, Carlos Baleba and Bournemouth's Alex Scott are all still linked as United look for one more body in midfield before deadline day.
+
+**Duration:** 9 seconds
+
+**Story Beat:** question
+
+**Panel Color:** yellow
+
+**Data:**
+{
+  "icon": "clock",
+  "headline": "The Business Isn't Done.",
+  "caption": "Tielemans, Baleba and Scott all still linked."
+}
+
+---
+
+### SCENE 9
+
+**Scene Type:** Formation
+
+**Narration:** Put it all together and here's the shape Carrick is actually working with: a four-two-three-one, Mainoo and Santos screening the back four, Bruno pulling the strings just ahead of them, Mbeumo leading the line.
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "The Projected 2026-27 XI",
+  "sides": [
+    {
+      "team": "Manchester United",
+      "formationName": "4-2-3-1",
+      "side": "home",
+      "players": [
+        { "name": "Lammens" },
+        { "name": "Shaw" },
+        { "name": "Yoro" },
+        { "name": "De Ligt" },
+        { "name": "Mazraoui" },
+        { "name": "Santos" },
+        { "name": "Mainoo" },
+        { "name": "Cunha" },
+        { "name": "Bruno" },
+        { "name": "Amad" },
+        { "name": "Mbeumo" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 10
+
+**Scene Type:** Radar
+
+**Narration:** So why spend fifty million to replace a World Cup winner? Because on the numbers Santos is the more mobile, more press-resistant profile — younger, sharper in transition, built for a league that runs faster every season.
+
+**Duration:** 10 seconds
+
+**Story Beat:** comparison
+
+**Data:**
+{
+  "title": "Santos vs. Casemiro — Profile",
+  "axes": ["Passing", "Tackling", "Mobility", "Press Resistance", "Aerial Duels"],
+  "series": [
+    { "label": "Santos", "values": [78, 74, 88, 82, 62], "color": "#dc2626" },
+    { "label": "Casemiro (final season)", "values": [80, 82, 48, 55, 78], "color": "#6b7280" }
+  ]
+}
+
+---
+
+### SCENE 11
+
+**Scene Type:** PassNetwork
+
+**Narration:** Map out where the ball actually travels in that pivot and the pattern is obvious. De Ligt into Mainoo, Yoro into Santos — the two center-backs each locked onto one pivot player — before it funnels forward through Bruno. That's the network Carrick is trying to build every single game.
+
+**Duration:** 11 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "The Double Pivot Passing Network",
+  "nodes": [
+    { "id": "deligt", "x": 25, "y": 30, "team": "home", "label": "De Ligt" },
+    { "id": "yoro", "x": 25, "y": 70, "team": "home", "label": "Yoro" },
+    { "id": "mainoo", "x": 45, "y": 35, "team": "home", "label": "Mainoo" },
+    { "id": "santos", "x": 45, "y": 65, "team": "home", "label": "Santos" },
+    { "id": "bruno", "x": 68, "y": 50, "team": "home", "label": "Bruno" }
+  ],
+  "links": [
+    { "from": "deligt", "to": "mainoo", "weight": 9 },
+    { "from": "yoro", "to": "santos", "weight": 9 },
+    { "from": "mainoo", "to": "santos", "weight": 6 },
+    { "from": "mainoo", "to": "bruno", "weight": 7 },
+    { "from": "santos", "to": "bruno", "weight": 7 }
+  ]
+}
+
+---
+
+### SCENE 12
+
+**Scene Type:** TacticalBoard
+
+**Narration:** Here's the overload United actually want to create. Cunha tucks inside from the left into the half-space, dragging a defender with him — then bounces it wide to Amad, who's held his width the entire time — before the ball's cut back for Mbeumo to strike.
+
+**Duration:** 12 seconds
+
+**Story Beat:** explanation
+
+**Camera:** right half
+
+**Annotation:** Central Overload
+
+**Data:**
+{
+  "title": "Central Overload",
+  "players": [
+    { "id": "cunha", "x": 25, "y": 25, "team": "home", "label": "Cunha" },
+    { "id": "bruno", "x": 50, "y": 45, "team": "home", "label": "Bruno" },
+    { "id": "amad", "x": 80, "y": 75, "team": "home", "label": "Amad" },
+    { "id": "mbeumo", "x": 85, "y": 50, "team": "home", "label": "Mbeumo" },
+    { "id": "oppcb", "x": 70, "y": 55, "team": "away", "label": "CB" }
+  ],
+  "ball": { "x": 50, "y": 45, "belongsTo": "bruno" },
+  "timeline": [
+    { "type": "state", "startSeconds": 0, "actorId": "amad", "state": "holdingWidth" },
+    { "type": "move", "startSeconds": 0.3, "durationSeconds": 0.8, "actorId": "cunha", "to": { "x": 45, "y": 30 }, "runType": "halfSpaceRun" },
+    { "type": "possession", "startSeconds": 1.2, "durationSeconds": 0.6, "fromId": "bruno", "toId": "cunha", "action": "pass" },
+    { "type": "state", "startSeconds": 1.8, "actorId": "cunha", "state": "carrying" },
+    { "type": "move", "startSeconds": 1.8, "durationSeconds": 0.6, "actorId": "cunha", "to": { "x": 55, "y": 28 }, "runType": "standard" },
+    { "type": "possession", "startSeconds": 2.4, "durationSeconds": 0.7, "fromId": "cunha", "toId": "amad", "action": "pass" },
+    { "type": "move", "startSeconds": 2.4, "durationSeconds": 0.7, "actorId": "amad", "to": { "x": 90, "y": 65 }, "runType": "standard" },
+    { "type": "possession", "startSeconds": 3.1, "durationSeconds": 0.6, "fromId": "amad", "toId": "mbeumo", "action": "pass" },
+    { "type": "possession", "startSeconds": 3.7, "durationSeconds": 0.5, "fromId": "mbeumo", "toPoint": { "x": 96, "y": 50 }, "action": "shot" },
+    { "type": "freeze", "startSeconds": 4.2, "durationSeconds": 1.5, "annotations": [{ "text": "Overload created — shot away", "x": 85, "y": 50 }] }
+  ]
+}
+
+---
+
+### SCENE 13
+
+**Scene Type:** TacticalBoard
+
+**Narration:** And this is the front-foot side of the plan. Mbeumo presses the ball, Bruno cuts off the easy pass inside, and the center-back is forced long and hurried. Mainoo reads it, sprints across, and United have the ball back in under three seconds.
+
+**Duration:** 12 seconds
+
+**Story Beat:** evidence
+
+**Camera:** central channel
+
+**Annotation:** Winning It Back Fast
+
+**Data:**
+{
+  "title": "Winning It Back Fast",
+  "players": [
+    { "id": "oppcb", "x": 25, "y": 50, "team": "away", "label": "Opp CB" },
+    { "id": "oppdm", "x": 40, "y": 50, "team": "away", "label": "Opp DM" },
+    { "id": "mbeumo", "x": 32, "y": 48, "team": "home", "label": "Mbeumo" },
+    { "id": "bruno", "x": 45, "y": 45, "team": "home", "label": "Bruno" },
+    { "id": "mainoo", "x": 48, "y": 62, "team": "home", "label": "Mainoo" }
+  ],
+  "ball": { "x": 25, "y": 50, "belongsTo": "oppcb" },
+  "timeline": [
+    { "type": "state", "startSeconds": 0, "actorId": "mbeumo", "state": "pressing", "facing": 180 },
+    { "type": "move", "startSeconds": 0.3, "durationSeconds": 0.7, "actorId": "mbeumo", "to": { "x": 27, "y": 50 }, "runType": "standard" },
+    { "type": "state", "startSeconds": 0.5, "actorId": "bruno", "state": "covering" },
+    { "type": "move", "startSeconds": 0.5, "durationSeconds": 0.7, "actorId": "bruno", "to": { "x": 38, "y": 47 }, "runType": "standard" },
+    { "type": "possession", "startSeconds": 1.3, "durationSeconds": 0.7, "fromId": "oppcb", "toPoint": { "x": 50, "y": 65 }, "action": "pass" },
+    { "type": "state", "startSeconds": 2.0, "actorId": "mainoo", "state": "covering" },
+    { "type": "move", "startSeconds": 2.0, "durationSeconds": 0.6, "actorId": "mainoo", "to": { "x": 50, "y": 63 }, "runType": "recoveryRun" },
+    { "type": "possession", "startSeconds": 2.6, "durationSeconds": 0.3, "toId": "mainoo", "action": "pass" },
+    { "type": "freeze", "startSeconds": 2.9, "durationSeconds": 1.6, "annotations": [{ "text": "Won back in under 3 seconds", "x": 50, "y": 60 }] }
+  ]
+}
+
+---
+
+### SCENE 14
+
+**Scene Type:** TacticalBoard
+
+**Narration:** Protecting a lead looks completely different. The back line drops almost onto the edge of its own box, Cunha and Amad fold all the way back to make it a six across, and the double pivot sits just in front — a defensive shell built to concede almost nothing.
+
+**Duration:** 13 seconds
+
+**Story Beat:** explanation
+
+**Annotation:** Game-Management Shape
+
+**Data:**
+{
+  "title": "Game-Management Shape",
+  "players": [
+    { "id": "mazraoui", "x": 18, "y": 18, "team": "home", "label": "Mazraoui" },
+    { "id": "deligt", "x": 18, "y": 40, "team": "home", "label": "De Ligt" },
+    { "id": "yoro", "x": 18, "y": 60, "team": "home", "label": "Yoro" },
+    { "id": "shaw", "x": 18, "y": 82, "team": "home", "label": "Shaw" },
+    { "id": "mainoo", "x": 38, "y": 42, "team": "home", "label": "Mainoo" },
+    { "id": "santos", "x": 38, "y": 58, "team": "home", "label": "Santos" },
+    { "id": "cunha", "x": 55, "y": 20, "team": "home", "label": "Cunha" },
+    { "id": "amad", "x": 55, "y": 80, "team": "home", "label": "Amad" }
+  ],
+  "phases": [
+    {
+      "players": [
+        { "id": "mazraoui", "x": 10, "y": 20, "team": "home", "label": "Mazraoui" },
+        { "id": "deligt", "x": 8, "y": 42, "team": "home", "label": "De Ligt" },
+        { "id": "yoro", "x": 8, "y": 64, "team": "home", "label": "Yoro" },
+        { "id": "shaw", "x": 10, "y": 86, "team": "home", "label": "Shaw" },
+        { "id": "mainoo", "x": 22, "y": 50, "team": "home", "label": "Mainoo" },
+        { "id": "santos", "x": 22, "y": 60, "team": "home", "label": "Santos" },
+        { "id": "cunha", "x": 18, "y": 30, "team": "home", "label": "Cunha" },
+        { "id": "amad", "x": 18, "y": 74, "team": "home", "label": "Amad" }
+      ],
+      "caption": "Deep block — six across the back, box protected"
+    }
+  ]
+}
+
+---
+
+### SCENE 15
+
+**Scene Type:** Statement
+
+**Narration:** Carrick doesn't have Amorim's system anymore. He's built his own — and it's built to win now.
+
+**Duration:** 6 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** blue
+
+---
+
+### SCENE 16
+
+**Scene Type:** KpiPanel
+
+**Narration:** Add it up and the real progress isn't just the two new midfielders. It's eleven wins from sixteen games under Carrick, a squad that's gotten younger, a pivot that finally moves, and all of it done without breaking the bank.
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+**Data:**
+{
+  "title": "Where United Actually Improved",
+  "stats": [
+    { "label": "Record Under Carrick", "value": "11W-3D-2L", "trend": [40, 55, 60, 68, 75, 80], "delta": "16 league games", "deltaDirection": "up" },
+    { "label": "Squad Average Age", "value": "25.4", "delta": "Younger than last summer", "deltaDirection": "up" },
+    { "label": "Pivot Mobility", "value": "Upgraded", "delta": "Santos in for Casemiro", "deltaDirection": "up" },
+    { "label": "Summer Net Spend", "value": "£7m", "delta": "Nowhere near the big spenders", "deltaDirection": "neutral" }
+  ]
+}
+
+---
+
+### SCENE 17
+
+**Scene Type:** HeroMetric
+
+**Narration:** So here's the target this project is actually being judged on: third place. Not a top-four scrape, not just Champions League football again — an actual step up the table.
+
+**Duration:** 9 seconds
+
+**Story Beat:** payoff
+
+**Panel Color:** red
+
+**Data:**
+{
+  "label": "This Season's Target",
+  "value": 3,
+  "suffix": "rd",
+  "subtext": "Bookmakers already make United odds-on for the top four",
+  "barProgress": 0.75
+}
+
+---
+
+### SCENE 18
+
+**Scene Type:** LeagueTable
+
+**Narration:** The models are more cautious. One supercomputer projection still has United finishing fourth, just behind Liverpool, with Arsenal favourites and City not far off. Carrick's case for third rests on one thing: whether this new-look midfield performs from matchday one, not by Christmas.
+
+**Duration:** 13 seconds
+
+**Story Beat:** comparison
+
+**Data:**
+{
+  "title": "Where This Team Should Finish",
+  "columnLabel": "Projected Pts",
+  "rows": [
+    { "rank": 1, "label": "Arsenal", "value": 88 },
+    { "rank": 2, "label": "Manchester City", "value": 84 },
+    { "rank": 3, "label": "Manchester United", "value": 78, "highlight": true },
+    { "rank": 4, "label": "Liverpool", "value": 76 },
+    { "rank": 5, "label": "Aston Villa", "value": 71 }
+  ]
+}
+
+---
+
+### SCENE 19
+
+**Scene Type:** Sequence
+
+**Narration:** The roadmap is already set. August: early league form has to set the right tone. September: Champions League football returns to Old Trafford. January: the new midfield options get properly tested. May: the club finds out whether third was ever really on the table.
+
+**Duration:** 12 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "The Road To Third",
+  "beats": [
+    { "marker": "Aug", "label": "Season opens — early form sets the tone" },
+    { "marker": "Sep", "label": "Champions League football returns to Old Trafford" },
+    { "marker": "Jan", "label": "Squad depth tested — new midfield options proven or not" },
+    { "marker": "May", "label": "Target: minimum third place" }
+  ]
+}
+
+---
+
+### SCENE 20
+
+**Scene Type:** Statement
+
+**Narration:** Michael Carrick inherited a rebuild. This summer, he started building his own team.
+
+**Duration:** 6 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+**Panel Color:** neutral

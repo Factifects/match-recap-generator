@@ -110,16 +110,16 @@ export const LeagueTableCard: React.FC<{ data: LeagueTableData } & SharedVisualP
                 background: row.highlight ? "rgba(255,213,79,0.08)" : "transparent",
               }}
             >
-              <div style={{ width: rankColumnWidth, fontFamily: DISPLAY_FONT_FAMILY, fontSize: rankFontSize, color }}>{row.rank}</div>
+              <div style={{ width: rankColumnWidth, fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: rankFontSize, color }}>{row.rank}</div>
               <div style={{ flex: 1, fontFamily: FONT_FAMILY, fontWeight: 700, fontSize: labelFontSize, color }}>{row.label}</div>
               {isMultiColumn ? (
                 columnLabels!.map((label, colIndex) => (
-                  <div key={label} style={{ width: statColumnWidth, textAlign: "right", fontFamily: DISPLAY_FONT_FAMILY, fontSize: statFontSize, color }}>
+                  <div key={label} style={{ width: statColumnWidth, textAlign: "right", fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: statFontSize, color }}>
                     {columns[colIndex] ?? "–"}
                   </div>
                 ))
               ) : (
-                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: isPortrait ? 36 : 46, color }}>{row.value}</div>
+                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: isPortrait ? 36 : 46, color }}>{row.value}</div>
               )}
             </div>
           );

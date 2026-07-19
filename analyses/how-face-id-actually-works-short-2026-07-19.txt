@@ -1,0 +1,330 @@
+### SCENE 1
+
+**Scene Type:** Canvas
+
+**Narration:** Your phone has never taken a photo of your face. So what is Face ID actually comparing when it unlocks?
+
+**Duration:** 7 seconds
+
+**Story Beat:** hook
+
+**Transition Style:** zoom in
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "objects": [
+    { "id": "device", "type": "icon", "icon": "device", "x": 50, "y": 78, "color": "#7dd3fc", "radius": 8 },
+    { "id": "photoRect", "type": "rectangle", "x": 50, "y": 48, "width": 26, "height": 32, "color": "#94a3b8", "label": "Your Face?" },
+    { "id": "questionLabel", "type": "label", "x": 50, "y": 14, "label": "What Is It Actually Comparing?", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "device", "type": "icon", "icon": "device", "x": 50, "y": 78, "color": "#7dd3fc", "radius": 8 },
+        { "id": "photoRect", "type": "rectangle", "x": 50, "y": 48, "width": 26, "height": 32, "color": "#94a3b8", "label": "Your Face?", "opacity": 0.4 },
+        { "id": "crossIcon", "type": "icon", "icon": "cross", "x": 50, "y": 48, "color": "#f87171", "radius": 11, "enter": "scale" },
+        { "id": "questionLabel", "type": "label", "x": 50, "y": 14, "label": "It's Not A Photo.", "color": "#fca5a5" },
+        { "id": "captionLabel", "type": "label", "x": 50, "y": 24, "label": "Face ID has never stored a picture of your face.", "color": "#e2e8f0" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** The instant you glance at your phone, an infrared projector fires more than thirty thousand invisible dots onto your face — a pattern no ordinary camera could ever see.
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "30,000+ Invisible Dots",
+  "objects": [
+    { "id": "device", "type": "icon", "icon": "device", "x": 50, "y": 82, "color": "#38bdf8", "radius": 9 },
+    { "id": "faceOutline", "type": "ellipse", "x": 50, "y": 35, "width": 26, "height": 34, "color": "#f8fafc", "filled": false, "strokeWidth": 3 },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "You glance at your phone", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "device", "type": "icon", "icon": "device", "x": 50, "y": 82, "color": "#38bdf8", "radius": 9 },
+        { "id": "faceOutline", "type": "ellipse", "x": 50, "y": 35, "width": 26, "height": 34, "color": "#f8fafc", "filled": false, "strokeWidth": 3 },
+        { "id": "d1", "type": "dot", "x": 42, "y": 22, "color": "#fde68a" },
+        { "id": "d2", "type": "dot", "x": 46, "y": 22, "color": "#fde68a" },
+        { "id": "d3", "type": "dot", "x": 50, "y": 22, "color": "#fde68a" },
+        { "id": "d4", "type": "dot", "x": 54, "y": 22, "color": "#fde68a" },
+        { "id": "d5", "type": "dot", "x": 58, "y": 22, "color": "#fde68a" },
+        { "id": "d6", "type": "dot", "x": 40, "y": 28, "color": "#fde68a" },
+        { "id": "d7", "type": "dot", "x": 45, "y": 28, "color": "#fde68a" },
+        { "id": "d8", "type": "dot", "x": 50, "y": 28, "color": "#fde68a" },
+        { "id": "d9", "type": "dot", "x": 55, "y": 28, "color": "#fde68a" },
+        { "id": "d10", "type": "dot", "x": 60, "y": 28, "color": "#fde68a" },
+        { "id": "d11", "type": "dot", "x": 39, "y": 35, "color": "#fde68a" },
+        { "id": "d12", "type": "dot", "x": 45, "y": 35, "color": "#fde68a" },
+        { "id": "d13", "type": "dot", "x": 50, "y": 35, "color": "#fde68a" },
+        { "id": "d14", "type": "dot", "x": 55, "y": 35, "color": "#fde68a" },
+        { "id": "d15", "type": "dot", "x": 61, "y": 35, "color": "#fde68a" },
+        { "id": "d16", "type": "dot", "x": 41, "y": 42, "color": "#fde68a" },
+        { "id": "d17", "type": "dot", "x": 46, "y": 42, "color": "#fde68a" },
+        { "id": "d18", "type": "dot", "x": 50, "y": 42, "color": "#fde68a" },
+        { "id": "d19", "type": "dot", "x": 54, "y": 42, "color": "#fde68a" },
+        { "id": "d20", "type": "dot", "x": 59, "y": 42, "color": "#fde68a" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "An infrared projector fires 30,000+ dots", "color": "#fde68a" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "device", "type": "icon", "icon": "device", "x": 50, "y": 82, "color": "#38bdf8", "radius": 9 },
+        { "id": "faceOutline", "type": "ellipse", "x": 50, "y": 35, "width": 26, "height": 34, "color": "#f8fafc", "filled": false, "strokeWidth": 3 },
+        { "id": "d1", "type": "dot", "x": 42, "y": 22, "color": "#fde68a" },
+        { "id": "d2", "type": "dot", "x": 46, "y": 22, "color": "#fde68a" },
+        { "id": "d3", "type": "dot", "x": 50, "y": 22, "color": "#fde68a" },
+        { "id": "d4", "type": "dot", "x": 54, "y": 22, "color": "#fde68a" },
+        { "id": "d5", "type": "dot", "x": 58, "y": 22, "color": "#fde68a" },
+        { "id": "d6", "type": "dot", "x": 40, "y": 28, "color": "#fde68a" },
+        { "id": "d7", "type": "dot", "x": 45, "y": 28, "color": "#fde68a" },
+        { "id": "d8", "type": "dot", "x": 50, "y": 28, "color": "#fde68a" },
+        { "id": "d9", "type": "dot", "x": 55, "y": 28, "color": "#fde68a" },
+        { "id": "d10", "type": "dot", "x": 60, "y": 28, "color": "#fde68a" },
+        { "id": "d11", "type": "dot", "x": 39, "y": 35, "color": "#fde68a" },
+        { "id": "d12", "type": "dot", "x": 45, "y": 35, "color": "#fde68a" },
+        { "id": "d13", "type": "dot", "x": 50, "y": 35, "color": "#fde68a" },
+        { "id": "d14", "type": "dot", "x": 55, "y": 35, "color": "#fde68a" },
+        { "id": "d15", "type": "dot", "x": 61, "y": 35, "color": "#fde68a" },
+        { "id": "d16", "type": "dot", "x": 41, "y": 42, "color": "#fde68a" },
+        { "id": "d17", "type": "dot", "x": 46, "y": 42, "color": "#fde68a" },
+        { "id": "d18", "type": "dot", "x": 50, "y": 42, "color": "#fde68a" },
+        { "id": "d19", "type": "dot", "x": 54, "y": 42, "color": "#fde68a" },
+        { "id": "d20", "type": "dot", "x": 59, "y": 42, "color": "#fde68a" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Invisible to your eyes — instant every time", "color": "#e2e8f0" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Canvas
+
+**Narration:** Every one of those dots lands at a slightly different distance from your face — closer on your nose, farther across your eye sockets — and the sensor measures every single gap.
+
+**Duration:** 9 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Measuring Distance, Not Color",
+  "objects": [
+    { "id": "camera", "type": "icon", "icon": "camera", "x": 15, "y": 50, "color": "#38bdf8", "radius": 7, "label": "IR Camera" },
+    { "id": "noseDot", "type": "dot", "x": 58, "y": 48, "color": "#fde68a", "label": "Nose — Close" },
+    { "id": "eyeDot", "type": "dot", "x": 52, "y": 30, "color": "#fde68a", "label": "Eye Socket — Far" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Every dot's distance gets measured", "color": "#e2e8f0" }
+  ],
+  "arrows": [
+    { "from": "camera", "to": "noseDot", "style": "dashed", "color": "#86efac", "label": "Close" },
+    { "from": "camera", "to": "eyeDot", "style": "dashed", "color": "#f87171", "label": "Far" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "camera", "type": "icon", "icon": "camera", "x": 15, "y": 50, "color": "#38bdf8", "radius": 7, "label": "IR Camera" },
+        { "id": "noseDot", "type": "dot", "x": 58, "y": 48, "color": "#fde68a", "label": "Nose — Close" },
+        { "id": "eyeDot", "type": "dot", "x": 52, "y": 30, "color": "#fde68a", "label": "Eye Socket — Far" },
+        { "id": "cheekDot", "type": "dot", "x": 68, "y": 55, "color": "#fde68a", "label": "Cheek", "enter": "scale" },
+        { "id": "chinDot", "type": "dot", "x": 50, "y": 70, "color": "#fde68a", "label": "Chin", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Distance, not appearance, is what counts", "color": "#7dd3fc" }
+      ],
+      "arrows": [
+        { "from": "camera", "to": "noseDot", "style": "dashed", "color": "#86efac", "label": "Close" },
+        { "from": "camera", "to": "eyeDot", "style": "dashed", "color": "#f87171", "label": "Far" },
+        { "from": "camera", "to": "cheekDot", "style": "dashed", "color": "#fde68a" },
+        { "from": "camera", "to": "chinDot", "style": "dashed", "color": "#fde68a" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** StatBurst
+
+**Narration:** The odds of a random stranger's face unlocking your phone by mistake are about one in a million — twenty times better than a fingerprint.
+
+**Duration:** 7 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "label": "Odds Of A False Match",
+  "leftLabel": "Touch ID (Fingerprint)",
+  "leftValue": 50000,
+  "rightLabel": "Face ID",
+  "rightValue": 1000000,
+  "format": "integer",
+  "prefix": "1 in "
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Canvas
+
+**Narration:** Hold up a printed photo instead, and the trick falls apart. A flat surface has no depth to measure — every dot lands the exact same distance away, and Face ID knows instantly it isn't looking at a real face.
+
+**Duration:** 10 seconds
+
+**Story Beat:** comparison
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "Why A Photo Doesn't Work",
+  "objects": [
+    { "id": "photoRect", "type": "rectangle", "x": 27, "y": 45, "width": 22, "height": 28, "color": "#94a3b8", "label": "Printed Photo" },
+    { "id": "realFace", "type": "ellipse", "x": 73, "y": 45, "width": 22, "height": 28, "color": "#fbbf24", "filled": false, "strokeWidth": 3 },
+    { "id": "pd1", "type": "dot", "x": 22, "y": 38, "color": "#cbd5e1" },
+    { "id": "pd2", "type": "dot", "x": 27, "y": 38, "color": "#cbd5e1" },
+    { "id": "pd3", "type": "dot", "x": 32, "y": 38, "color": "#cbd5e1" },
+    { "id": "pd4", "type": "dot", "x": 22, "y": 50, "color": "#cbd5e1" },
+    { "id": "pd5", "type": "dot", "x": 27, "y": 50, "color": "#cbd5e1" },
+    { "id": "pd6", "type": "dot", "x": 32, "y": 50, "color": "#cbd5e1" },
+    { "id": "fd1", "type": "dot", "x": 68, "y": 36, "color": "#fde68a" },
+    { "id": "fd2", "type": "dot", "x": 73, "y": 34, "color": "#fde68a" },
+    { "id": "fd3", "type": "dot", "x": 79, "y": 37, "color": "#fde68a" },
+    { "id": "fd4", "type": "dot", "x": 67, "y": 52, "color": "#fde68a" },
+    { "id": "fd5", "type": "dot", "x": 73, "y": 55, "color": "#fde68a" },
+    { "id": "fd6", "type": "dot", "x": 80, "y": 52, "color": "#fde68a" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Same test, two surfaces", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "photoRect", "type": "rectangle", "x": 27, "y": 45, "width": 22, "height": 28, "color": "#94a3b8", "label": "Printed Photo" },
+        { "id": "realFace", "type": "ellipse", "x": 73, "y": 45, "width": 22, "height": 28, "color": "#fbbf24", "filled": false, "strokeWidth": 3 },
+        { "id": "pd1", "type": "dot", "x": 22, "y": 38, "color": "#cbd5e1" },
+        { "id": "pd2", "type": "dot", "x": 27, "y": 38, "color": "#cbd5e1" },
+        { "id": "pd3", "type": "dot", "x": 32, "y": 38, "color": "#cbd5e1" },
+        { "id": "pd4", "type": "dot", "x": 22, "y": 50, "color": "#cbd5e1" },
+        { "id": "pd5", "type": "dot", "x": 27, "y": 50, "color": "#cbd5e1" },
+        { "id": "pd6", "type": "dot", "x": 32, "y": 50, "color": "#cbd5e1" },
+        { "id": "fd1", "type": "dot", "x": 68, "y": 36, "color": "#fde68a" },
+        { "id": "fd2", "type": "dot", "x": 73, "y": 34, "color": "#fde68a" },
+        { "id": "fd3", "type": "dot", "x": 79, "y": 37, "color": "#fde68a" },
+        { "id": "fd4", "type": "dot", "x": 67, "y": 52, "color": "#fde68a" },
+        { "id": "fd5", "type": "dot", "x": 73, "y": 55, "color": "#fde68a" },
+        { "id": "fd6", "type": "dot", "x": 80, "y": 52, "color": "#fde68a" },
+        { "id": "crossIcon", "type": "icon", "icon": "cross", "x": 27, "y": 22, "color": "#f87171", "radius": 6, "enter": "scale" },
+        { "id": "checkIcon", "type": "icon", "icon": "check", "x": 73, "y": 22, "color": "#4ade80", "radius": 6, "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Flat = rejected. Curved = real.", "color": "#fdba74" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Canvas
+
+**Narration:** That depth map never becomes an actual picture. It's converted into math, encrypted, and locked inside a dedicated chip called the Secure Enclave — it never leaves your device, not even to Apple's own servers.
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Never Leaves Your Device",
+  "objects": [
+    { "id": "phone", "type": "icon", "icon": "device", "x": 35, "y": 50, "color": "#38bdf8", "radius": 12 },
+    { "id": "cloudBlocked", "type": "icon", "icon": "cloud", "x": 78, "y": 30, "color": "#64748b", "radius": 8, "opacity": 0.5, "label": "Apple's Servers" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "The depth map becomes math, not a photo", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "phone", "type": "icon", "icon": "device", "x": 35, "y": 50, "color": "#38bdf8", "radius": 12 },
+        { "id": "enclave", "type": "icon", "icon": "lock", "x": 35, "y": 50, "color": "#facc15", "radius": 5, "label": "Secure Enclave", "enter": "scale" },
+        { "id": "cloudBlocked", "type": "icon", "icon": "cloud", "x": 78, "y": 30, "color": "#64748b", "radius": 8, "opacity": 0.5, "label": "Apple's Servers" },
+        { "id": "crossOnCloud", "type": "icon", "icon": "cross", "x": 78, "y": 30, "color": "#f87171", "radius": 4, "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Encrypted, locked inside one chip", "color": "#7dd3fc" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "phone", "type": "icon", "icon": "device", "x": 35, "y": 50, "color": "#38bdf8", "radius": 12 },
+        { "id": "enclave", "type": "icon", "icon": "lock", "x": 35, "y": 50, "color": "#facc15", "radius": 5, "label": "Secure Enclave" },
+        { "id": "cloudBlocked", "type": "icon", "icon": "cloud", "x": 78, "y": 30, "color": "#64748b", "radius": 8, "opacity": 0.5, "label": "Apple's Servers" },
+        { "id": "crossOnCloud", "type": "icon", "icon": "cross", "x": 78, "y": 30, "color": "#f87171", "radius": 4 },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Not even Apple ever sees your face", "color": "#fef08a" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** It's also checking that you're actually awake and looking at the screen — not just present — so no one can unlock your phone by holding it up to your face while you sleep.
+
+**Duration:** 8 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** yellow
+
+**Data:**
+{
+  "title": "It Also Checks You're Looking",
+  "objects": [
+    { "id": "faceOutline", "type": "ellipse", "x": 50, "y": 45, "width": 26, "height": 32, "color": "#f8fafc", "filled": false, "strokeWidth": 3 },
+    { "id": "eyeL", "type": "ellipse", "x": 43, "y": 40, "width": 6, "height": 4, "color": "#38bdf8" },
+    { "id": "eyeR", "type": "ellipse", "x": 57, "y": 40, "width": 6, "height": 4, "color": "#38bdf8" },
+    { "id": "checkIcon", "type": "icon", "icon": "check", "x": 50, "y": 66, "color": "#4ade80", "radius": 6 },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Eyes open. Eyes on the screen.", "color": "#e2e8f0" }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Statement
+
+**Narration:** It's not a photo, and it never was. It's a live, three-dimensional, math-based proof that you are exactly who you say you are — checked in a fraction of a second, entirely on your own device.
+
+**Duration:** 7 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+**Panel Color:** neutral

@@ -120,6 +120,7 @@ export const IconInfographicCard: React.FC<{ data: IconData } & SharedVisualProp
             transform: `scale(${headlineScale})`,
             opacity: headlineOpacity,
             fontFamily: DISPLAY_FONT_FAMILY,
+            fontWeight: 800,
             fontSize: 144,
             color: COLORS.text,
             lineHeight: 1,

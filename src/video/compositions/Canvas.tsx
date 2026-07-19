@@ -3,10 +3,19 @@ import { useCurrentFrame } from "remotion";
 import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, drawIn, slideIn, type EasingName } from "../motion";
+import { CANVAS_ICON_COMPONENTS } from "../canvasIcons";
 import type { SharedVisualProps, CanvasData } from "../sharedVisualProps";
 
 const CANVAS_SIZE = { landscape: { width: 1400, height: 820 }, portrait: { width: 900, height: 1200 } };
 const DOT_RADIUS = 16;
+// Canvas's own dot-label size — deliberately NOT just PLAYER_LABEL_STYLE
+// (that constant is shared with TacticalBoard/Formation, whose pitch discs
+// sit much closer together and need a compact tag). Canvas dots have more
+// breathing room, and at native 1920x1080 rendering PLAYER_LABEL_STYLE's
+// 16px reads as a handful of pixels once a viewer's player scales the video
+// down (a phone-width YouTube embed, for one) — same weight/family/
+// letter-spacing as PLAYER_LABEL_STYLE, just legible at that scale.
+const CANVAS_DOT_LABEL_STYLE = { ...PLAYER_LABEL_STYLE, fontWeight: 700, fontSize: 27 };
 // Objects are authored on a 0-100 logical grid, but a shape near an edge can
 // still clip against the hard clip-container boundary once it scales up or
 // the camera zooms in — inset the logical grid into the middle
@@ -17,6 +26,35 @@ const DOT_RADIUS = 16;
 const EDGE_MARGIN_PERCENT = 8;
 function insetPercent(value: number): number {
   return EDGE_MARGIN_PERCENT + (value / 100) * (100 - 2 * EDGE_MARGIN_PERCENT);
+}
+
+// Canvas text is plain SVG <text> — unlike an HTML div, it never wraps or
+// shrinks on its own, so a long sentence authored at a landscape-safe font
+// size can run straight off the edges of the much narrower portrait canvas
+// (900px vs 1400px). Every text-rendering site below shrinks its own font
+// size toward fitting `maxWidthPx`, using a fixed average-glyph-width ratio
+// — but that ratio is only a rough estimate (measured against this bold
+// Montserrat it still under-shot real widths enough to let long captions
+// clip off-frame), so `textLength` + `lengthAdjust="spacingAndGlyphs"` is
+// the actual guarantee: the SVG renderer compresses glyph spacing until the
+// text is EXACTLY `maxWidthPx` wide, independent of whether the estimate was
+// right. `fontSize` alone still shrinks first so a very long string doesn't
+// rely entirely on squishing (that reads as distorted past a point) — the
+// two together mean "never overflows" is a hard property, not a hope.
+// Never grows past `maxFontSize` — a short label still renders at full size
+// with no `textLength` applied at all (natural width, unmodified).
+const AVG_CHAR_WIDTH_RATIO = 0.72;
+interface FitText {
+  fontSize: number;
+  textLength?: number;
+  lengthAdjust?: "spacingAndGlyphs";
+}
+function fitText(text: string, maxFontSize: number, maxWidthPx: number): FitText {
+  if (!text) return { fontSize: maxFontSize };
+  const naturalWidth = text.length * maxFontSize * AVG_CHAR_WIDTH_RATIO;
+  if (naturalWidth <= maxWidthPx) return { fontSize: maxFontSize };
+  const fontSize = Math.max(14, Math.floor(maxWidthPx / (text.length * AVG_CHAR_WIDTH_RATIO)));
+  return { fontSize, textLength: maxWidthPx, lengthAdjust: "spacingAndGlyphs" };
 }
 
 // How long each phase of a multi-phase diagram holds the screen — exported so
@@ -246,6 +284,30 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
       : [];
 
   const renderObjects = [...resolvedObjects, ...exitingObjects].sort((a, b) => a.object.layer - b.object.layer);
+  // `label`-type objects are almost always authored as a stable caption/
+  // banner (a fixed narration line, not a diagram element) — every script
+  // this project has written positions them at a constant y and expects
+  // them to stay put and stay legible regardless of what the diagram itself
+  // is doing. But `cameraTransform` below (pan/zoom for the REST of the
+  // scene) is a single CSS transform on the whole inner <svg>, so a label
+  // rendered inside it would zoom/shift right along with the diagram —
+  // confirmed as a real bug, not a hypothetical: a caption sized to fit
+  // the *logical* canvas width still overflowed the frame once a scene's
+  // camera zoomed past 1x, because the zoom multiplies the caption's
+  // on-screen size too. Splitting labels into their own un-transformed
+  // overlay `<svg>` (below) is what actually fixes that, not a smaller
+  // font — the earlier `fitText`-against-canvasWidth math was correct, it
+  // was just being fed a canvas that could still get magnified afterward.
+  const cameraObjects = renderObjects.filter((r) => r.object.type !== "label");
+  const fixedLabelObjects = renderObjects.filter((r) => r.object.type === "label");
+  // Every fitText(...) call still inside the camera-transformed svg below
+  // (arrow labels, shape captions, the dot caption) divides its target
+  // width by `camZoom` for the same reason — these captions are attached
+  // to a specific diagram element and SHOULD zoom/pan with it (unlike the
+  // fixed labels above), but that means their on-screen size is `fontSize *
+  // camZoom`, not just `fontSize` — a caption sized to fit at zoom 1 still
+  // overflows once the camera zooms to e.g. 1.7. Only the fixed overlay's
+  // fitText call (unzoomed) targets the plain canvasWidth.
 
   const objectPosition = (id: string): [number, number] | null => {
     const resolved = renderObjects.find((r) => r.object.id === id && !r.isExiting);
@@ -325,7 +387,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       textAnchor="middle"
                       fontFamily={FONT_FAMILY}
                       fontWeight={600}
-                      fontSize={18}
+                      {...fitText(arrow.label, 28, (canvasWidth * 0.85) / camZoom)}
                       fill={COLORS.text}
                       style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
                     >
@@ -336,7 +398,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               );
             })}
 
-            {renderObjects.map(({ object, x, y, radius, width, height, rotation, scale, opacity, slideYOffset }) => {
+            {cameraObjects.map(({ object, x, y, radius, width, height, rotation, scale, opacity, slideYOffset }) => {
               const [rawPx, rawPy] = project(x, y);
               const px = rawPx;
               const py = rawPy + slideYOffset;
@@ -375,7 +437,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                     textAnchor="middle"
                     fontFamily={FONT_FAMILY}
                     fontWeight={700}
-                    fontSize={22}
+                    {...fitText(object.label ?? "", 36, (canvasWidth * 0.85) / camZoom)}
                     fill={COLORS.text}
                     opacity={opacity}
                     style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
@@ -460,7 +522,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                         dominantBaseline="middle"
                         fontFamily={FONT_FAMILY}
                         fontWeight={700}
-                        fontSize={22}
+                        {...fitText(object.label ?? "", 36, (w * 0.9) / camZoom)}
                         fill={object.filled ? "#111315" : COLORS.text}
                         opacity={opacity}
                         style={transformStyle}
@@ -496,7 +558,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                         textAnchor="middle"
                         fontFamily={FONT_FAMILY}
                         fontWeight={700}
-                        fontSize={20}
+                        {...fitText(object.label ?? "", 30, (canvasWidth * 0.85) / camZoom)}
                         fill={COLORS.text}
                         opacity={opacity}
                         style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
@@ -534,7 +596,77 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                 );
               }
 
-              if (object.type === "label") {
+              if (object.type === "icon") {
+                const IconComponent = object.icon ? CANVAS_ICON_COMPONENTS[object.icon] : null;
+                if (!IconComponent) return null;
+                const size = projectRadius(radius) * 2;
+                return (
+                  <React.Fragment key={object.id}>
+                    {trailNodes}
+                    <IconComponent
+                      x={px - size / 2}
+                      y={py - size / 2}
+                      width={size}
+                      height={size}
+                      fill={color}
+                      opacity={opacity}
+                      style={transformStyle}
+                    />
+                    {belowLabel(size / 2 + 24)}
+                  </React.Fragment>
+                );
+              }
+
+              // "label" is handled entirely by the un-transformed overlay
+              // svg below (see fixedLabelObjects) — filtered out of
+              // cameraObjects, so this branch is intentionally unreachable
+              // here.
+
+              // "dot" — the default/generic marker.
+              return (
+                <React.Fragment key={object.id}>
+                  {trailNodes}
+                  <g opacity={opacity} style={transformStyle}>
+                    <circle cx={px} cy={py} r={DOT_RADIUS} fill={color} />
+                    {object.label &&
+                      (() => {
+                        const fit = fitText(object.label, CANVAS_DOT_LABEL_STYLE.fontSize, (canvasWidth * 0.85) / camZoom);
+                        return (
+                          <text
+                            x={px}
+                            y={py + DOT_RADIUS + 18}
+                            textAnchor="middle"
+                            fill={COLORS.text}
+                            textLength={fit.textLength}
+                            lengthAdjust={fit.lengthAdjust}
+                            style={{ ...CANVAS_DOT_LABEL_STYLE, fontSize: fit.fontSize }}
+                          >
+                            {object.label}
+                          </text>
+                        );
+                      })()}
+                  </g>
+                </React.Fragment>
+              );
+            })}
+          </svg>
+
+          {fixedLabelObjects.length > 0 && (
+            <svg
+              width={canvasWidth}
+              height={canvasHeight}
+              viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
+              style={{ overflow: "visible", position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
+            >
+              {fixedLabelObjects.map(({ object, x, y, rotation, scale, opacity, slideYOffset }) => {
+                if (!object.label) return null;
+                const [rawPx, rawPy] = project(x, y);
+                const px = rawPx;
+                const py = rawPy + slideYOffset;
+                const transformStyle: React.CSSProperties =
+                  rotation !== 0 || scale !== 1
+                    ? { transform: `rotate(${rotation}deg) scale(${scale})`, transformOrigin: `${px}px ${py}px` }
+                    : {};
                 return (
                   <text
                     key={object.id}
@@ -544,7 +676,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                     dominantBaseline="middle"
                     fontFamily={FONT_FAMILY}
                     fontWeight={700}
-                    fontSize={30}
+                    {...fitText(object.label, 46, canvasWidth * 0.85)}
                     fill={COLORS.text}
                     opacity={opacity}
                     style={{ filter: `drop-shadow(0 0 8px ${COLORS.background})`, ...transformStyle }}
@@ -552,24 +684,9 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                     {object.label}
                   </text>
                 );
-              }
-
-              // "dot" — the default/generic marker.
-              return (
-                <React.Fragment key={object.id}>
-                  {trailNodes}
-                  <g opacity={opacity} style={transformStyle}>
-                    <circle cx={px} cy={py} r={DOT_RADIUS} fill={color} />
-                    {object.label && (
-                      <text x={px} y={py + DOT_RADIUS + 15} textAnchor="middle" fill={COLORS.text} style={PLAYER_LABEL_STYLE}>
-                        {object.label}
-                      </text>
-                    )}
-                  </g>
-                </React.Fragment>
-              );
-            })}
-          </svg>
+              })}
+            </svg>
+          )}
         </div>
 
         {allPhases.length > 1 && (

@@ -46,7 +46,7 @@ export const StatBurstCard: React.FC<{ data: StatBurstData; leftColor?: string; 
   // side-by-side, since a 168px number is the whole point of this card.
   const valueBlock = (value: number, valueColor: string, valueLabel: string, align: "left" | "right" | "center") => (
     <div style={{ textAlign: align }}>
-      <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 168, color: valueColor, lineHeight: 1 }}>
+      <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 168, color: valueColor, lineHeight: 1 }}>
         {prefix}
         {formatValue(value)}
         {suffix}

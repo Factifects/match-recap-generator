@@ -87,7 +87,7 @@ export const TierCardsCard: React.FC<{ data: TierCardsData } & SharedVisualProps
                 >
                   {tier.name}
                 </div>
-                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 64, color: COLORS.text, lineHeight: 1 }}>{tier.price}</div>
+                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 64, color: COLORS.text, lineHeight: 1 }}>{tier.price}</div>
                 {tier.tagline && (
                   <div style={{ fontFamily: FONT_FAMILY, fontWeight: 600, fontSize: 20, color: COLORS.textDim, textAlign: "center" }}>
                     {tier.tagline}

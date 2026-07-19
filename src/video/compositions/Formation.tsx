@@ -10,7 +10,7 @@ import {
   PERSPECTIVE_PITCH_HEIGHT_LANDSCAPE,
   perspectiveProject,
 } from "./PerspectivePitch";
-import { JerseyDisc } from "./JerseyDisc";
+import { RolePod, POD_HEIGHT } from "./RolePod";
 import { fadeIn, drawIn } from "../motion";
 import { FORMATION_TEMPLATES } from "../formations";
 import type { SharedVisualProps, FormationData } from "../sharedVisualProps";
@@ -144,11 +144,11 @@ export const Formation: React.FC<{ data: FormationData } & SharedVisualProps> = 
                       preserveAspectRatio="xMidYMid meet"
                     />
                   ) : (
-                    <JerseyDisc cx={cx} cy={cy} radius={PLAYER_RADIUS} color={color} />
+                    <RolePod cx={cx} cy={cy} role={player.role ?? slot.role} color={color} />
                   )}
                   <text
                     x={cx}
-                    y={cy + (jersey ? JERSEY_HEIGHT / 2 + 14 : PLAYER_RADIUS + 15)}
+                    y={cy + (jersey ? JERSEY_HEIGHT / 2 + 14 : POD_HEIGHT / 2 + 15)}
                     textAnchor="middle"
                     fill={COLORS.text}
                     style={PLAYER_LABEL_STYLE}

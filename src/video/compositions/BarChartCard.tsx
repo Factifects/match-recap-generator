@@ -83,6 +83,7 @@ export const BarChartCard: React.FC<{ data: BarChartData } & SharedVisualProps> 
                   style={{
                     opacity: valueOpacity,
                     fontFamily: DISPLAY_FONT_FAMILY,
+                    fontWeight: 800,
                     fontSize: 68,
                     color,
                     marginBottom: 10,

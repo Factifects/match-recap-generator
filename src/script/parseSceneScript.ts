@@ -305,16 +305,31 @@ function resolveTacticalBoardVisual(fields: SceneFields): Visual | null {
  * resolveVisual/parseSceneScript below), same graceful-degradation rule as
  * every other tag in this project.
  */
+// A malformed **Data:** block (bad JSON, or JSON that fails the visual's own
+// Zod schema — an invalid enum value, a missing required field) used to fail
+// completely silently: the scene would just fall back to a plain caption
+// card with no visual, and the only way to notice was to actually render the
+// scene and see a boring text screen where a diagram should be. Logging here
+// means that shows up immediately as a build-time warning instead of a
+// render-time surprise discovered scene-by-scene.
 function resolveDataVisual(kind: string, fields: SceneFields): Visual | null {
   const dataRaw = fields["Data"];
   if (!dataRaw) return null;
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(dataRaw);
-    const result = visualSchema.safeParse({ kind, title: stripQuotes(fields["Annotation"]), ...parsed });
-    return result.success ? result.data : null;
-  } catch {
+    parsed = JSON.parse(dataRaw);
+  } catch (err) {
+    console.warn(`[parseSceneScript] Scene "${fields["Annotation"] ?? kind}": Data block is not valid JSON — falling back to a plain caption. ${err instanceof Error ? err.message : String(err)}`);
     return null;
   }
+  const result = visualSchema.safeParse({ kind, title: stripQuotes(fields["Annotation"]), ...(parsed as Record<string, unknown>) });
+  if (!result.success) {
+    console.warn(
+      `[parseSceneScript] Scene "${fields["Annotation"] ?? kind}" (${kind}): Data block failed validation — falling back to a plain caption.\n${result.error.issues.map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`).join("\n")}`,
+    );
+    return null;
+  }
+  return result.data;
 }
 
 /** Looks up a "Scene Type:" string against the visual registry's

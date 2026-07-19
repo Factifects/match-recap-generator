@@ -6,6 +6,7 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@remotion/bundler": "4.0.487",
     "@remotion/cli": "4.0.487",
     "@remotion/google-fonts": "4.0.487",

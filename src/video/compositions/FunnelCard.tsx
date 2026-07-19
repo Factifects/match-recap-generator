@@ -74,7 +74,7 @@ export const FunnelCard: React.FC<{ data: FunnelData } & SharedVisualProps> = ({
                 }}
               >
                 <div style={{ fontFamily: FONT_FAMILY, fontWeight: 700, fontSize: 28, color: "#0b0d0e", opacity: valueLabel }}>{stage.label}</div>
-                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontSize: 36, color: "#0b0d0e", opacity: valueLabel }}>{stage.value}</div>
+                <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: 36, color: "#0b0d0e", opacity: valueLabel }}>{stage.value}</div>
               </div>
             );
           })}

@@ -66,6 +66,7 @@ export const SequenceCard: React.FC<{ data: SequenceData } & SharedVisualProps> 
                 <div
                   style={{
                     fontFamily: DISPLAY_FONT_FAMILY,
+                    fontWeight: 800,
                     fontSize: 62,
                     lineHeight: 1.05,
                     color: COLORS.accent,
