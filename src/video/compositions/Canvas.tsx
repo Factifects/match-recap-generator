@@ -2,7 +2,7 @@ import React from "react";
 import { useCurrentFrame } from "remotion";
 import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, drawIn, slideIn, type EasingName } from "../motion";
+import { fadeIn, drawIn, slideIn, pulse, type EasingName } from "../motion";
 import { CANVAS_ICON_COMPONENTS } from "../canvasIcons";
 import type { SharedVisualProps, CanvasData } from "../sharedVisualProps";
 
@@ -16,6 +16,29 @@ const DOT_RADIUS = 16;
 // down (a phone-width YouTube embed, for one) — same weight/family/
 // letter-spacing as PLAYER_LABEL_STYLE, just legible at that scale.
 const CANVAS_DOT_LABEL_STYLE = { ...PLAYER_LABEL_STYLE, fontWeight: 700, fontSize: 27 };
+// Continuous idle-motion periods/ranges (see canvasObjectSchema's `idle`
+// field) — deliberately calm, matching motion.ts's whole "broadcast-style,
+// no bounce" philosophy: a slow, steady spin/breathe reads as "this is
+// live/active," a fast one reads as glitchy.
+const SPIN_PERIOD_FRAMES = 120; // one full rotation per 4s at 30fps
+const IDLE_PULSE_PERIOD_FRAMES = 90;
+const IDLE_PULSE_RANGE: [number, number] = [0.94, 1.06];
+const GLOW_PERIOD_FRAMES = 75;
+const GLOW_RANGE: [number, number] = [0.55, 1];
+// How fast a `flow` arrow's dash pattern travels (px of dash-offset per
+// frame) — 18 is the "dashed" style's own pattern length (see `dashArray`
+// below), so this cycles the pattern roughly once per second, a clearly
+// visible "current flowing" read without looking frantic.
+const FLOW_SPEED_PX_PER_FRAME = 0.6;
+// Seeds each idle object's pulse/glow phase from its own id (a stable hash,
+// not random) so several idle objects in the same scene don't all breathe
+// in lockstep — same purpose as GHOST_TRAIL's staggering, just for a
+// continuous cycle instead of a one-shot trail.
+function idlePhaseOffset(id: string): number {
+  let sum = 0;
+  for (let i = 0; i < id.length; i++) sum += id.charCodeAt(i);
+  return ((sum % 100) / 100) * Math.PI * 2;
+}
 // Objects are authored on a 0-100 logical grid, but a shape near an edge can
 // still clip against the hard clip-container boundary once it scales up or
 // the camera zooms in — inset the logical grid into the middle
@@ -348,6 +371,12 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               const strokeWidth = arrow.strokeWidth ?? 3;
               const dashArray =
                 arrow.style === "dashed" ? "10 8" : arrow.style === "dotted" ? "2 6" : undefined;
+              // Only kicks in once the arrow has fully drawn in (progress
+              // >= 1) — animating dash-offset WHILE the line is still
+              // growing would fight visually with the draw-in itself. A
+              // no-op (undefined) on "solid"/"double", which have no dash
+              // pattern to animate.
+              const flowOffset = arrow.flow && dashArray && progress >= 1 ? -(frame * FLOW_SPEED_PX_PER_FRAME) : undefined;
               const perpAngle = angle + Math.PI / 2;
               const doubleOffset = 3;
               const midX = (fromX + currentX) / 2;
@@ -374,7 +403,16 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       />
                     </>
                   ) : (
-                    <line x1={fromX} y1={fromY} x2={currentX} y2={currentY} stroke={color} strokeWidth={strokeWidth} strokeDasharray={dashArray} />
+                    <line
+                      x1={fromX}
+                      y1={fromY}
+                      x2={currentX}
+                      y2={currentY}
+                      stroke={color}
+                      strokeWidth={strokeWidth}
+                      strokeDasharray={dashArray}
+                      strokeDashoffset={flowOffset}
+                    />
                   )}
                   <polygon
                     points={`${currentX},${currentY} ${currentX - headLength * Math.cos(angle - headAngle)},${currentY - headLength * Math.sin(angle - headAngle)} ${currentX - headLength * Math.cos(angle + headAngle)},${currentY - headLength * Math.sin(angle + headAngle)}`}
@@ -398,11 +436,19 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               );
             })}
 
-            {cameraObjects.map(({ object, x, y, radius, width, height, rotation, scale, opacity, slideYOffset }) => {
+            {cameraObjects.map(({ object, x, y, radius, width, height, rotation: baseRotation, scale: baseScale, opacity: baseOpacity, slideYOffset }) => {
               const [rawPx, rawPy] = project(x, y);
               const px = rawPx;
               const py = rawPy + slideYOffset;
               const color = object.color ?? colorForCharacter(object.label ?? object.id);
+              // Continuous ambient motion (see canvasObjectSchema's `idle`
+              // field) — layered on top of the authored/glided base values,
+              // not a replacement for them, so idle motion composes cleanly
+              // with everything else an object is already doing.
+              const idlePhase = idlePhaseOffset(object.id);
+              const rotation = object.idle === "spin" ? baseRotation + ((frame * (360 / SPIN_PERIOD_FRAMES)) % 360) : baseRotation;
+              const scale = object.idle === "pulse" ? baseScale * pulse(frame, IDLE_PULSE_PERIOD_FRAMES, ...IDLE_PULSE_RANGE, idlePhase) : baseScale;
+              const opacity = object.idle === "glow" ? baseOpacity * pulse(frame, GLOW_PERIOD_FRAMES, ...GLOW_RANGE, idlePhase) : baseOpacity;
               const transformStyle: React.CSSProperties =
                 rotation !== 0 || scale !== 1
                   ? { transform: `rotate(${rotation}deg) scale(${scale})`, transformOrigin: `${px}px ${py}px` }

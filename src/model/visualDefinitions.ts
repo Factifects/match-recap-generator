@@ -498,6 +498,18 @@ const canvasObjectSchema = z.object({
   // A fading ghost trail behind this object while it glides — same
   // technique as TacticalBoard's GHOST_TRAIL, opt-in per object.
   trail: z.boolean().default(false),
+  // Continuous ambient motion, layered on top of everything above (entrance,
+  // phase-to-phase glide, author-set rotation/scale/opacity) rather than
+  // replacing it — built on motion.ts's `pulse()` helper, which already
+  // existed and is used by 13 other compositions but was never wired into
+  // Canvas. "none" (default) reproduces today's exact behavior: an object
+  // sits fully still once its entrance settles. "spin" = continuous full
+  // rotation (a processor/loading motif). "pulse" = gentle continuous scale
+  // breathing (something "active"). "glow" = continuous opacity breathing
+  // (a status indicator, a live connection). Each object's own `id` seeds a
+  // phase offset so multiple idle objects in the same scene don't breathe in
+  // lockstep.
+  idle: z.enum(["none", "spin", "pulse", "glow"]).default("none"),
 });
 
 const canvasArrowSchema = z.object({
@@ -510,6 +522,14 @@ const canvasArrowSchema = z.object({
   label: z.string().optional(),
   color: z.string().optional(),
   strokeWidth: z.number().optional(),
+  // Once the arrow's own draw-in finishes, continuously animate the dash
+  // pattern along its length so it reads as data/current flowing from
+  // `from` to `to` rather than a static dashed connector — the "continuously
+  // training line" motif. Only visible with a dashed/dotted style (a solid
+  // stroke has no dash pattern to animate); silently a no-op on "solid"/
+  // "double" rather than an error, since a script author toggling `flow` on
+  // an arrow while iterating on its style shouldn't hit a validation error.
+  flow: z.boolean().default(false),
 });
 
 // Optional camera framing over Canvas's flat plane — absent (the default)

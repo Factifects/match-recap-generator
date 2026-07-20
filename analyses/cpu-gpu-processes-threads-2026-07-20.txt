@@ -1,0 +1,627 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** Ever been confused about what these guys actually are? Processes, threads, cores — thrown around constantly, rarely explained properly. Let's actually sort this out.
+
+**Annotation:** PROCESSES, THREADS, CORES
+
+**Duration:** 8 seconds
+
+**Story Beat:** hook
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** Start at the bottom. Every single app you open becomes what's called a process — a completely separate, walled-off slice of memory that nothing else on your machine is allowed to touch.
+
+**Duration:** 11 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "A Process",
+  "objects": [
+    { "id": "appIcon", "type": "icon", "icon": "device", "x": 50, "y": 42, "color": "#38bdf8", "radius": 10, "label": "Your App" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Opening an app...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "appIcon", "type": "icon", "icon": "device", "x": 50, "y": 36, "color": "#38bdf8", "radius": 10, "label": "Your App" },
+        { "id": "boundary", "type": "roundedRectangle", "x": 50, "y": 42, "width": 46, "height": 46, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2, "enter": "scale" },
+        { "id": "lockIcon", "type": "icon", "icon": "lock", "x": 50, "y": 74, "color": "#38bdf8", "radius": 7, "label": "Private Memory", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...creates a process, with its own walled-off memory", "color": "#38bdf8" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Canvas
+
+**Narration:** Inside that one process, work actually gets split up into threads — and running several of them side by side is exactly what the word multithreading means. One thread might redraw the screen while another downloads a file in the background, and critically, every thread in that process shares the exact same memory.
+
+**Duration:** 18 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Threads: Splitting The Work",
+  "objects": [
+    { "id": "boundary", "type": "roundedRectangle", "x": 50, "y": 50, "width": 62, "height": 60, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2 },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "One process, sitting idle...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "boundary", "type": "roundedRectangle", "x": 50, "y": 50, "width": 62, "height": 60, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2 },
+        { "id": "uiThread", "type": "icon", "icon": "device", "x": 33, "y": 34, "color": "#4ade80", "radius": 7, "label": "UI Thread", "enter": "scale" },
+        { "id": "downloadThread", "type": "icon", "icon": "cloud", "x": 67, "y": 34, "color": "#fbbf24", "radius": 7, "label": "Download Thread", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...splits into threads. This is multithreading.", "color": "#4ade80" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "boundary", "type": "roundedRectangle", "x": 50, "y": 50, "width": 62, "height": 60, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2 },
+        { "id": "uiThread", "type": "icon", "icon": "device", "x": 33, "y": 34, "color": "#4ade80", "radius": 7, "label": "UI Thread" },
+        { "id": "downloadThread", "type": "icon", "icon": "cloud", "x": 67, "y": 34, "color": "#fbbf24", "radius": 7, "label": "Download Thread" },
+        { "id": "sharedMem", "type": "roundedRectangle", "x": 50, "y": 70, "width": 42, "height": 12, "radius": 2, "color": "#94a3b8", "filled": true, "strokeWidth": 2, "label": "Shared Memory", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Both reach into the exact same memory", "color": "#94a3b8" }
+      ],
+      "arrows": [
+        { "from": "uiThread", "to": "sharedMem", "style": "dashed", "color": "#4ade80", "flow": true },
+        { "from": "downloadThread", "to": "sharedMem", "style": "dashed", "color": "#fbbf24", "flow": true }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Canvas
+
+**Narration:** Here's a distinction computer science genuinely cares about. Concurrency just means managing several tasks that are all in progress — they might still be taking turns. Parallelism means those tasks are physically executing at the exact same instant. One core alone can handle concurrency. Real parallelism needs more than one core.
+
+**Duration:** 18 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Concurrency Versus Parallelism",
+  "objects": [
+    { "id": "core1", "type": "roundedRectangle", "x": 50, "y": 60, "width": 24, "height": 20, "radius": 3, "color": "#38bdf8", "filled": true, "strokeWidth": 2, "label": "1 Core" },
+    { "id": "ta", "type": "icon", "icon": "device", "x": 32, "y": 25, "color": "#4ade80", "radius": 6, "label": "Thread A" },
+    { "id": "tb", "type": "icon", "icon": "cloud", "x": 68, "y": 25, "color": "#fbbf24", "radius": 6, "label": "Thread B" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 90, "label": "One core, two threads...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "core1", "type": "roundedRectangle", "x": 50, "y": 60, "width": 24, "height": 20, "radius": 3, "color": "#4ade80", "filled": true, "strokeWidth": 2, "label": "1 Core" },
+        { "id": "ta", "type": "icon", "icon": "device", "x": 32, "y": 25, "color": "#4ade80", "radius": 6, "label": "Thread A" },
+        { "id": "tb", "type": "icon", "icon": "cloud", "x": 68, "y": 25, "color": "#fbbf24", "radius": 6, "label": "Thread B" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 90, "label": "Concurrency: taking turns, rapidly", "color": "#4ade80" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "core1", "type": "roundedRectangle", "x": 30, "y": 60, "width": 20, "height": 18, "radius": 3, "color": "#4ade80", "filled": true, "strokeWidth": 2, "label": "Core 1" },
+        { "id": "core2", "type": "roundedRectangle", "x": 70, "y": 60, "width": 20, "height": 18, "radius": 3, "color": "#4ade80", "filled": true, "strokeWidth": 2, "label": "Core 2", "enter": "scale" },
+        { "id": "ta", "type": "icon", "icon": "device", "x": 30, "y": 25, "color": "#4ade80", "radius": 6, "label": "Thread A" },
+        { "id": "tb", "type": "icon", "icon": "cloud", "x": 70, "y": 25, "color": "#fbbf24", "radius": 6, "label": "Thread B" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 90, "label": "Parallelism: genuinely simultaneous", "color": "#4ade80" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Canvas
+
+**Narration:** Every time a core switches from one thread to another, it has to save that thread's exact state — its registers, its precise place in the program — then load the next thread's saved state back in. That whole save-and-restore is called a context switch, and it happens thousands of times a second.
+
+**Duration:** 18 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "The Context Switch",
+  "objects": [
+    { "id": "core", "type": "icon", "icon": "chip", "x": 50, "y": 45, "color": "#38bdf8", "radius": 12, "label": "Core" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Thread A is running...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "core", "type": "icon", "icon": "chip", "x": 50, "y": 32, "color": "#38bdf8", "radius": 11, "label": "Core" },
+        { "id": "stateA", "type": "roundedRectangle", "x": 50, "y": 68, "width": 44, "height": 14, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2, "label": "Thread A's Saved State", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...its state gets saved...", "color": "#4ade80" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "core", "type": "icon", "icon": "chip", "x": 50, "y": 32, "color": "#fbbf24", "radius": 11, "label": "Core" },
+        { "id": "stateA", "type": "roundedRectangle", "x": 26, "y": 68, "width": 38, "height": 14, "radius": 2, "color": "#94a3b8", "filled": true, "strokeWidth": 2, "label": "Thread A: Saved" },
+        { "id": "stateB", "type": "roundedRectangle", "x": 74, "y": 68, "width": 38, "height": 14, "radius": 2, "color": "#fbbf24", "filled": true, "strokeWidth": 2, "label": "Thread B: Loaded", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...and Thread B's state loads in", "color": "#fbbf24" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Canvas
+
+**Narration:** And which thread actually gets to run next isn't random — it's decided by a scheduler, and different operating systems make genuinely different calls. Linux uses something called the Completely Fair Scheduler, built to give every thread a mathematically fair slice of time. Windows instead leans on priority, where more important threads simply get to run first.
+
+**Duration:** 19 seconds
+
+**Story Beat:** comparison
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Different OS, Different Scheduler",
+  "objects": [
+    { "id": "linuxIcon", "type": "icon", "icon": "device", "x": 26, "y": 30, "color": "#4ade80", "radius": 9, "label": "Linux: Completely Fair Scheduler" },
+    { "id": "winIcon", "type": "icon", "icon": "device", "x": 74, "y": 30, "color": "#38bdf8", "radius": 9, "label": "Windows: Priority-Based" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Same job, two different philosophies", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "linuxIcon", "type": "icon", "icon": "device", "x": 26, "y": 30, "color": "#4ade80", "radius": 9, "label": "Linux: Completely Fair Scheduler" },
+        { "id": "winIcon", "type": "icon", "icon": "device", "x": 74, "y": 30, "color": "#38bdf8", "radius": 9, "label": "Windows: Priority-Based" },
+        { "id": "linuxSlice1", "type": "roundedRectangle", "x": 15, "y": 72, "width": 15, "height": 10, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2, "enter": "scale" },
+        { "id": "linuxSlice2", "type": "roundedRectangle", "x": 26, "y": 72, "width": 15, "height": 10, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2, "enter": "scale" },
+        { "id": "linuxSlice3", "type": "roundedRectangle", "x": 37, "y": 72, "width": 15, "height": 10, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2, "enter": "scale" },
+        { "id": "winSlice1", "type": "roundedRectangle", "x": 64, "y": 72, "width": 12, "height": 8, "radius": 2, "color": "#38bdf8", "filled": true, "strokeWidth": 2, "enter": "scale" },
+        { "id": "winSlice2", "type": "roundedRectangle", "x": 78, "y": 70, "width": 22, "height": 13, "radius": 2, "color": "#38bdf8", "filled": true, "strokeWidth": 2, "label": "Priority", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Equal slices vs. priority order", "color": "#e2e8f0" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** But sharing memory between threads is exactly where things can go wrong. If two threads both try to change the same value at the same time, you get what's called a race condition — the result depends entirely on which one happens to finish first, and that's rarely what anyone intended. The fix is a lock, forcing threads to take turns instead of colliding.
+
+**Duration:** 20 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "Where Shared Memory Gets Dangerous",
+  "objects": [
+    { "id": "ta", "type": "icon", "icon": "device", "x": 26, "y": 30, "color": "#4ade80", "radius": 8, "label": "Thread A" },
+    { "id": "tb", "type": "icon", "icon": "cloud", "x": 74, "y": 30, "color": "#fbbf24", "radius": 8, "label": "Thread B" },
+    { "id": "sharedVal", "type": "roundedRectangle", "x": 50, "y": 65, "width": 32, "height": 16, "radius": 2, "color": "#94a3b8", "filled": true, "strokeWidth": 2, "label": "Value: 5" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Both reach for the same value...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "ta", "type": "icon", "icon": "device", "x": 26, "y": 30, "color": "#f87171", "radius": 8, "label": "Thread A" },
+        { "id": "tb", "type": "icon", "icon": "cloud", "x": 74, "y": 30, "color": "#f87171", "radius": 8, "label": "Thread B" },
+        { "id": "sharedVal", "type": "roundedRectangle", "x": 50, "y": 65, "width": 32, "height": 16, "radius": 2, "color": "#f87171", "filled": true, "strokeWidth": 2, "label": "Value: ??" },
+        { "id": "warningIcon", "type": "icon", "icon": "warning", "x": 50, "y": 40, "color": "#f87171", "radius": 8, "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "...at the same time. Race condition.", "color": "#f87171" }
+      ],
+      "arrows": [
+        { "from": "ta", "to": "sharedVal", "style": "solid", "color": "#f87171" },
+        { "from": "tb", "to": "sharedVal", "style": "solid", "color": "#f87171" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "ta", "type": "icon", "icon": "device", "x": 26, "y": 30, "color": "#4ade80", "radius": 8, "label": "Thread A" },
+        { "id": "tb", "type": "icon", "icon": "cloud", "x": 74, "y": 30, "color": "#94a3b8", "radius": 8, "label": "Thread B: Waits" },
+        { "id": "lockIcon", "type": "icon", "icon": "lock", "x": 50, "y": 40, "color": "#4ade80", "radius": 8, "label": "Lock", "enter": "scale" },
+        { "id": "sharedVal", "type": "roundedRectangle", "x": 50, "y": 68, "width": 32, "height": 16, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2, "label": "Value: 6" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "A lock forces them to take turns", "color": "#4ade80" }
+      ],
+      "arrows": [
+        { "from": "ta", "to": "lockIcon", "style": "solid", "color": "#4ade80" },
+        { "from": "lockIcon", "to": "sharedVal", "style": "solid", "color": "#4ade80" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Canvas
+
+**Narration:** Modern chips add one more trick: hyperthreading. It lets a single physical core present itself to the operating system as two logical cores, interleaving two threads through the same hardware to squeeze out extra throughput. It's not genuine extra parallelism, but it usually helps — though Intel's own newest flagship desktop chip actually dropped it, betting that more real physical cores mattered more.
+
+**Duration:** 20 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "One Core, Pretending To Be Two",
+  "objects": [
+    { "id": "coreIcon", "type": "icon", "icon": "chip", "x": 50, "y": 42, "color": "#38bdf8", "radius": 13, "label": "1 Physical Core" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "One real core...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "coreIcon", "type": "icon", "icon": "chip", "x": 50, "y": 36, "color": "#fbbf24", "radius": 13, "label": "1 Physical Core" },
+        { "id": "logicalA", "type": "icon", "icon": "device", "x": 33, "y": 68, "color": "#4ade80", "radius": 7, "label": "Thread 1", "enter": "scale" },
+        { "id": "logicalB", "type": "icon", "icon": "cloud", "x": 67, "y": 68, "color": "#4ade80", "radius": 7, "label": "Thread 2", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...presents itself to the OS as two", "color": "#fbbf24" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 9
+
+**Scene Type:** Canvas
+
+**Narration:** Zoom all the way out to the chip itself. That's the CPU's whole job — a handful of powerful, flexible cores, each one capable of handling complicated, branching logic entirely on its own. A modern flagship desktop chip has somewhere around twenty to twenty-four of these, total.
+
+**Duration:** 15 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "The CPU: Few, Powerful Cores",
+  "objects": [
+    { "id": "c1", "type": "icon", "icon": "chip", "x": 30, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
+    { "id": "c2", "type": "icon", "icon": "chip", "x": 50, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
+    { "id": "c3", "type": "icon", "icon": "chip", "x": 70, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Each core: complex, flexible, general-purpose", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "c1", "type": "icon", "icon": "chip", "x": 30, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
+        { "id": "c2", "type": "icon", "icon": "chip", "x": 50, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
+        { "id": "c3", "type": "icon", "icon": "chip", "x": 70, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
+        { "id": "countIcon", "type": "icon", "icon": "check", "x": 50, "y": 75, "color": "#4ade80", "radius": 8, "label": "~20-24 Cores, Flagship Desktop CPU", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "That's roughly the whole chip", "color": "#4ade80" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 10
+
+**Scene Type:** Canvas
+
+**Narration:** A GPU flips that whole idea. Instead of a few powerful cores, it packs in thousands of much simpler ones — each individually weaker, but every single one capable of doing the exact same operation across huge amounts of data, at the exact same instant.
+
+**Duration:** 14 seconds
+
+**Story Beat:** comparison
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "The GPU: Thousands Of Simple Cores",
+  "objects": [
+    { "id": "gpuLabel", "type": "label", "x": 50, "y": 10, "label": "Not a handful of big cores...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "d1", "type": "dot", "x": 20, "y": 30, "color": "#94a3b8" }, { "id": "d2", "type": "dot", "x": 32, "y": 30, "color": "#94a3b8" }, { "id": "d3", "type": "dot", "x": 44, "y": 30, "color": "#94a3b8" }, { "id": "d4", "type": "dot", "x": 56, "y": 30, "color": "#94a3b8" }, { "id": "d5", "type": "dot", "x": 68, "y": 30, "color": "#94a3b8" }, { "id": "d6", "type": "dot", "x": 80, "y": 30, "color": "#94a3b8" },
+        { "id": "d7", "type": "dot", "x": 20, "y": 45, "color": "#94a3b8" }, { "id": "d8", "type": "dot", "x": 32, "y": 45, "color": "#94a3b8" }, { "id": "d9", "type": "dot", "x": 44, "y": 45, "color": "#94a3b8" }, { "id": "d10", "type": "dot", "x": 56, "y": 45, "color": "#94a3b8" }, { "id": "d11", "type": "dot", "x": 68, "y": 45, "color": "#94a3b8" }, { "id": "d12", "type": "dot", "x": 80, "y": 45, "color": "#94a3b8" },
+        { "id": "d13", "type": "dot", "x": 20, "y": 60, "color": "#94a3b8" }, { "id": "d14", "type": "dot", "x": 32, "y": 60, "color": "#94a3b8" }, { "id": "d15", "type": "dot", "x": 44, "y": 60, "color": "#94a3b8" }, { "id": "d16", "type": "dot", "x": 56, "y": 60, "color": "#94a3b8" }, { "id": "d17", "type": "dot", "x": 68, "y": 60, "color": "#94a3b8" }, { "id": "d18", "type": "dot", "x": 80, "y": 60, "color": "#94a3b8" },
+        { "id": "gpuLabel", "type": "label", "x": 50, "y": 10, "label": "...thousands of small ones, sitting ready", "color": "#e2e8f0" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "instrIcon", "type": "icon", "icon": "bolt", "x": 50, "y": 15, "color": "#4ade80", "radius": 7, "label": "One Instruction", "enter": "scale" },
+        { "id": "d1", "type": "dot", "x": 20, "y": 32, "color": "#4ade80", "scale": 1.3 }, { "id": "d2", "type": "dot", "x": 32, "y": 32, "color": "#4ade80", "scale": 1.3 }, { "id": "d3", "type": "dot", "x": 44, "y": 32, "color": "#4ade80", "scale": 1.3 }, { "id": "d4", "type": "dot", "x": 56, "y": 32, "color": "#4ade80", "scale": 1.3 }, { "id": "d5", "type": "dot", "x": 68, "y": 32, "color": "#4ade80", "scale": 1.3 }, { "id": "d6", "type": "dot", "x": 80, "y": 32, "color": "#4ade80", "scale": 1.3 },
+        { "id": "d7", "type": "dot", "x": 20, "y": 47, "color": "#4ade80", "scale": 1.3 }, { "id": "d8", "type": "dot", "x": 32, "y": 47, "color": "#4ade80", "scale": 1.3 }, { "id": "d9", "type": "dot", "x": 44, "y": 47, "color": "#4ade80", "scale": 1.3 }, { "id": "d10", "type": "dot", "x": 56, "y": 47, "color": "#4ade80", "scale": 1.3 }, { "id": "d11", "type": "dot", "x": 68, "y": 47, "color": "#4ade80", "scale": 1.3 }, { "id": "d12", "type": "dot", "x": 80, "y": 47, "color": "#4ade80", "scale": 1.3 },
+        { "id": "d13", "type": "dot", "x": 20, "y": 62, "color": "#4ade80", "scale": 1.3 }, { "id": "d14", "type": "dot", "x": 32, "y": 62, "color": "#4ade80", "scale": 1.3 }, { "id": "d15", "type": "dot", "x": 44, "y": 62, "color": "#4ade80", "scale": 1.3 }, { "id": "d16", "type": "dot", "x": 56, "y": 62, "color": "#4ade80", "scale": 1.3 }, { "id": "d17", "type": "dot", "x": 68, "y": 62, "color": "#4ade80", "scale": 1.3 }, { "id": "d18", "type": "dot", "x": 80, "y": 62, "color": "#4ade80", "scale": 1.3 },
+        { "id": "gpuLabel", "type": "label", "x": 50, "y": 92, "label": "Every single one executes it, at the exact same instant", "color": "#4ade80" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 11
+
+**Scene Type:** StatBurst
+
+**Narration:** Put the real numbers side by side and it's not a small gap. A flagship desktop CPU has around twenty-four cores, total. Nvidia's current flagship GPU chip has over twenty-four thousand.
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "label": "Cores, To Scale",
+  "leftLabel": "Flagship CPU",
+  "leftValue": 24,
+  "rightLabel": "Flagship GPU (CUDA Cores)",
+  "rightValue": 24576,
+  "format": "integer"
+}
+
+---
+
+### SCENE 12
+
+**Scene Type:** Canvas
+
+**Narration:** That exact pattern — the same simple math, repeated across huge amounts of data — is precisely what rendering graphics needs. And it turns out to be exactly what training an AI model needs too, just multiplying enormous grids of numbers instead of pixels. That's not a coincidence. It's the whole reason GPUs became AI hardware.
+
+**Duration:** 15 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Why GPUs Became AI Hardware",
+  "objects": [
+    { "id": "dataIcon", "type": "icon", "icon": "database", "x": 18, "y": 50, "color": "#94a3b8", "radius": 9, "label": "Training Data" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Millions of numbers, waiting to be crunched...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "dataIcon", "type": "icon", "icon": "database", "x": 18, "y": 50, "color": "#94a3b8", "radius": 9, "label": "Training Data" },
+        { "id": "gpuIcon", "type": "icon", "icon": "chip", "x": 52, "y": 50, "color": "#4ade80", "radius": 12, "label": "GPU", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Same math graphics uses. Millions of numbers, at once.", "color": "#4ade80" }
+      ],
+      "arrows": [
+        { "from": "dataIcon", "to": "gpuIcon", "style": "dashed", "color": "#4ade80", "flow": true }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "dataIcon", "type": "icon", "icon": "database", "x": 18, "y": 50, "color": "#94a3b8", "radius": 9, "label": "Training Data" },
+        { "id": "gpuIcon", "type": "icon", "icon": "chip", "x": 52, "y": 50, "color": "#4ade80", "radius": 12, "label": "GPU" },
+        { "id": "resultIcon", "type": "icon", "icon": "check", "x": 86, "y": 50, "color": "#fbbf24", "radius": 9, "label": "Trained Model", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "That's not a coincidence — it's why GPUs run AI", "color": "#fbbf24" }
+      ],
+      "arrows": [
+        { "from": "dataIcon", "to": "gpuIcon", "style": "dashed", "color": "#4ade80", "flow": true },
+        { "from": "gpuIcon", "to": "resultIcon", "style": "solid", "color": "#fbbf24" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 13
+
+**Scene Type:** Donut
+
+**Narration:** And that demand shows up directly in who's winning right now. Nvidia holds somewhere around eighty percent of the AI accelerator market — and in training specifically, their share runs even higher than that.
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "AI Accelerator Market, By Revenue",
+  "segments": [
+    { "label": "Nvidia", "value": 80 },
+    { "label": "Custom Silicon (Google, AWS, Microsoft)", "value": 14 },
+    { "label": "AMD", "value": 6 }
+  ]
+}
+
+---
+
+### SCENE 14
+
+**Scene Type:** Canvas
+
+**Narration:** Here's a distinction almost nobody makes, though. Nvidia, AMD, and Apple mostly just design these chips — they don't actually build them. The physical manufacturing, at a scale measured in a couple of nanometers, is dominated by two companies instead: TSMC, and Samsung.
+
+**Duration:** 14 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Design Versus Manufacture",
+  "objects": [
+    { "id": "designers", "type": "icon", "icon": "search", "x": 16, "y": 45, "color": "#38bdf8", "radius": 10, "label": "Design" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Someone designs the blueprint...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "designers", "type": "icon", "icon": "search", "x": 16, "y": 45, "color": "#38bdf8", "radius": 10, "label": "Design" },
+        { "id": "makers", "type": "icon", "icon": "chip", "x": 52, "y": 45, "color": "#fbbf24", "radius": 10, "label": "Manufacture", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...then sends it off to be physically built", "color": "#fbbf24" }
+      ],
+      "arrows": [
+        { "from": "designers", "to": "makers", "style": "solid", "color": "#e2e8f0", "flow": true, "label": "Ongoing Pipeline" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "designers", "type": "icon", "icon": "search", "x": 16, "y": 45, "color": "#38bdf8", "radius": 10, "label": "Design" },
+        { "id": "makers", "type": "icon", "icon": "chip", "x": 52, "y": 45, "color": "#fbbf24", "radius": 10, "label": "Manufacture" },
+        { "id": "chipOut", "type": "icon", "icon": "check", "x": 87, "y": 45, "color": "#4ade80", "radius": 9, "label": "Finished Chip", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Two very different jobs, two different companies", "color": "#4ade80" }
+      ],
+      "arrows": [
+        { "from": "designers", "to": "makers", "style": "solid", "color": "#e2e8f0", "flow": true },
+        { "from": "makers", "to": "chipOut", "style": "solid", "color": "#4ade80" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 15
+
+**Scene Type:** Stat
+
+**Narration:** TSMC alone accounts for roughly two-thirds of all foundry revenue worldwide — meaning most of the chips designed by every major company on earth are physically built by essentially one manufacturer.
+
+**Duration:** 9 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "TSMC's Share Of Global Foundry Revenue",
+  "value": 67,
+  "suffix": "%",
+  "context": "Most of the world's leading-edge chips physically pass through one company"
+}
+
+---
+
+### SCENE 16
+
+**Scene Type:** Canvas
+
+**Narration:** So where does all of this actually end up? Your phone carries a small CPU and GPU built into one chip. Your laptop, the same idea, slightly bigger. A gaming PC adds a genuinely large, separate GPU. And a data center training an AI model is racks upon racks of nothing but GPUs, running continuously, all day, every day.
+
+**Duration:** 18 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Where These Chips Actually Live",
+  "objects": [
+    { "id": "phone", "type": "icon", "icon": "device", "x": 15, "y": 45, "color": "#38bdf8", "radius": 6, "label": "Phone" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Starts small...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "phone", "type": "icon", "icon": "device", "x": 15, "y": 45, "color": "#38bdf8", "radius": 6, "label": "Phone" },
+        { "id": "laptop", "type": "icon", "icon": "device", "x": 38, "y": 45, "color": "#38bdf8", "radius": 8, "label": "Laptop", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...then a bit bigger", "color": "#e2e8f0" }
+      ],
+      "arrows": [
+        { "from": "phone", "to": "laptop", "style": "dashed", "color": "#38bdf8" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "phone", "type": "icon", "icon": "device", "x": 15, "y": 45, "color": "#38bdf8", "radius": 6, "label": "Phone" },
+        { "id": "laptop", "type": "icon", "icon": "device", "x": 38, "y": 45, "color": "#38bdf8", "radius": 8, "label": "Laptop" },
+        { "id": "gaming", "type": "icon", "icon": "chip", "x": 61, "y": 45, "color": "#fbbf24", "radius": 11, "label": "Gaming PC", "enter": "scale" },
+        { "id": "datacenter", "type": "icon", "icon": "server", "x": 86, "y": 45, "color": "#4ade80", "radius": 13, "label": "AI Data Center", "idle": "glow", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Same building blocks, wildly different scale", "color": "#4ade80" }
+      ],
+      "arrows": [
+        { "from": "phone", "to": "laptop", "style": "dashed", "color": "#38bdf8" },
+        { "from": "laptop", "to": "gaming", "style": "dashed", "color": "#fbbf24" },
+        { "from": "gaming", "to": "datacenter", "style": "dashed", "color": "#4ade80", "flow": true }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 17
+
+**Scene Type:** Canvas
+
+**Narration:** So next time you glance at that little percentage in the corner of your screen, remember everything sitting underneath it — processes walled off from each other, threads sharing memory inside them, context switches thousands of times a second, a scheduler deciding who runs next, and a handful of cores making all of it actually happen.
+
+**Duration:** 18 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Now You Know What You're Looking At",
+  "objects": [
+    { "id": "boundary", "type": "roundedRectangle", "x": 50, "y": 42, "width": 52, "height": 44, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2 },
+    { "id": "t1", "type": "icon", "icon": "device", "x": 37, "y": 32, "color": "#4ade80", "radius": 7 },
+    { "id": "t2", "type": "icon", "icon": "cloud", "x": 63, "y": 32, "color": "#fbbf24", "radius": 7 },
+    { "id": "core", "type": "roundedRectangle", "x": 50, "y": 58, "width": 26, "height": 14, "radius": 2, "color": "#f472b6", "filled": true, "strokeWidth": 2, "label": "Core" },
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "So what's actually under that percentage?", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "r1", "type": "icon", "icon": "lock", "x": 18, "y": 45, "color": "#38bdf8", "radius": 8, "label": "Process", "enter": "scale" },
+        { "id": "r2", "type": "icon", "icon": "device", "x": 39, "y": 45, "color": "#4ade80", "radius": 8, "label": "Thread", "enter": "scale" },
+        { "id": "r3", "type": "icon", "icon": "chip", "x": 60, "y": 45, "color": "#f472b6", "radius": 8, "label": "Core", "idle": "glow", "enter": "scale" },
+        { "id": "r4", "type": "icon", "icon": "search", "x": 81, "y": 45, "color": "#fbbf24", "radius": 8, "label": "Scheduler", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "45% CPU is never the whole story", "color": "#e2e8f0" }
+      ]
+    }
+  ]
+}

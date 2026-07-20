@@ -1,0 +1,156 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** Not everything in a diagram should just sit still. Here's what actually makes a visual feel alive.
+
+**Annotation:** STILL VS. ALIVE
+
+**Duration:** 6 seconds
+
+**Story Beat:** hook
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** On the left, a completely static icon — it enters once, then never moves again. On the right, the exact same icon, just quietly spinning in the background the whole time.
+
+**Duration:** 9 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Spin",
+  "objects": [
+    { "id": "staticIcon", "type": "icon", "icon": "chip", "x": 28, "y": 45, "color": "#94a3b8", "radius": 12, "label": "Static" },
+    { "id": "spinIcon", "type": "icon", "icon": "chip", "x": 72, "y": 45, "color": "#38bdf8", "radius": 12, "label": "Spinning, Continuously", "idle": "spin" }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Canvas
+
+**Narration:** This one pulses — a slow, gentle breathing motion, scaling up and down forever. Good for anything that should read as currently active.
+
+**Duration:** 8 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Pulse",
+  "objects": [
+    { "id": "pulseIcon", "type": "icon", "icon": "bolt", "x": 50, "y": 45, "color": "#fbbf24", "radius": 14, "label": "Breathing, Continuously", "idle": "pulse" }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Canvas
+
+**Narration:** And this one glows — its opacity drifting up and down, like a status light that never quite turns off. Perfect for something meant to look live.
+
+**Duration:** 8 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Glow",
+  "objects": [
+    { "id": "glowIcon", "type": "icon", "icon": "signal", "x": 50, "y": 45, "color": "#4ade80", "radius": 14, "label": "Live, Continuously", "idle": "glow" }
+  ]
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Canvas
+
+**Narration:** Even a connector can feel alive. This dashed line never stops moving — data quietly flowing from one point to the other, for as long as the scene is on screen.
+
+**Duration:** 9 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Flow",
+  "objects": [
+    { "id": "src", "type": "dot", "x": 22, "y": 50, "color": "#94a3b8", "label": "Source" },
+    { "id": "dst", "type": "dot", "x": 78, "y": 50, "color": "#94a3b8", "label": "Destination" }
+  ],
+  "arrows": [
+    { "from": "src", "to": "dst", "style": "dashed", "color": "#f472b6", "flow": true, "label": "Always Moving" }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Canvas
+
+**Narration:** Used everywhere at once, this gets exhausting fast. Used sparingly — just the one node that's actually working, just the one connection that's actually active — it reads as a system that's genuinely running, not just a picture of one.
+
+**Duration:** 12 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Used Sparingly, On Purpose",
+  "objects": [
+    { "id": "idleNode1", "type": "icon", "icon": "database", "x": 20, "y": 30, "color": "#94a3b8", "radius": 9, "label": "Idle" },
+    { "id": "activeNode", "type": "icon", "icon": "chip", "x": 50, "y": 55, "color": "#4ade80", "radius": 12, "label": "Actually Working", "idle": "glow" },
+    { "id": "idleNode2", "type": "icon", "icon": "cloud", "x": 80, "y": 30, "color": "#94a3b8", "radius": 9, "label": "Idle" }
+  ],
+  "arrows": [
+    { "from": "idleNode1", "to": "activeNode", "style": "dashed", "color": "#4ade80", "flow": true },
+    { "from": "activeNode", "to": "idleNode2", "style": "dashed", "color": "#94a3b8" }
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** That's the actual difference — between a diagram that just illustrates something, and one that feels like it's genuinely still running.
+
+**Duration:** 8 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "A Diagram Versus A System",
+  "objects": [
+    { "id": "coreIcon", "type": "icon", "icon": "chip", "x": 50, "y": 45, "color": "#4ade80", "radius": 15, "label": "Still Running", "idle": "glow" }
+  ]
+}
