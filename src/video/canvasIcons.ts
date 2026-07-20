@@ -19,6 +19,9 @@ import XCircleIcon from "@heroicons/react/24/solid/XCircleIcon";
 import CpuChipIcon from "@heroicons/react/24/solid/CpuChipIcon";
 import ViewfinderCircleIcon from "@heroicons/react/24/solid/ViewfinderCircleIcon";
 import ScaleIcon from "@heroicons/react/24/solid/ScaleIcon";
+import BuildingOffice2Icon from "@heroicons/react/24/solid/BuildingOffice2Icon";
+import UserIcon from "@heroicons/react/24/solid/UserIcon";
+import BeakerIcon from "@heroicons/react/24/solid/BeakerIcon";
 import type { CanvasIconKey } from "../model/visualDefinitions";
 
 // The rendering half of Canvas's icon vocabulary — CANVAS_ICON_KEYS itself
@@ -50,4 +53,7 @@ export const CANVAS_ICON_COMPONENTS: Record<CanvasIconKey, ComponentType<SVGProp
   chip: CpuChipIcon,
   target: ViewfinderCircleIcon,
   scale: ScaleIcon,
+  factory: BuildingOffice2Icon,
+  person: UserIcon,
+  flask: BeakerIcon,
 };

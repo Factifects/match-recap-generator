@@ -75,6 +75,17 @@ export interface AudioClipPlacement {
    * even though they share the same drag/trim/volume mechanics. Missing on
    * older sidecar JSON predates this field; treated as "sfx". */
   kind?: "music" | "sfx";
+  /** User-editable display name shown in the timeline editor in place of
+   * the uploaded file's (hash-like) filename — cosmetic only, never read by
+   * the renderer. Falls back to the filename when unset. */
+  label?: string;
+  /** Which row within its lane (music/sfx are separate lane groups) this
+   * clip renders on in the timeline editor — purely a UI concern (the
+   * renderer plays every clip regardless of lane), but explicit rather than
+   * auto-computed from overlaps: the user places a clip on its own lane
+   * *before* dragging it into an overlap, e.g. layering a whoosh under a
+   * click at the same timestamp. Defaults to 0 when unset. */
+  lane?: number;
 }
 
 // Camera framing for pitch-based visuals (TacticalBoard/Formation/ShotMap/

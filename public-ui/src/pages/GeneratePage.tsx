@@ -42,37 +42,43 @@ function videoDurationOf(segments: TimedSegment[]): number {
   return segments.reduce((sum, s) => sum + s.durationSeconds, 0);
 }
 
-/** Appends `newClip` to a lane (music and sfx are tracked as separate lanes)
- * so everything still fits within the video: `newClip` keeps its own full
- * preferred duration, and any existing clips that are in the way get their
- * *own* tail end shrunk just enough to make room — starting with whichever
- * clip currently sits last, cascading backward through earlier ones only if
- * one clip's slack isn't enough on its own. Nothing shrinks below
- * MIN_CLIP_DURATION_SECONDS. This replaces squeezing the new clip into
- * whatever sliver of room happened to be left, which visually overlapped it
- * with the clip before it instead of sitting cleanly beside it. */
+/** Appends `newClip` right after whatever's already last in its lane (music
+ * and sfx are tracked as separate lanes) — existing clips are never touched.
+ * If `newClip`'s own preferred duration would run past the video's end, it
+ * clips *itself* down to fit the remaining room instead, floored at
+ * MIN_CLIP_DURATION_SECONDS (which can, in the degenerate case of an already
+ * full lane, mean it lands overlapping the very end rather than disappear
+ * entirely). Existing clips keeping their exact length is the whole point —
+ * a newly added/duplicated clip should never eat into its predecessor's
+ * duration. */
 function appendToLane(
   existingClipsInLane: AudioClipPlacement[],
   videoDurationSeconds: number,
   newClip: AudioClipPlacement,
 ): AudioClipPlacement[] {
   const sorted = [...existingClipsInLane].sort((a, b) => a.startSeconds - b.startSeconds);
-  const durations = sorted.map((c) => c.durationSeconds);
-  let overflow = durations.reduce((sum, d) => sum + d, 0) + newClip.durationSeconds - videoDurationSeconds;
-  for (let i = durations.length - 1; overflow > 0 && i >= 0; i--) {
-    const available = durations[i] - MIN_CLIP_DURATION_SECONDS;
-    const reduce = Math.min(Math.max(0, available), overflow);
-    durations[i] -= reduce;
-    overflow -= reduce;
-  }
-  let cursor = 0;
-  const relaid = sorted.map((c, i) => {
-    const clip = { ...c, startSeconds: cursor, durationSeconds: durations[i] };
-    cursor += durations[i];
-    return clip;
-  });
-  relaid.push({ ...newClip, startSeconds: cursor });
-  return relaid;
+  const cursor = sorted.reduce((end, c) => Math.max(end, c.startSeconds + c.durationSeconds), 0);
+  const remaining = videoDurationSeconds - cursor;
+  const start = remaining > 0 ? cursor : Math.max(0, videoDurationSeconds - MIN_CLIP_DURATION_SECONDS);
+  const duration = remaining > 0 ? Math.min(newClip.durationSeconds, remaining) : MIN_CLIP_DURATION_SECONDS;
+  return [...sorted, { ...newClip, startSeconds: start, durationSeconds: Math.max(MIN_CLIP_DURATION_SECONDS, duration) }];
+}
+
+/** `appendToLane` only ever looks at the clips it's given — this narrows
+ * that set to just `newClip`'s own lane row before calling it, so a new
+ * upload or duplicate only makes room against clips actually sharing its
+ * row, not every clip in the whole lane-group regardless of which row
+ * they're on (which would needlessly push a new clip later just because
+ * some *other* row's last clip happens to end later). */
+function appendToLaneRow(
+  existingOfKind: AudioClipPlacement[],
+  videoDurationSeconds: number,
+  newClip: AudioClipPlacement,
+): AudioClipPlacement[] {
+  const targetLane = newClip.lane ?? 0;
+  const sameRow = existingOfKind.filter((c) => (c.lane ?? 0) === targetLane);
+  const otherRows = existingOfKind.filter((c) => (c.lane ?? 0) !== targetLane);
+  return [...otherRows, ...appendToLane(sameRow, videoDurationSeconds, newClip)];
 }
 
 export const GeneratePage: React.FC = () => {
@@ -223,8 +229,9 @@ export const GeneratePage: React.FC = () => {
         volume: 1,
         sourceDurationSeconds: sourceDuration,
         kind,
+        lane: 0,
       };
-      const relaidLane = appendToLane(existingOfKind, videoDurationSeconds, newClip);
+      const relaidLane = appendToLaneRow(existingOfKind, videoDurationSeconds, newClip);
       setTimeline((t) => (t ? { ...t, audioClips: [...otherKind, ...relaidLane] } : t));
     } catch (err) {
       setTimelineError(err instanceof Error ? err.message : String(err));
@@ -242,10 +249,10 @@ export const GeneratePage: React.FC = () => {
   }
 
   /** "Copy/paste" — duplicates a placement's file/trim/length as a new
-   * instance appended after everything else already in its lane, keeping
-   * its own full duration; whatever's in the way shrinks to make room
-   * (see appendToLane) instead of the copy landing back on top of the
-   * original. */
+   * instance appended after everything else already sharing its lane row,
+   * keeping its own full duration and staying on that same row (drag it to
+   * another lane afterward if the point was to layer it under something
+   * else). */
   function duplicateAudioClip(source: AudioClipPlacement) {
     if (!timeline) return;
     const videoDurationSeconds = videoDurationOf(timeline.segments);
@@ -253,7 +260,7 @@ export const GeneratePage: React.FC = () => {
     const existingOfKind = (timeline.audioClips ?? []).filter((c) => (c.kind ?? "sfx") === kind);
     const otherKind = (timeline.audioClips ?? []).filter((c) => (c.kind ?? "sfx") !== kind);
     const newClip: AudioClipPlacement = { ...source, id: newClipId(), startSeconds: 0 };
-    const relaidLane = appendToLane(existingOfKind, videoDurationSeconds, newClip);
+    const relaidLane = appendToLaneRow(existingOfKind, videoDurationSeconds, newClip);
     setTimeline((t) => (t ? { ...t, audioClips: [...otherKind, ...relaidLane] } : t));
   }
 
@@ -288,8 +295,9 @@ export const GeneratePage: React.FC = () => {
         volume: 1,
         sourceDurationSeconds: sourceDuration,
         kind,
+        lane: 0,
       };
-      const relaidLane = appendToLane(existingOfKind, videoDurationSeconds, newClip);
+      const relaidLane = appendToLaneRow(existingOfKind, videoDurationSeconds, newClip);
       setPreTimeline((p) => (p ? { ...p, audioClips: [...otherKind, ...relaidLane] } : p));
     } catch (err) {
       setPreTimelineError(err instanceof Error ? err.message : String(err));
@@ -311,7 +319,7 @@ export const GeneratePage: React.FC = () => {
     const existingOfKind = preTimeline.audioClips.filter((c) => (c.kind ?? "sfx") === kind);
     const otherKind = preTimeline.audioClips.filter((c) => (c.kind ?? "sfx") !== kind);
     const newClip: AudioClipPlacement = { ...source, id: newClipId(), startSeconds: 0 };
-    const relaidLane = appendToLane(existingOfKind, videoDurationSeconds, newClip);
+    const relaidLane = appendToLaneRow(existingOfKind, videoDurationSeconds, newClip);
     setPreTimeline((p) => (p ? { ...p, audioClips: [...otherKind, ...relaidLane] } : p));
   }
 

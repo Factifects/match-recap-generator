@@ -40,6 +40,14 @@ const ASSET_CONTENT_TYPES: Record<string, string> = {
   ".woff2": "font/woff2",
 };
 
+const AUDIO_CONTENT_TYPES: Record<string, string> = {
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".m4a": "audio/mp4",
+  ".ogg": "audio/ogg",
+  ".aac": "audio/aac",
+};
+
 interface NewsSource {
   name: string;
   feedUrl: string;
@@ -268,6 +276,17 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && req.url?.startsWith("/output/")) {
     const fileName = decodeURIComponent(req.url.replace("/output/", ""));
     serveFile(res, path.join(OUTPUT_DIR, fileName), "video/mp4");
+    return;
+  }
+
+  // Serves a user's uploaded sfx/music files back to the browser — needed
+  // so the timeline editor can fetch+decode them client-side for waveform
+  // previews. Previously these files only ever needed to reach Remotion's
+  // server-side staticFile() during render, never the browser directly.
+  if (req.method === "GET" && req.url?.startsWith("/uploads/")) {
+    const fileName = decodeURIComponent(req.url.replace("/uploads/", ""));
+    const contentType = AUDIO_CONTENT_TYPES[path.extname(fileName)] ?? "application/octet-stream";
+    serveFile(res, path.join(UPLOADS_DIR, fileName), contentType);
     return;
   }
 

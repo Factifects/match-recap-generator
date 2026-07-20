@@ -114,6 +114,9 @@ export const CANVAS_ICON_KEYS = [
   "chip",
   "target",
   "scale",
+  "factory",
+  "person",
+  "flask",
 ] as const;
 export type CanvasIconKey = (typeof CANVAS_ICON_KEYS)[number];
 export const FORMATION_NAMES = ["4-3-3", "4-2-3-1", "3-4-2-1", "5-4-1", "4-4-2"] as const;

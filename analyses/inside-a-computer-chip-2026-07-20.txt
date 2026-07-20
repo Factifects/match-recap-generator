@@ -1,0 +1,497 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** Alright, gather round — because once you actually see what's happening inside this thing, you will never look at your laptop the same way again. That chip in there is about the size of your fingernail. And it might be the single most complicated object you will ever hold in your hand.
+
+**Annotation:** INSIDE A CHIP
+
+**Duration:** 9 seconds
+
+**Story Beat:** hook
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** So let's start by clearing up a myth. Crack open a processor, and that big square in your hand is mostly protective packaging — a shell, a connector board. The actual brain, the part doing every ounce of the thinking, is a tiny square buried dead center: the silicon die. And we are talking small — somewhere around a hundred to two hundred square millimetres, total.
+
+**Duration:** 16 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "The Package Isn't The Chip",
+  "objects": [
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "What you actually see when you hold one...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "package", "type": "roundedRectangle", "x": 50, "y": 50, "width": 56, "height": 56, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2, "label": "The Package", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "What you actually see when you hold one...", "color": "#e2e8f0" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "package", "type": "roundedRectangle", "x": 50, "y": 50, "width": 56, "height": 56, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2, "label": "The Package" },
+        { "id": "die", "type": "roundedRectangle", "x": 50, "y": 50, "width": 20, "height": 20, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2, "label": "The Silicon Die", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...but this tiny square is what actually computes", "color": "#4ade80" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "package", "type": "roundedRectangle", "x": 50, "y": 50, "width": 56, "height": 56, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2, "label": "The Package" },
+        { "id": "die", "type": "roundedRectangle", "x": 50, "y": 50, "width": 20, "height": 20, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2, "label": "The Silicon Die" },
+        { "id": "magnifier", "type": "icon", "icon": "search", "x": 76, "y": 30, "color": "#fbbf24", "radius": 8, "label": "Let's Look Closer", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "That's the part we're about to go inside of", "color": "#fbbf24" }
+      ],
+      "camera": { "x": 50, "y": 50, "zoom": 1.5 }
+    }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Canvas
+
+**Narration:** Here's how engineers actually like to explain this, and I love it because it just clicks: picture the chip as an office building. Each core inside it is one employee. A two-core chip employs two workers. An eight-core chip employs eight. And every single one of them can clock in, take on a task, and work it independently of the others.
+
+**Duration:** 17 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Think Of It Like An Office",
+  "objects": [
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "One building...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "office", "type": "roundedRectangle", "x": 50, "y": 52, "width": 62, "height": 62, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2, "label": "The Chip = The Office", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "One building...", "color": "#e2e8f0" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "office", "type": "roundedRectangle", "x": 50, "y": 52, "width": 62, "height": 62, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2, "label": "The Chip = The Office" },
+        { "id": "worker1", "type": "icon", "icon": "person", "x": 34, "y": 32, "color": "#4ade80", "radius": 9, "label": "Core 1: A Worker", "enter": "scale" },
+        { "id": "worker2", "type": "icon", "icon": "person", "x": 66, "y": 40, "color": "#fbbf24", "radius": 9, "label": "Core 2: A Worker", "enter": "scale" },
+        { "id": "worker3", "type": "icon", "icon": "person", "x": 50, "y": 68, "color": "#f472b6", "radius": 9, "label": "Core 3: A Worker", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...full of independent workers", "color": "#4ade80" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "office", "type": "roundedRectangle", "x": 50, "y": 52, "width": 62, "height": 62, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2, "label": "The Chip = The Office" },
+        { "id": "worker1", "type": "icon", "icon": "person", "x": 30, "y": 36, "color": "#4ade80", "radius": 6, "enter": "scale" },
+        { "id": "worker2", "type": "icon", "icon": "person", "x": 43, "y": 36, "color": "#fbbf24", "radius": 6, "enter": "scale" },
+        { "id": "worker3", "type": "icon", "icon": "person", "x": 57, "y": 36, "color": "#f472b6", "radius": 6, "enter": "scale" },
+        { "id": "worker4", "type": "icon", "icon": "person", "x": 70, "y": 36, "color": "#38bdf8", "radius": 6, "label": "8 Workers Now", "enter": "scale" },
+        { "id": "worker5", "type": "icon", "icon": "person", "x": 30, "y": 68, "color": "#4ade80", "radius": 6, "enter": "scale" },
+        { "id": "worker6", "type": "icon", "icon": "person", "x": 43, "y": 68, "color": "#fbbf24", "radius": 6, "enter": "scale" },
+        { "id": "worker7", "type": "icon", "icon": "person", "x": 57, "y": 68, "color": "#f472b6", "radius": 6, "enter": "scale" },
+        { "id": "worker8", "type": "icon", "icon": "person", "x": 70, "y": 68, "color": "#38bdf8", "radius": 6, "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "An eight-core chip? Eight independent workers", "color": "#38bdf8" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Canvas
+
+**Narration:** But here's the thing — cores don't get the whole building to themselves. Right alongside them, on that same tiny die, you've got cache memory sitting close enough for instant recall, a memory controller directing traffic to your RAM, very often a dedicated GPU section for graphics, and I/O controllers running your USB ports and network card. It is a genuinely crowded building, and every one of these pieces is constantly talking to the cores.
+
+**Duration:** 19 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Not Just Cores",
+  "objects": [
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "One die, several jobs...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "cores", "type": "icon", "icon": "chip", "x": 50, "y": 50, "color": "#f472b6", "radius": 11, "label": "Cores", "enter": "scale" },
+        { "id": "cache", "type": "icon", "icon": "database", "x": 22, "y": 26, "color": "#4ade80", "radius": 8, "label": "Cache Memory", "enter": "scale" },
+        { "id": "memCtrl", "type": "icon", "icon": "signal", "x": 78, "y": 26, "color": "#38bdf8", "radius": 8, "label": "Memory Controller", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Cache and a memory controller share the die...", "color": "#e2e8f0" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "cores", "type": "icon", "icon": "chip", "x": 50, "y": 50, "color": "#f472b6", "radius": 11, "label": "Cores" },
+        { "id": "cache", "type": "icon", "icon": "database", "x": 22, "y": 26, "color": "#4ade80", "radius": 8, "label": "Cache Memory" },
+        { "id": "memCtrl", "type": "icon", "icon": "signal", "x": 78, "y": 26, "color": "#38bdf8", "radius": 8, "label": "Memory Controller" },
+        { "id": "gpuSection", "type": "icon", "icon": "chip", "x": 22, "y": 76, "color": "#fbbf24", "radius": 8, "label": "GPU Section", "enter": "scale" },
+        { "id": "io", "type": "icon", "icon": "globe", "x": 78, "y": 76, "color": "#94a3b8", "radius": 8, "label": "I/O Controllers", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "...plus a GPU section and the I/O controllers", "color": "#4ade80" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "cores", "type": "icon", "icon": "chip", "x": 50, "y": 50, "color": "#f472b6", "radius": 11, "label": "Cores" },
+        { "id": "cache", "type": "icon", "icon": "database", "x": 22, "y": 26, "color": "#4ade80", "radius": 8, "label": "Cache Memory" },
+        { "id": "memCtrl", "type": "icon", "icon": "signal", "x": 78, "y": 26, "color": "#38bdf8", "radius": 8, "label": "Memory Controller" },
+        { "id": "gpuSection", "type": "icon", "icon": "chip", "x": 22, "y": 76, "color": "#fbbf24", "radius": 8, "label": "GPU Section" },
+        { "id": "io", "type": "icon", "icon": "globe", "x": 78, "y": 76, "color": "#94a3b8", "radius": 8, "label": "I/O Controllers" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "...and all of it is constantly talking to the cores", "color": "#f472b6" }
+      ],
+      "arrows": [
+        { "from": "cache", "to": "cores", "style": "dashed", "color": "#4ade80", "flow": true },
+        { "from": "memCtrl", "to": "cores", "style": "dashed", "color": "#38bdf8", "flow": true },
+        { "from": "gpuSection", "to": "cores", "style": "dashed", "color": "#fbbf24", "flow": true },
+        { "from": "io", "to": "cores", "style": "dashed", "color": "#94a3b8", "flow": true }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** StatBurst
+
+**Narration:** Now let's actually put a number on how far this has come. Back in nineteen seventy-one, the very first commercial microprocessor carried twenty-three hundred transistors, total. A modern high-end chip has over a hundred and thirty-four billion. Sit with that gap for a second.
+
+**Duration:** 11 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "label": "Transistors, Then vs. Now",
+  "leftLabel": "Intel 4004 (1971)",
+  "leftValue": 2300,
+  "rightLabel": "Apple M2 Ultra (2023)",
+  "rightValue": 134000000000,
+  "format": "integer"
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Canvas
+
+**Narration:** So how do you even fit that many? Each individual transistor is now measured in nanometers — a couple of billionths of a metre across. That's smaller than a flu virus. Line them up, and you could fit something like a hundred thousand of them side by side across the width of a single human hair. And this density just keeps repeating, everywhere you look on that die.
+
+**Duration:** 17 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Smaller Than A Virus",
+  "objects": [
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "The width of one human hair...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "hairLine", "type": "line", "x": 18, "y": 45, "width": 64, "rotation": 0, "color": "#94a3b8", "strokeWidth": 4, "label": "One Human Hair", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "That's the width we're comparing against", "color": "#e2e8f0" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "hairLine", "type": "line", "x": 18, "y": 45, "width": 64, "rotation": 0, "color": "#94a3b8", "strokeWidth": 4, "label": "One Human Hair" },
+        { "id": "t1", "type": "dot", "x": 16, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t2", "type": "dot", "x": 22, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t3", "type": "dot", "x": 28, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t4", "type": "dot", "x": 34, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t5", "type": "dot", "x": 40, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t6", "type": "dot", "x": 46, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t7", "type": "dot", "x": 52, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t8", "type": "dot", "x": 58, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t9", "type": "dot", "x": 64, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t10", "type": "dot", "x": 70, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t11", "type": "dot", "x": 76, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t12", "type": "dot", "x": 82, "y": 28, "color": "#4ade80", "scale": 0.4, "enter": "scale" },
+        { "id": "t13", "type": "dot", "x": 16, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t14", "type": "dot", "x": 22, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t15", "type": "dot", "x": 28, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t16", "type": "dot", "x": 34, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t17", "type": "dot", "x": 40, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t18", "type": "dot", "x": 46, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t19", "type": "dot", "x": 52, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t20", "type": "dot", "x": 58, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t21", "type": "dot", "x": 64, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t22", "type": "dot", "x": 70, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t23", "type": "dot", "x": 76, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t24", "type": "dot", "x": 82, "y": 36, "color": "#4ade80", "scale": 0.4, "enter": "scale" },
+        { "id": "t25", "type": "dot", "x": 16, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t26", "type": "dot", "x": 22, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t27", "type": "dot", "x": 28, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t28", "type": "dot", "x": 34, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t29", "type": "dot", "x": 40, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t30", "type": "dot", "x": 46, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t31", "type": "dot", "x": 52, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t32", "type": "dot", "x": 58, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t33", "type": "dot", "x": 64, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t34", "type": "dot", "x": 70, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t35", "type": "dot", "x": 76, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t36", "type": "dot", "x": 82, "y": 44, "color": "#4ade80", "scale": 0.4, "enter": "scale" },
+        { "id": "t37", "type": "dot", "x": 16, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t38", "type": "dot", "x": 22, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t39", "type": "dot", "x": 28, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t40", "type": "dot", "x": 34, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t41", "type": "dot", "x": 40, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t42", "type": "dot", "x": 46, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t43", "type": "dot", "x": 52, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t44", "type": "dot", "x": 58, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t45", "type": "dot", "x": 64, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t46", "type": "dot", "x": 70, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t47", "type": "dot", "x": 76, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t48", "type": "dot", "x": 82, "y": 52, "color": "#4ade80", "scale": 0.4, "enter": "scale" },
+        { "id": "t49", "type": "dot", "x": 16, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t50", "type": "dot", "x": 22, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t51", "type": "dot", "x": 28, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t52", "type": "dot", "x": 34, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t53", "type": "dot", "x": 40, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t54", "type": "dot", "x": 46, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t55", "type": "dot", "x": 52, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t56", "type": "dot", "x": 58, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t57", "type": "dot", "x": 64, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t58", "type": "dot", "x": 70, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t59", "type": "dot", "x": 76, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" }, { "id": "t60", "type": "dot", "x": 82, "y": 60, "color": "#4ade80", "scale": 0.4, "enter": "scale" },
+        { "id": "transistorLabel", "type": "label", "x": 50, "y": 88, "label": "This dense — repeated across the entire die", "color": "#4ade80" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Now pack that same width with transistors...", "color": "#4ade80" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "hairLine", "type": "line", "x": 18, "y": 45, "width": 64, "rotation": 0, "color": "#94a3b8", "strokeWidth": 4, "label": "One Human Hair" },
+        { "id": "t1", "type": "dot", "x": 16, "y": 28, "color": "#fbbf24", "scale": 0.4 }, { "id": "t2", "type": "dot", "x": 22, "y": 28, "color": "#4ade80", "scale": 0.4 }, { "id": "t3", "type": "dot", "x": 28, "y": 28, "color": "#4ade80", "scale": 0.4 }, { "id": "t4", "type": "dot", "x": 34, "y": 28, "color": "#4ade80", "scale": 0.4 }, { "id": "t5", "type": "dot", "x": 40, "y": 28, "color": "#4ade80", "scale": 0.4 }, { "id": "t6", "type": "dot", "x": 46, "y": 28, "color": "#4ade80", "scale": 0.4 }, { "id": "t7", "type": "dot", "x": 52, "y": 28, "color": "#4ade80", "scale": 0.4 }, { "id": "t8", "type": "dot", "x": 58, "y": 28, "color": "#4ade80", "scale": 0.4 }, { "id": "t9", "type": "dot", "x": 64, "y": 28, "color": "#4ade80", "scale": 0.4 }, { "id": "t10", "type": "dot", "x": 70, "y": 28, "color": "#4ade80", "scale": 0.4 }, { "id": "t11", "type": "dot", "x": 76, "y": 28, "color": "#4ade80", "scale": 0.4 }, { "id": "t12", "type": "dot", "x": 82, "y": 28, "color": "#4ade80", "scale": 0.4 },
+        { "id": "t13", "type": "dot", "x": 16, "y": 36, "color": "#4ade80", "scale": 0.4 }, { "id": "t14", "type": "dot", "x": 22, "y": 36, "color": "#fbbf24", "scale": 0.4 }, { "id": "t15", "type": "dot", "x": 28, "y": 36, "color": "#4ade80", "scale": 0.4 }, { "id": "t16", "type": "dot", "x": 34, "y": 36, "color": "#4ade80", "scale": 0.4 }, { "id": "t17", "type": "dot", "x": 40, "y": 36, "color": "#4ade80", "scale": 0.4 }, { "id": "t18", "type": "dot", "x": 46, "y": 36, "color": "#4ade80", "scale": 0.4 }, { "id": "t19", "type": "dot", "x": 52, "y": 36, "color": "#4ade80", "scale": 0.4 }, { "id": "t20", "type": "dot", "x": 58, "y": 36, "color": "#4ade80", "scale": 0.4 }, { "id": "t21", "type": "dot", "x": 64, "y": 36, "color": "#4ade80", "scale": 0.4 }, { "id": "t22", "type": "dot", "x": 70, "y": 36, "color": "#4ade80", "scale": 0.4 }, { "id": "t23", "type": "dot", "x": 76, "y": 36, "color": "#4ade80", "scale": 0.4 }, { "id": "t24", "type": "dot", "x": 82, "y": 36, "color": "#4ade80", "scale": 0.4 },
+        { "id": "t25", "type": "dot", "x": 16, "y": 44, "color": "#4ade80", "scale": 0.4 }, { "id": "t26", "type": "dot", "x": 22, "y": 44, "color": "#4ade80", "scale": 0.4 }, { "id": "t27", "type": "dot", "x": 28, "y": 44, "color": "#fbbf24", "scale": 0.4 }, { "id": "t28", "type": "dot", "x": 34, "y": 44, "color": "#4ade80", "scale": 0.4 }, { "id": "t29", "type": "dot", "x": 40, "y": 44, "color": "#4ade80", "scale": 0.4 }, { "id": "t30", "type": "dot", "x": 46, "y": 44, "color": "#4ade80", "scale": 0.4 }, { "id": "t31", "type": "dot", "x": 52, "y": 44, "color": "#4ade80", "scale": 0.4 }, { "id": "t32", "type": "dot", "x": 58, "y": 44, "color": "#4ade80", "scale": 0.4 }, { "id": "t33", "type": "dot", "x": 64, "y": 44, "color": "#4ade80", "scale": 0.4 }, { "id": "t34", "type": "dot", "x": 70, "y": 44, "color": "#4ade80", "scale": 0.4 }, { "id": "t35", "type": "dot", "x": 76, "y": 44, "color": "#4ade80", "scale": 0.4 }, { "id": "t36", "type": "dot", "x": 82, "y": 44, "color": "#4ade80", "scale": 0.4 },
+        { "id": "t37", "type": "dot", "x": 16, "y": 52, "color": "#4ade80", "scale": 0.4 }, { "id": "t38", "type": "dot", "x": 22, "y": 52, "color": "#4ade80", "scale": 0.4 }, { "id": "t39", "type": "dot", "x": 28, "y": 52, "color": "#4ade80", "scale": 0.4 }, { "id": "t40", "type": "dot", "x": 34, "y": 52, "color": "#fbbf24", "scale": 0.4 }, { "id": "t41", "type": "dot", "x": 40, "y": 52, "color": "#4ade80", "scale": 0.4 }, { "id": "t42", "type": "dot", "x": 46, "y": 52, "color": "#4ade80", "scale": 0.4 }, { "id": "t43", "type": "dot", "x": 52, "y": 52, "color": "#4ade80", "scale": 0.4 }, { "id": "t44", "type": "dot", "x": 58, "y": 52, "color": "#4ade80", "scale": 0.4 }, { "id": "t45", "type": "dot", "x": 64, "y": 52, "color": "#4ade80", "scale": 0.4 }, { "id": "t46", "type": "dot", "x": 70, "y": 52, "color": "#4ade80", "scale": 0.4 }, { "id": "t47", "type": "dot", "x": 76, "y": 52, "color": "#4ade80", "scale": 0.4 }, { "id": "t48", "type": "dot", "x": 82, "y": 52, "color": "#4ade80", "scale": 0.4 },
+        { "id": "t49", "type": "dot", "x": 16, "y": 60, "color": "#4ade80", "scale": 0.4 }, { "id": "t50", "type": "dot", "x": 22, "y": 60, "color": "#4ade80", "scale": 0.4 }, { "id": "t51", "type": "dot", "x": 28, "y": 60, "color": "#4ade80", "scale": 0.4 }, { "id": "t52", "type": "dot", "x": 34, "y": 60, "color": "#4ade80", "scale": 0.4 }, { "id": "t53", "type": "dot", "x": 40, "y": 60, "color": "#fbbf24", "scale": 0.4 }, { "id": "t54", "type": "dot", "x": 46, "y": 60, "color": "#4ade80", "scale": 0.4 }, { "id": "t55", "type": "dot", "x": 52, "y": 60, "color": "#4ade80", "scale": 0.4 }, { "id": "t56", "type": "dot", "x": 58, "y": 60, "color": "#4ade80", "scale": 0.4 }, { "id": "t57", "type": "dot", "x": 64, "y": 60, "color": "#4ade80", "scale": 0.4 }, { "id": "t58", "type": "dot", "x": 70, "y": 60, "color": "#4ade80", "scale": 0.4 }, { "id": "t59", "type": "dot", "x": 76, "y": 60, "color": "#4ade80", "scale": 0.4 }, { "id": "t60", "type": "dot", "x": 82, "y": 60, "color": "#4ade80", "scale": 0.4 },
+        { "id": "transistorLabel", "type": "label", "x": 50, "y": 88, "label": "~100,000 transistors would fit across that same width", "color": "#fbbf24" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Zoom in far enough, and it never stops repeating", "color": "#fbbf24" }
+      ],
+      "camera": { "x": 40, "y": 46, "zoom": 2.1 }
+    }
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** Now, obviously, you cannot build at that scale with a screwdriver. So here's what actually happens: machines built by a Dutch company called ASML fire a laser at droplets of molten tin, fifty thousand times every single second. Each hit creates a blinding pulse of light, which gets bounced through a series of precision mirrors, shrinking a blueprint of the chip's circuitry down and imprinting it directly onto the silicon.
+
+**Duration:** 19 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "How They \"Print\" Something This Small",
+  "objects": [
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "A laser, aimed at a droplet of tin...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "laser", "type": "icon", "icon": "bolt", "x": 12, "y": 22, "color": "#fbbf24", "radius": 9, "label": "ASML Laser", "enter": "scale" },
+        { "id": "tinDrop", "type": "dot", "x": 12, "y": 52, "color": "#94a3b8", "scale": 1.3, "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "It fires 50,000 times every single second...", "color": "#fbbf24" }
+      ],
+      "arrows": [
+        { "from": "laser", "to": "tinDrop", "style": "solid", "color": "#fbbf24", "strokeWidth": 6, "flow": true }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "laser", "type": "icon", "icon": "bolt", "x": 12, "y": 22, "color": "#fbbf24", "radius": 9, "label": "ASML Laser" },
+        { "id": "tinDrop", "type": "dot", "x": 12, "y": 52, "color": "#fef08a", "scale": 2.2 },
+        { "id": "mirror", "type": "icon", "icon": "target", "x": 46, "y": 72, "color": "#4ade80", "radius": 8, "label": "Reflected Through Mirrors", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...vaporizing it into a blinding pulse of EUV light", "color": "#fef08a" }
+      ],
+      "arrows": [
+        { "from": "laser", "to": "tinDrop", "style": "solid", "color": "#fbbf24", "strokeWidth": 6, "flow": true },
+        { "from": "tinDrop", "to": "mirror", "style": "solid", "color": "#fef08a", "strokeWidth": 6, "flow": true }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "laser", "type": "icon", "icon": "bolt", "x": 12, "y": 22, "color": "#fbbf24", "radius": 9, "label": "ASML Laser" },
+        { "id": "tinDrop", "type": "dot", "x": 12, "y": 52, "color": "#fef08a", "scale": 2.2 },
+        { "id": "mirror", "type": "icon", "icon": "target", "x": 46, "y": 72, "color": "#4ade80", "radius": 8, "label": "Reflected Through Mirrors" },
+        { "id": "wafer", "type": "roundedRectangle", "x": 84, "y": 32, "width": 28, "height": 34, "radius": 2, "color": "#4ade80", "filled": false, "strokeWidth": 2, "label": "Pattern Imprinted On Silicon", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...shrunk down and imprinted onto the wafer", "color": "#4ade80" }
+      ],
+      "arrows": [
+        { "from": "laser", "to": "tinDrop", "style": "solid", "color": "#fbbf24", "strokeWidth": 6, "flow": true },
+        { "from": "tinDrop", "to": "mirror", "style": "solid", "color": "#fef08a", "strokeWidth": 6, "flow": true },
+        { "from": "mirror", "to": "wafer", "style": "solid", "color": "#4ade80", "strokeWidth": 6, "flow": true }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Canvas
+
+**Narration:** And once you've run out of room to spread sideways, engineers do exactly what a crowded city does — they build up. Layer after layer of transistors and memory, stacked directly on top of each other, letting billions of extra pathways exist in the exact same physical footprint. And crucially, those layers aren't just sitting there — data actually moves between them too.
+
+**Duration:** 18 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Building Upward, Not Outward",
+  "objects": [
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Start with one layer...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "layer1", "type": "roundedRectangle", "x": 50, "y": 74, "width": 50, "height": 11, "radius": 2, "color": "#38bdf8", "filled": true, "strokeWidth": 2, "label": "One Layer", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Start with one layer...", "color": "#e2e8f0" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "layer1", "type": "roundedRectangle", "x": 50, "y": 74, "width": 50, "height": 11, "radius": 2, "color": "#38bdf8", "filled": true, "strokeWidth": 2 },
+        { "id": "layer2", "type": "roundedRectangle", "x": 50, "y": 60, "width": 50, "height": 11, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2, "enter": "scale" },
+        { "id": "layer3", "type": "roundedRectangle", "x": 50, "y": 46, "width": 50, "height": 11, "radius": 2, "color": "#fbbf24", "filled": true, "strokeWidth": 2, "enter": "scale" },
+        { "id": "layer4", "type": "roundedRectangle", "x": 50, "y": 32, "width": 50, "height": 11, "radius": 2, "color": "#f472b6", "filled": true, "strokeWidth": 2, "enter": "scale" },
+        { "id": "stackLabel", "type": "label", "x": 50, "y": 18, "label": "4 layers stacked, same footprint", "color": "#f472b6" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...then stack more directly on top", "color": "#4ade80" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "layer1", "type": "roundedRectangle", "x": 50, "y": 74, "width": 50, "height": 11, "radius": 2, "color": "#38bdf8", "filled": true, "strokeWidth": 2 },
+        { "id": "layer2", "type": "roundedRectangle", "x": 50, "y": 60, "width": 50, "height": 11, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2 },
+        { "id": "layer3", "type": "roundedRectangle", "x": 50, "y": 46, "width": 50, "height": 11, "radius": 2, "color": "#fbbf24", "filled": true, "strokeWidth": 2 },
+        { "id": "layer4", "type": "roundedRectangle", "x": 50, "y": 32, "width": 50, "height": 11, "radius": 2, "color": "#f472b6", "filled": true, "strokeWidth": 2 },
+        { "id": "stackLabel", "type": "label", "x": 50, "y": 18, "label": "Data moves vertically between layers too", "color": "#e2e8f0" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Wired straight through, floor to floor", "color": "#e2e8f0" }
+      ],
+      "arrows": [
+        { "from": "layer1", "to": "layer2", "style": "solid", "color": "#e2e8f0", "strokeWidth": 3, "flow": true },
+        { "from": "layer2", "to": "layer3", "style": "solid", "color": "#e2e8f0", "strokeWidth": 3, "flow": true },
+        { "from": "layer3", "to": "layer4", "style": "solid", "color": "#e2e8f0", "strokeWidth": 3, "flow": true }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 9
+
+**Scene Type:** Canvas
+
+**Narration:** Here's my favorite part, honestly. Because these components are smaller than dust itself, a single stray particle landing on a chip mid-manufacture can wreck the entire circuit — the equivalent of a meteor hitting a city. So the factories building these things run some of the cleanest rooms on planet Earth, filtered far beyond hospital operating-room standards, with every worker fully suited up so much as a shed skin cell never gets near the silicon.
+
+**Duration:** 19 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "One Speck Of Dust Ruins Everything",
+  "objects": [
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Inside the factory...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "factory", "type": "icon", "icon": "factory", "x": 50, "y": 26, "color": "#38bdf8", "radius": 12, "label": "The Chip Factory", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Inside the factory...", "color": "#e2e8f0" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "factory", "type": "icon", "icon": "factory", "x": 50, "y": 26, "color": "#38bdf8", "radius": 12, "label": "The Chip Factory" },
+        { "id": "wafer", "type": "icon", "icon": "chip", "x": 30, "y": 60, "color": "#4ade80", "radius": 9, "label": "Wafer Mid-Manufacture", "enter": "scale" },
+        { "id": "worker", "type": "icon", "icon": "person", "x": 70, "y": 60, "color": "#94a3b8", "radius": 9, "label": "Fully Suited Worker", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "...cleaner than a hospital operating room", "color": "#4ade80" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "factory", "type": "icon", "icon": "factory", "x": 50, "y": 26, "color": "#38bdf8", "radius": 12, "label": "The Chip Factory" },
+        { "id": "wafer", "type": "icon", "icon": "chip", "x": 30, "y": 60, "color": "#4ade80", "radius": 9, "label": "Wafer Mid-Manufacture" },
+        { "id": "worker", "type": "icon", "icon": "person", "x": 70, "y": 60, "color": "#94a3b8", "radius": 9, "label": "Fully Suited Worker" },
+        { "id": "dust", "type": "icon", "icon": "warning", "x": 85, "y": 22, "color": "#f87171", "radius": 7, "label": "One Speck = Ruined Circuit", "enter": "scale" },
+        { "id": "blockedMark", "type": "icon", "icon": "cross", "x": 70, "y": 34, "color": "#f87171", "radius": 5, "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "That's why the suit exists", "color": "#f87171" }
+      ],
+      "arrows": [
+        { "from": "dust", "to": "blockedMark", "style": "dashed", "color": "#f87171" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 10
+
+**Scene Type:** Canvas
+
+**Narration:** So zoom all the way back out, and the full journey looks like this: engineers design the blueprint, EUV lithography prints it onto silicon wafers inside the factory, those wafers get stacked layer on layer, all of it happening inside a spotless cleanroom — and what rolls out the other end is a chip you can barely see, doing more computing than entire rooms full of hardware could manage just a few decades ago.
+
+**Duration:** 19 seconds
+
+**Story Beat:** reflection
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "From Blueprint To Finished Chip",
+  "objects": [
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Design...", "color": "#e2e8f0" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "design", "type": "icon", "icon": "search", "x": 14, "y": 34, "color": "#38bdf8", "radius": 8, "label": "Design", "enter": "scale" },
+        { "id": "litho", "type": "icon", "icon": "bolt", "x": 38, "y": 60, "color": "#fbbf24", "radius": 8, "label": "EUV Lithography", "enter": "scale" },
+        { "id": "stack", "type": "icon", "icon": "database", "x": 62, "y": 34, "color": "#f472b6", "radius": 8, "label": "Stack Layers", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...print it...", "color": "#fbbf24" }
+      ],
+      "arrows": [
+        { "from": "design", "to": "litho", "style": "dashed", "color": "#94a3b8", "flow": true },
+        { "from": "litho", "to": "stack", "style": "dashed", "color": "#94a3b8", "flow": true }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "design", "type": "icon", "icon": "search", "x": 14, "y": 34, "color": "#38bdf8", "radius": 8, "label": "Design" },
+        { "id": "litho", "type": "icon", "icon": "bolt", "x": 38, "y": 60, "color": "#fbbf24", "radius": 8, "label": "EUV Lithography" },
+        { "id": "stack", "type": "icon", "icon": "database", "x": 62, "y": 34, "color": "#f472b6", "radius": 8, "label": "Stack Layers" },
+        { "id": "clean", "type": "icon", "icon": "factory", "x": 86, "y": 60, "color": "#4ade80", "radius": 8, "label": "Spotless Factory", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...filter it inside the cleanroom...", "color": "#4ade80" }
+      ],
+      "arrows": [
+        { "from": "design", "to": "litho", "style": "dashed", "color": "#94a3b8", "flow": true },
+        { "from": "litho", "to": "stack", "style": "dashed", "color": "#94a3b8", "flow": true },
+        { "from": "stack", "to": "clean", "style": "dashed", "color": "#94a3b8", "flow": true }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "design", "type": "icon", "icon": "search", "x": 14, "y": 34, "color": "#38bdf8", "radius": 8, "label": "Design" },
+        { "id": "litho", "type": "icon", "icon": "bolt", "x": 38, "y": 60, "color": "#fbbf24", "radius": 8, "label": "EUV Lithography" },
+        { "id": "stack", "type": "icon", "icon": "database", "x": 62, "y": 34, "color": "#f472b6", "radius": 8, "label": "Stack Layers" },
+        { "id": "clean", "type": "icon", "icon": "factory", "x": 86, "y": 60, "color": "#4ade80", "radius": 8, "label": "Spotless Factory" },
+        { "id": "finished", "type": "icon", "icon": "check", "x": 50, "y": 84, "color": "#4ade80", "radius": 11, "label": "Finished Chip", "idle": "glow", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...and out comes a chip you can barely see", "color": "#4ade80" }
+      ],
+      "arrows": [
+        { "from": "design", "to": "litho", "style": "dashed", "color": "#94a3b8", "flow": true },
+        { "from": "litho", "to": "stack", "style": "dashed", "color": "#94a3b8", "flow": true },
+        { "from": "stack", "to": "clean", "style": "dashed", "color": "#94a3b8", "flow": true },
+        { "from": "clean", "to": "finished", "style": "dashed", "color": "#4ade80", "flow": true }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 11
+
+**Scene Type:** Chapter
+
+**Narration:** So next time you crack open a laptop, or you're just scrolling the spec sheet on a new phone, remember what that fingernail-sized square is actually hiding — billions of transistors, printed by lasers, stacked in layers, built inside some of the cleanest rooms human beings have ever constructed. Pretty wild what fits on a fingernail, right?
+
+**Annotation:** THAT'S WHAT'S INSIDE
+
+**Duration:** 13 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+---

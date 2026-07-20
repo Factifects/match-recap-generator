@@ -34,10 +34,23 @@
   "phases": [
     {
       "objects": [
-        { "id": "appIcon", "type": "icon", "icon": "device", "x": 50, "y": 36, "color": "#38bdf8", "radius": 10, "label": "Your App" },
-        { "id": "boundary", "type": "roundedRectangle", "x": 50, "y": 42, "width": 46, "height": 46, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2, "enter": "scale" },
-        { "id": "lockIcon", "type": "icon", "icon": "lock", "x": 50, "y": 74, "color": "#38bdf8", "radius": 7, "label": "Private Memory", "enter": "scale" },
+        { "id": "appIcon", "type": "icon", "icon": "device", "x": 50, "y": 33, "color": "#38bdf8", "radius": 11, "label": "Your App" },
+        { "id": "boundary", "type": "roundedRectangle", "x": 50, "y": 46, "width": 50, "height": 58, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2, "enter": "scale" },
+        { "id": "lockIcon", "type": "icon", "icon": "lock", "x": 50, "y": 62, "color": "#38bdf8", "radius": 9, "label": "Private Memory", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...creates a process, with its own walled-off memory", "color": "#38bdf8" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "appIcon", "type": "icon", "icon": "device", "x": 50, "y": 33, "color": "#38bdf8", "radius": 11, "label": "Your App" },
+        { "id": "boundary", "type": "roundedRectangle", "x": 50, "y": 46, "width": 50, "height": 58, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2 },
+        { "id": "lockIcon", "type": "icon", "icon": "lock", "x": 50, "y": 62, "color": "#38bdf8", "radius": 9, "label": "Private Memory" },
+        { "id": "intruder", "type": "icon", "icon": "device", "x": 90, "y": 46, "color": "#f87171", "radius": 8, "label": "Another Process", "enter": "scale" },
+        { "id": "blockedMark", "type": "icon", "icon": "cross", "x": 75, "y": 46, "color": "#f87171", "radius": 5, "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...nothing else on the machine can reach in", "color": "#f87171" }
+      ],
+      "arrows": [
+        { "from": "intruder", "to": "blockedMark", "style": "dashed", "color": "#f87171" }
       ]
     }
   ]
@@ -68,17 +81,17 @@
     {
       "objects": [
         { "id": "boundary", "type": "roundedRectangle", "x": 50, "y": 50, "width": 62, "height": 60, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2 },
-        { "id": "uiThread", "type": "icon", "icon": "device", "x": 33, "y": 34, "color": "#4ade80", "radius": 7, "label": "UI Thread", "enter": "scale" },
-        { "id": "downloadThread", "type": "icon", "icon": "cloud", "x": 67, "y": 34, "color": "#fbbf24", "radius": 7, "label": "Download Thread", "enter": "scale" },
+        { "id": "uiThread", "type": "icon", "icon": "device", "x": 33, "y": 48, "color": "#4ade80", "radius": 9, "label": "UI Thread", "enter": "scale" },
+        { "id": "downloadThread", "type": "icon", "icon": "cloud", "x": 67, "y": 48, "color": "#fbbf24", "radius": 9, "label": "Download Thread", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...splits into threads. This is multithreading.", "color": "#4ade80" }
       ]
     },
     {
       "objects": [
         { "id": "boundary", "type": "roundedRectangle", "x": 50, "y": 50, "width": 62, "height": 60, "radius": 4, "color": "#38bdf8", "filled": false, "strokeWidth": 2 },
-        { "id": "uiThread", "type": "icon", "icon": "device", "x": 33, "y": 34, "color": "#4ade80", "radius": 7, "label": "UI Thread" },
-        { "id": "downloadThread", "type": "icon", "icon": "cloud", "x": 67, "y": 34, "color": "#fbbf24", "radius": 7, "label": "Download Thread" },
-        { "id": "sharedMem", "type": "roundedRectangle", "x": 50, "y": 70, "width": 42, "height": 12, "radius": 2, "color": "#94a3b8", "filled": true, "strokeWidth": 2, "label": "Shared Memory", "enter": "scale" },
+        { "id": "uiThread", "type": "icon", "icon": "device", "x": 33, "y": 32, "color": "#4ade80", "radius": 9, "label": "UI Thread" },
+        { "id": "downloadThread", "type": "icon", "icon": "cloud", "x": 67, "y": 32, "color": "#fbbf24", "radius": 9, "label": "Download Thread" },
+        { "id": "sharedMem", "type": "roundedRectangle", "x": 50, "y": 70, "width": 44, "height": 16, "radius": 2, "color": "#94a3b8", "filled": true, "strokeWidth": 2, "label": "Shared Memory", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Both reach into the exact same memory", "color": "#94a3b8" }
       ],
       "arrows": [
@@ -207,6 +220,23 @@
         { "id": "winSlice2", "type": "roundedRectangle", "x": 78, "y": 70, "width": 22, "height": 13, "radius": 2, "color": "#38bdf8", "filled": true, "strokeWidth": 2, "label": "Priority", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Equal slices vs. priority order", "color": "#e2e8f0" }
       ]
+    },
+    {
+      "objects": [
+        { "id": "linuxIcon", "type": "icon", "icon": "device", "x": 26, "y": 30, "color": "#4ade80", "radius": 9, "label": "Linux: Completely Fair Scheduler" },
+        { "id": "winIcon", "type": "icon", "icon": "device", "x": 74, "y": 30, "color": "#38bdf8", "radius": 9, "label": "Windows: Priority-Based" },
+        { "id": "linuxSlice1", "type": "roundedRectangle", "x": 15, "y": 72, "width": 15, "height": 10, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2 },
+        { "id": "linuxSlice2", "type": "roundedRectangle", "x": 26, "y": 72, "width": 15, "height": 10, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2 },
+        { "id": "linuxSlice3", "type": "roundedRectangle", "x": 37, "y": 72, "width": 15, "height": 10, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2 },
+        { "id": "linuxSlice4", "type": "roundedRectangle", "x": 48, "y": 72, "width": 15, "height": 10, "radius": 2, "color": "#4ade80", "filled": true, "strokeWidth": 2, "enter": "scale" },
+        { "id": "winSlice1", "type": "roundedRectangle", "x": 64, "y": 72, "width": 12, "height": 8, "radius": 2, "color": "#38bdf8", "filled": true, "strokeWidth": 2 },
+        { "id": "winSlice2", "type": "roundedRectangle", "x": 78, "y": 70, "width": 22, "height": 13, "radius": 2, "color": "#38bdf8", "filled": true, "strokeWidth": 2, "label": "Priority" },
+        { "id": "winUrgent", "type": "roundedRectangle", "x": 68, "y": 54, "width": 20, "height": 12, "radius": 2, "color": "#fbbf24", "filled": true, "strokeWidth": 2, "label": "Urgent Job", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 8, "label": "Fair keeps adding slices. Priority lets new work cut in.", "color": "#fbbf24" }
+      ],
+      "arrows": [
+        { "from": "winUrgent", "to": "winSlice1", "style": "dashed", "color": "#fbbf24" }
+      ]
     }
   ]
 }
@@ -293,6 +323,31 @@
         { "id": "logicalB", "type": "icon", "icon": "cloud", "x": 67, "y": 68, "color": "#4ade80", "radius": 7, "label": "Thread 2", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...presents itself to the OS as two", "color": "#fbbf24" }
       ]
+    },
+    {
+      "objects": [
+        { "id": "coreIcon", "type": "icon", "icon": "chip", "x": 50, "y": 36, "color": "#fbbf24", "radius": 13, "label": "1 Physical Core" },
+        { "id": "logicalA", "type": "icon", "icon": "device", "x": 33, "y": 68, "color": "#4ade80", "radius": 7, "label": "Thread 1" },
+        { "id": "logicalB", "type": "icon", "icon": "cloud", "x": 67, "y": 68, "color": "#4ade80", "radius": 7, "label": "Thread 2" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Interleaves both threads through the same hardware", "color": "#4ade80" }
+      ],
+      "arrows": [
+        { "from": "logicalA", "to": "coreIcon", "style": "dashed", "color": "#4ade80", "flow": true },
+        { "from": "logicalB", "to": "coreIcon", "style": "dashed", "color": "#fbbf24", "flow": true }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "coreIcon", "type": "icon", "icon": "chip", "x": 50, "y": 30, "color": "#fbbf24", "radius": 13, "label": "1 Physical Core" },
+        { "id": "logicalA", "type": "icon", "icon": "device", "x": 30, "y": 58, "color": "#4ade80", "radius": 8, "label": "Thread 1" },
+        { "id": "logicalB", "type": "icon", "icon": "cloud", "x": 70, "y": 58, "color": "#4ade80", "radius": 8, "label": "Thread 2" },
+        { "id": "intelNote", "type": "icon", "icon": "cross", "x": 50, "y": 88, "color": "#f87171", "radius": 7, "label": "Dropped In Intel's Newest Flagship", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...though not everyone still uses it", "color": "#f87171" }
+      ],
+      "arrows": [
+        { "from": "logicalA", "to": "coreIcon", "style": "dashed", "color": "#4ade80", "flow": true },
+        { "from": "logicalB", "to": "coreIcon", "style": "dashed", "color": "#fbbf24", "flow": true }
+      ]
     }
   ]
 }
@@ -315,18 +370,23 @@
 {
   "title": "The CPU: Few, Powerful Cores",
   "objects": [
-    { "id": "c1", "type": "icon", "icon": "chip", "x": 30, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
-    { "id": "c2", "type": "icon", "icon": "chip", "x": 50, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
-    { "id": "c3", "type": "icon", "icon": "chip", "x": 70, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
-    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Each core: complex, flexible, general-purpose", "color": "#e2e8f0" }
+    { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Zoom all the way out to the chip itself...", "color": "#e2e8f0" }
   ],
   "phases": [
     {
       "objects": [
-        { "id": "c1", "type": "icon", "icon": "chip", "x": 30, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
-        { "id": "c2", "type": "icon", "icon": "chip", "x": 50, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
-        { "id": "c3", "type": "icon", "icon": "chip", "x": 70, "y": 40, "color": "#38bdf8", "radius": 11, "label": "Core" },
-        { "id": "countIcon", "type": "icon", "icon": "check", "x": 50, "y": 75, "color": "#4ade80", "radius": 8, "label": "~20-24 Cores, Flagship Desktop CPU", "enter": "scale" },
+        { "id": "c1", "type": "icon", "icon": "chip", "x": 18, "y": 42, "color": "#38bdf8", "radius": 14, "label": "Core", "enter": "scale" },
+        { "id": "c2", "type": "icon", "icon": "chip", "x": 50, "y": 42, "color": "#38bdf8", "radius": 14, "label": "Core", "enter": "scale" },
+        { "id": "c3", "type": "icon", "icon": "chip", "x": 82, "y": 42, "color": "#38bdf8", "radius": 14, "label": "Core", "enter": "scale" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Each core: complex, flexible, general-purpose", "color": "#e2e8f0" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "c1", "type": "icon", "icon": "chip", "x": 18, "y": 42, "color": "#38bdf8", "radius": 14, "label": "Core" },
+        { "id": "c2", "type": "icon", "icon": "chip", "x": 50, "y": 42, "color": "#38bdf8", "radius": 14, "label": "Core" },
+        { "id": "c3", "type": "icon", "icon": "chip", "x": 82, "y": 42, "color": "#38bdf8", "radius": 14, "label": "Core" },
+        { "id": "countIcon", "type": "icon", "icon": "check", "x": 50, "y": 80, "color": "#4ade80", "radius": 9, "label": "~20-24 Cores, Flagship Desktop CPU", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "That's roughly the whole chip", "color": "#4ade80" }
       ]
     }
@@ -416,14 +476,14 @@
 {
   "title": "Why GPUs Became AI Hardware",
   "objects": [
-    { "id": "dataIcon", "type": "icon", "icon": "database", "x": 18, "y": 50, "color": "#94a3b8", "radius": 9, "label": "Training Data" },
+    { "id": "dataIcon", "type": "icon", "icon": "database", "x": 18, "y": 36, "color": "#94a3b8", "radius": 11, "label": "Training Data" },
     { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Millions of numbers, waiting to be crunched...", "color": "#e2e8f0" }
   ],
   "phases": [
     {
       "objects": [
-        { "id": "dataIcon", "type": "icon", "icon": "database", "x": 18, "y": 50, "color": "#94a3b8", "radius": 9, "label": "Training Data" },
-        { "id": "gpuIcon", "type": "icon", "icon": "chip", "x": 52, "y": 50, "color": "#4ade80", "radius": 12, "label": "GPU", "enter": "scale" },
+        { "id": "dataIcon", "type": "icon", "icon": "database", "x": 18, "y": 36, "color": "#94a3b8", "radius": 11, "label": "Training Data" },
+        { "id": "gpuIcon", "type": "icon", "icon": "chip", "x": 52, "y": 60, "color": "#4ade80", "radius": 14, "label": "GPU", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Same math graphics uses. Millions of numbers, at once.", "color": "#4ade80" }
       ],
       "arrows": [
@@ -432,9 +492,9 @@
     },
     {
       "objects": [
-        { "id": "dataIcon", "type": "icon", "icon": "database", "x": 18, "y": 50, "color": "#94a3b8", "radius": 9, "label": "Training Data" },
-        { "id": "gpuIcon", "type": "icon", "icon": "chip", "x": 52, "y": 50, "color": "#4ade80", "radius": 12, "label": "GPU" },
-        { "id": "resultIcon", "type": "icon", "icon": "check", "x": 86, "y": 50, "color": "#fbbf24", "radius": 9, "label": "Trained Model", "enter": "scale" },
+        { "id": "dataIcon", "type": "icon", "icon": "database", "x": 18, "y": 36, "color": "#94a3b8", "radius": 11, "label": "Training Data" },
+        { "id": "gpuIcon", "type": "icon", "icon": "chip", "x": 52, "y": 60, "color": "#4ade80", "radius": 14, "label": "GPU" },
+        { "id": "resultIcon", "type": "icon", "icon": "check", "x": 86, "y": 36, "color": "#fbbf24", "radius": 11, "label": "Trained Model", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "That's not a coincidence — it's why GPUs run AI", "color": "#fbbf24" }
       ],
       "arrows": [
@@ -487,14 +547,14 @@
 {
   "title": "Design Versus Manufacture",
   "objects": [
-    { "id": "designers", "type": "icon", "icon": "search", "x": 16, "y": 45, "color": "#38bdf8", "radius": 10, "label": "Design" },
+    { "id": "designers", "type": "icon", "icon": "search", "x": 16, "y": 34, "color": "#38bdf8", "radius": 12, "label": "Design" },
     { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Someone designs the blueprint...", "color": "#e2e8f0" }
   ],
   "phases": [
     {
       "objects": [
-        { "id": "designers", "type": "icon", "icon": "search", "x": 16, "y": 45, "color": "#38bdf8", "radius": 10, "label": "Design" },
-        { "id": "makers", "type": "icon", "icon": "chip", "x": 52, "y": 45, "color": "#fbbf24", "radius": 10, "label": "Manufacture", "enter": "scale" },
+        { "id": "designers", "type": "icon", "icon": "search", "x": 16, "y": 34, "color": "#38bdf8", "radius": 12, "label": "Design" },
+        { "id": "makers", "type": "icon", "icon": "chip", "x": 52, "y": 62, "color": "#fbbf24", "radius": 13, "label": "Manufacture", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...then sends it off to be physically built", "color": "#fbbf24" }
       ],
       "arrows": [
@@ -503,9 +563,9 @@
     },
     {
       "objects": [
-        { "id": "designers", "type": "icon", "icon": "search", "x": 16, "y": 45, "color": "#38bdf8", "radius": 10, "label": "Design" },
-        { "id": "makers", "type": "icon", "icon": "chip", "x": 52, "y": 45, "color": "#fbbf24", "radius": 10, "label": "Manufacture" },
-        { "id": "chipOut", "type": "icon", "icon": "check", "x": 87, "y": 45, "color": "#4ade80", "radius": 9, "label": "Finished Chip", "enter": "scale" },
+        { "id": "designers", "type": "icon", "icon": "search", "x": 16, "y": 34, "color": "#38bdf8", "radius": 12, "label": "Design" },
+        { "id": "makers", "type": "icon", "icon": "chip", "x": 52, "y": 62, "color": "#fbbf24", "radius": 13, "label": "Manufacture" },
+        { "id": "chipOut", "type": "icon", "icon": "check", "x": 87, "y": 34, "color": "#4ade80", "radius": 11, "label": "Finished Chip", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Two very different jobs, two different companies", "color": "#4ade80" }
       ],
       "arrows": [
@@ -556,14 +616,14 @@
 {
   "title": "Where These Chips Actually Live",
   "objects": [
-    { "id": "phone", "type": "icon", "icon": "device", "x": 15, "y": 45, "color": "#38bdf8", "radius": 6, "label": "Phone" },
+    { "id": "phone", "type": "icon", "icon": "device", "x": 15, "y": 68, "color": "#38bdf8", "radius": 7, "label": "Phone" },
     { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Starts small...", "color": "#e2e8f0" }
   ],
   "phases": [
     {
       "objects": [
-        { "id": "phone", "type": "icon", "icon": "device", "x": 15, "y": 45, "color": "#38bdf8", "radius": 6, "label": "Phone" },
-        { "id": "laptop", "type": "icon", "icon": "device", "x": 38, "y": 45, "color": "#38bdf8", "radius": 8, "label": "Laptop", "enter": "scale" },
+        { "id": "phone", "type": "icon", "icon": "device", "x": 15, "y": 68, "color": "#38bdf8", "radius": 7, "label": "Phone" },
+        { "id": "laptop", "type": "icon", "icon": "device", "x": 38, "y": 54, "color": "#38bdf8", "radius": 9, "label": "Laptop", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "...then a bit bigger", "color": "#e2e8f0" }
       ],
       "arrows": [
@@ -572,10 +632,10 @@
     },
     {
       "objects": [
-        { "id": "phone", "type": "icon", "icon": "device", "x": 15, "y": 45, "color": "#38bdf8", "radius": 6, "label": "Phone" },
-        { "id": "laptop", "type": "icon", "icon": "device", "x": 38, "y": 45, "color": "#38bdf8", "radius": 8, "label": "Laptop" },
-        { "id": "gaming", "type": "icon", "icon": "chip", "x": 61, "y": 45, "color": "#fbbf24", "radius": 11, "label": "Gaming PC", "enter": "scale" },
-        { "id": "datacenter", "type": "icon", "icon": "server", "x": 86, "y": 45, "color": "#4ade80", "radius": 13, "label": "AI Data Center", "idle": "glow", "enter": "scale" },
+        { "id": "phone", "type": "icon", "icon": "device", "x": 15, "y": 68, "color": "#38bdf8", "radius": 7, "label": "Phone" },
+        { "id": "laptop", "type": "icon", "icon": "device", "x": 38, "y": 54, "color": "#38bdf8", "radius": 9, "label": "Laptop" },
+        { "id": "gaming", "type": "icon", "icon": "chip", "x": 61, "y": 40, "color": "#fbbf24", "radius": 11, "label": "Gaming PC", "enter": "scale" },
+        { "id": "datacenter", "type": "icon", "icon": "server", "x": 86, "y": 24, "color": "#4ade80", "radius": 13, "label": "AI Data Center", "idle": "glow", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "Same building blocks, wildly different scale", "color": "#4ade80" }
       ],
       "arrows": [
@@ -618,9 +678,23 @@
       "objects": [
         { "id": "r1", "type": "icon", "icon": "lock", "x": 18, "y": 45, "color": "#38bdf8", "radius": 8, "label": "Process", "enter": "scale" },
         { "id": "r2", "type": "icon", "icon": "device", "x": 39, "y": 45, "color": "#4ade80", "radius": 8, "label": "Thread", "enter": "scale" },
-        { "id": "r3", "type": "icon", "icon": "chip", "x": 60, "y": 45, "color": "#f472b6", "radius": 8, "label": "Core", "idle": "glow", "enter": "scale" },
+        { "id": "r3", "type": "icon", "icon": "chip", "x": 60, "y": 45, "color": "#f472b6", "radius": 8, "label": "Core", "enter": "scale" },
         { "id": "r4", "type": "icon", "icon": "search", "x": 81, "y": 45, "color": "#fbbf24", "radius": 8, "label": "Scheduler", "enter": "scale" },
         { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "45% CPU is never the whole story", "color": "#e2e8f0" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "r1", "type": "icon", "icon": "lock", "x": 18, "y": 45, "color": "#38bdf8", "radius": 8, "label": "Process" },
+        { "id": "r2", "type": "icon", "icon": "device", "x": 39, "y": 45, "color": "#4ade80", "radius": 8, "label": "Thread" },
+        { "id": "r3", "type": "icon", "icon": "chip", "x": 60, "y": 45, "color": "#f472b6", "radius": 8, "label": "Core", "idle": "glow" },
+        { "id": "r4", "type": "icon", "icon": "search", "x": 81, "y": 45, "color": "#fbbf24", "radius": 8, "label": "Scheduler" },
+        { "id": "stageLabel", "type": "label", "x": 50, "y": 10, "label": "All of it, happening constantly, every second", "color": "#f472b6" }
+      ],
+      "arrows": [
+        { "from": "r1", "to": "r2", "style": "dashed", "color": "#94a3b8", "flow": true },
+        { "from": "r2", "to": "r3", "style": "dashed", "color": "#94a3b8", "flow": true },
+        { "from": "r3", "to": "r4", "style": "dashed", "color": "#94a3b8", "flow": true }
       ]
     }
   ]
