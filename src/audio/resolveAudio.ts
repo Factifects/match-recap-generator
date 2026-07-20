@@ -65,12 +65,17 @@ export async function resolveSegmentAudio(
   const provider = options.provider ?? "elevenlabs";
   const sfx = provider === "elevenlabs" ? await generateSoundEffect(CHAPTER_WHOOSH_PROMPT, 1) : null;
 
+  // `narrationText` wins when set (Chapter scenes: a short on-screen
+  // Annotation shouldn't also cap what actually gets spoken) — see its
+  // definition on TimedSegment for why this exists at all.
   const speeches =
     provider === "edge"
-      ? await mapWithConcurrency(segments, EDGE_TTS_CONCURRENCY, (segment) => generateSpeechEdge(segment.text, options.edgeVoice))
+      ? await mapWithConcurrency(segments, EDGE_TTS_CONCURRENCY, (segment) =>
+          generateSpeechEdge(segment.narrationText ?? segment.text, options.edgeVoice),
+        )
       : await (async () => {
           const results = [];
-          for (const segment of segments) results.push(await generateSpeech(segment.text));
+          for (const segment of segments) results.push(await generateSpeech(segment.narrationText ?? segment.text));
           return results;
         })();
 

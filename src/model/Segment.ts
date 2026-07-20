@@ -108,6 +108,15 @@ export type TimedSegment = Segment & {
   manualDurationOverride?: boolean;
   /** Set once ElevenLabs generation has run; absent means duration is still a word-count estimate. */
   audioStaticPath?: string;
+  /** What actually gets synthesized into narration audio, when it needs to
+   * differ from `text` (the on-screen content). Chapter scenes are the one
+   * case today: `text` is deliberately kept short (the giant on-screen
+   * Annotation, no wrapping), but the author's full `Narration:` line should
+   * still be spoken in full underneath it — without this field, resolveAudio
+   * would have nothing but `text` to synthesize, silently discarding
+   * whatever narration the author actually wrote for that beat. Absent means
+   * speak `text` itself, unchanged from every other segment's behavior. */
+  narrationText?: string;
   /** This scene's narration volume. Defaults to 1 (the recorded level).
    * Unlike a plain HTML5 `<audio>` element, values above 1 are meaningful
    * here — Remotion mixes the final audio track itself (via its renderer,

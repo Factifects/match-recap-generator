@@ -638,6 +638,7 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
         transitionStyle: resolveTransitionStyle(fields, chapterStoryBeat),
         storyBeat: chapterStoryBeat,
         panelColor: resolvePanelColor(fields),
+        narrationText: narration,
       });
       continue;
     }

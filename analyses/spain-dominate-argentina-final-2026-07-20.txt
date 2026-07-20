@@ -1,0 +1,321 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** Argentina didn't land a single shot on target in a World Cup final. Twelve shots on target for Spain. Zero for the reigning champions. And it still took Spain a hundred and five minutes to actually win it.
+
+**Annotation:** SPAIN 1-0 ARGENTINA
+
+**Duration:** 10 seconds
+
+**Story Beat:** hook
+
+---
+
+### SCENE 2
+
+**Scene Type:** StatBurst
+
+**Narration:** Let that sink in for a second. Twelve shots on target for Spain, across the full ninety minutes plus extra time. Not one, all game, for Argentina.
+
+**Duration:** 9 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "label": "Shots On Target",
+  "leftLabel": "Spain",
+  "leftValue": 12,
+  "rightLabel": "Argentina",
+  "rightValue": 0,
+  "format": "integer"
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** TacticalBoard
+
+**Narration:** Spain had built their entire tournament around one idea: control the ball so completely that the opponent barely gets a kick. Sixty-four percent average possession, and they'd conceded exactly once heading into this final. Rodri sat right in front of the back four, and his one job all night was simple — deny Enzo Fernández and Alexis Mac Allister any room to actually build. Every time Argentina won the ball back, Rodri was already there, closing the passing lane before it had even arrived. And the moment Spain themselves lost it, the counter-press kicked in instantly, swarming the ball high up the pitch before Argentina could even turn around. Genuinely relentless, for the full ninety minutes.
+
+**Duration:** 24 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "How Spain Suffocated Argentina",
+  "players": [
+    { "id": "rodri", "x": 32, "y": 50, "team": "home", "label": "Rodri" },
+    { "id": "fabianruiz", "x": 42, "y": 36, "team": "home", "label": "F. Ruiz" },
+    { "id": "yamal", "x": 58, "y": 16, "team": "home", "label": "Yamal" },
+    { "id": "baena", "x": 58, "y": 84, "team": "home", "label": "Baena" },
+    { "id": "olmo", "x": 50, "y": 58, "team": "home", "label": "Olmo" },
+    { "id": "oyarzabal", "x": 66, "y": 50, "team": "home", "label": "Oyarzabal" },
+    { "id": "fernandez", "x": 58, "y": 40, "team": "away", "label": "E. Fernández" },
+    { "id": "macallister", "x": 58, "y": 62, "team": "away", "label": "Mac Allister" },
+    { "id": "depaul", "x": 46, "y": 80, "team": "away", "label": "De Paul" },
+    { "id": "gonzalez", "x": 46, "y": 20, "team": "away", "label": "N. González" },
+    { "id": "messi", "x": 40, "y": 42, "team": "away", "label": "Messi" },
+    { "id": "alvarez", "x": 40, "y": 62, "team": "away", "label": "Álvarez" }
+  ],
+  "phases": [
+    {
+      "players": [
+        { "id": "rodri", "x": 32, "y": 50, "team": "home", "label": "Rodri" },
+        { "id": "fabianruiz", "x": 42, "y": 36, "team": "home", "label": "F. Ruiz" },
+        { "id": "yamal", "x": 58, "y": 16, "team": "home", "label": "Yamal" },
+        { "id": "baena", "x": 58, "y": 84, "team": "home", "label": "Baena" },
+        { "id": "olmo", "x": 50, "y": 58, "team": "home", "label": "Olmo" },
+        { "id": "oyarzabal", "x": 66, "y": 50, "team": "home", "label": "Oyarzabal" },
+        { "id": "fernandez", "x": 58, "y": 40, "team": "away", "label": "E. Fernández" },
+        { "id": "macallister", "x": 58, "y": 62, "team": "away", "label": "Mac Allister" },
+        { "id": "depaul", "x": 46, "y": 80, "team": "away", "label": "De Paul" },
+        { "id": "gonzalez", "x": 46, "y": 20, "team": "away", "label": "N. González" },
+        { "id": "messi", "x": 40, "y": 42, "team": "away", "label": "Messi" },
+        { "id": "alvarez", "x": 40, "y": 62, "team": "away", "label": "Álvarez" }
+      ],
+      "caption": "Spain build patiently from deep — this is how every attack started",
+      "dataPoint": "64% average possession across the tournament"
+    },
+    {
+      "players": [
+        { "id": "rodri", "x": 38, "y": 50, "team": "home", "label": "Rodri" },
+        { "id": "fabianruiz", "x": 42, "y": 36, "team": "home", "label": "F. Ruiz" },
+        { "id": "yamal", "x": 58, "y": 16, "team": "home", "label": "Yamal" },
+        { "id": "baena", "x": 58, "y": 84, "team": "home", "label": "Baena" },
+        { "id": "olmo", "x": 50, "y": 58, "team": "home", "label": "Olmo" },
+        { "id": "oyarzabal", "x": 66, "y": 50, "team": "home", "label": "Oyarzabal" },
+        { "id": "fernandez", "x": 58, "y": 40, "team": "away", "label": "E. Fernández" },
+        { "id": "macallister", "x": 58, "y": 62, "team": "away", "label": "Mac Allister" },
+        { "id": "depaul", "x": 46, "y": 80, "team": "away", "label": "De Paul" },
+        { "id": "gonzalez", "x": 46, "y": 20, "team": "away", "label": "N. González" },
+        { "id": "messi", "x": 40, "y": 42, "team": "away", "label": "Messi" },
+        { "id": "alvarez", "x": 40, "y": 62, "team": "away", "label": "Álvarez" }
+      ],
+      "highlight": ["rodri"],
+      "caption": "Rodri collects it — job one: screen Fernández and Mac Allister",
+      "dataPoint": "Conceded just once all tournament, heading into the final"
+    },
+    {
+      "players": [
+        { "id": "rodri", "x": 46, "y": 48, "team": "home", "label": "Rodri", "state": "pressing" },
+        { "id": "fabianruiz", "x": 32, "y": 28, "team": "home", "label": "F. Ruiz" },
+        { "id": "yamal", "x": 62, "y": 12, "team": "home", "label": "Yamal" },
+        { "id": "baena", "x": 62, "y": 88, "team": "home", "label": "Baena" },
+        { "id": "olmo", "x": 52, "y": 74, "team": "home", "label": "Olmo" },
+        { "id": "oyarzabal", "x": 74, "y": 50, "team": "home", "label": "Oyarzabal" },
+        { "id": "fernandez", "x": 52, "y": 44, "team": "away", "label": "E. Fernández" },
+        { "id": "macallister", "x": 68, "y": 68, "team": "away", "label": "Mac Allister" },
+        { "id": "depaul", "x": 44, "y": 82, "team": "away", "label": "De Paul" },
+        { "id": "gonzalez", "x": 44, "y": 16, "team": "away", "label": "N. González" },
+        { "id": "messi", "x": 30, "y": 38, "team": "away", "label": "Messi" },
+        { "id": "alvarez", "x": 30, "y": 64, "team": "away", "label": "Álvarez" }
+      ],
+      "highlight": ["rodri", "fernandez"],
+      "caption": "The instant Argentina get it, Rodri is already closing the lane",
+      "dataPoint": "Argentina's midfield never found a rhythm all night"
+    },
+    {
+      "players": [
+        { "id": "rodri", "x": 46, "y": 50, "team": "home", "label": "Rodri" },
+        { "id": "fabianruiz", "x": 36, "y": 32, "team": "home", "label": "F. Ruiz" },
+        { "id": "yamal", "x": 52, "y": 28, "team": "home", "label": "Yamal", "state": "pressing" },
+        { "id": "baena", "x": 52, "y": 72, "team": "home", "label": "Baena", "state": "pressing" },
+        { "id": "olmo", "x": 46, "y": 60, "team": "home", "label": "Olmo", "state": "pressing" },
+        { "id": "oyarzabal", "x": 68, "y": 50, "team": "home", "label": "Oyarzabal" },
+        { "id": "fernandez", "x": 56, "y": 42, "team": "away", "label": "E. Fernández" },
+        { "id": "macallister", "x": 62, "y": 62, "team": "away", "label": "Mac Allister" },
+        { "id": "depaul", "x": 48, "y": 80, "team": "away", "label": "De Paul" },
+        { "id": "gonzalez", "x": 48, "y": 18, "team": "away", "label": "N. González" },
+        { "id": "messi", "x": 32, "y": 36, "team": "away", "label": "Messi" },
+        { "id": "alvarez", "x": 32, "y": 64, "team": "away", "label": "Álvarez" }
+      ],
+      "highlight": ["yamal", "baena", "olmo"],
+      "caption": "Lose it, and Spain's press arrives inside three seconds",
+      "dataPoint": "The counter-press that defined Spain's entire tournament"
+    },
+    {
+      "players": [
+        { "id": "rodri", "x": 52, "y": 50, "team": "home", "label": "Rodri" },
+        { "id": "fabianruiz", "x": 40, "y": 26, "team": "home", "label": "F. Ruiz" },
+        { "id": "yamal", "x": 64, "y": 14, "team": "home", "label": "Yamal" },
+        { "id": "baena", "x": 64, "y": 86, "team": "home", "label": "Baena" },
+        { "id": "olmo", "x": 56, "y": 68, "team": "home", "label": "Olmo" },
+        { "id": "oyarzabal", "x": 74, "y": 50, "team": "home", "label": "Oyarzabal" },
+        { "id": "fernandez", "x": 58, "y": 40, "team": "away", "label": "E. Fernández" },
+        { "id": "macallister", "x": 62, "y": 60, "team": "away", "label": "Mac Allister" },
+        { "id": "depaul", "x": 52, "y": 78, "team": "away", "label": "De Paul" },
+        { "id": "gonzalez", "x": 52, "y": 22, "team": "away", "label": "N. González" },
+        { "id": "messi", "x": 28, "y": 40, "team": "away", "label": "Messi", "state": "waiting" },
+        { "id": "alvarez", "x": 28, "y": 62, "team": "away", "label": "Álvarez", "state": "waiting" }
+      ],
+      "highlight": ["rodri"],
+      "caption": "Ball won back deep in Argentina's own half — game after game after game",
+      "dataPoint": "This exact pattern is why Argentina had two shots, all night"
+    }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Stat
+
+**Narration:** Somehow, the scoreline stayed level as long as it did, for one reason alone: Emiliano Martínez. Twenty shots faced. Eleven of them saved. A genuine World Cup final record. Without him, this one isn't even close.
+
+**Duration:** 11 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "Emiliano Martínez's Saves",
+  "value": 11,
+  "context": "A World Cup final record — and Argentina still lost",
+  "suffix": " saves"
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** TacticalBoard
+
+**Narration:** Then, deep into second-half stoppage time, with the game still scoreless, Enzo Fernández went in reckless on a challenge and picked up his second yellow card. Sent off. Argentina, already hanging on for their lives, now had to survive extra time with ten men. And against a team that had spent ninety minutes patiently waiting for exactly this kind of opening, that is about as bad as it gets.
+
+**Duration:** 20 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "The Moment That Changed Everything",
+  "players": [
+    { "id": "fernandez", "x": 50, "y": 28, "team": "away", "label": "E. Fernández" },
+    { "id": "opponent", "x": 62, "y": 50, "team": "home", "label": "F. Ruiz" },
+    { "id": "rodri", "x": 38, "y": 55, "team": "home", "label": "Rodri" },
+    { "id": "macallister", "x": 66, "y": 68, "team": "away", "label": "Mac Allister" }
+  ],
+  "phases": [
+    {
+      "players": [
+        { "id": "fernandez", "x": 50, "y": 28, "team": "away", "label": "E. Fernández" },
+        { "id": "opponent", "x": 62, "y": 50, "team": "home", "label": "F. Ruiz" },
+        { "id": "rodri", "x": 38, "y": 55, "team": "home", "label": "Rodri" },
+        { "id": "macallister", "x": 66, "y": 68, "team": "away", "label": "Mac Allister" }
+      ],
+      "caption": "Deep into stoppage time. Still 0-0.",
+      "dataPoint": "Second-half stoppage time, normal time"
+    },
+    {
+      "players": [
+        { "id": "fernandez", "x": 52, "y": 40, "team": "away", "label": "E. Fernández", "state": "pressing" },
+        { "id": "opponent", "x": 58, "y": 52, "team": "home", "label": "F. Ruiz" },
+        { "id": "rodri", "x": 40, "y": 58, "team": "home", "label": "Rodri" },
+        { "id": "macallister", "x": 68, "y": 62, "team": "away", "label": "Mac Allister" }
+      ],
+      "highlight": ["fernandez"],
+      "annotations": [ { "text": "Reckless challenge", "x": 55, "y": 22 } ],
+      "caption": "Fernández goes in late, studs showing",
+      "dataPoint": "His second bookable offense of the match"
+    },
+    {
+      "players": [
+        { "id": "fernandez", "x": 52, "y": 40, "team": "away", "label": "E. Fernández", "state": "waiting" },
+        { "id": "opponent", "x": 58, "y": 52, "team": "home", "label": "F. Ruiz" },
+        { "id": "rodri", "x": 40, "y": 58, "team": "home", "label": "Rodri" },
+        { "id": "macallister", "x": 68, "y": 62, "team": "away", "label": "Mac Allister" }
+      ],
+      "highlight": ["fernandez"],
+      "annotations": [ { "text": "SECOND YELLOW — SENT OFF", "x": 55, "y": 22 } ],
+      "caption": "Second yellow. Straight red. Fernández is off.",
+      "dataPoint": "Argentina down to 10 men, heading into extra time"
+    },
+    {
+      "players": [
+        { "id": "fernandez", "x": 50, "y": 28, "team": "away", "label": "E. Fernández", "state": "waiting" },
+        { "id": "opponent", "x": 62, "y": 50, "team": "home", "label": "F. Ruiz" },
+        { "id": "rodri", "x": 38, "y": 55, "team": "home", "label": "Rodri" },
+        { "id": "macallister", "x": 66, "y": 68, "team": "away", "label": "Mac Allister" }
+      ],
+      "highlight": ["rodri"],
+      "caption": "Ten men, thirty extra minutes, against the team built to punish this",
+      "dataPoint": "Spain had been waiting all night for exactly this opening"
+    }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** GoalSequence
+
+**Narration:** Extra time. Second half. Thirty-nine seconds in. Ferran Torres gets an eight-yard sight of goal, and does not miss — the goal that won Spain their second World Cup.
+
+**Duration:** 11 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "Torres, 105th Minute",
+  "shooter": "Ferran Torres",
+  "from": { "x": 86, "y": 30 },
+  "to": { "x": 100, "y": 60 },
+  "keeper": "Emiliano Martínez",
+  "keeperAt": { "x": 97, "y": 46 },
+  "curve": false
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Quote
+
+**Narration:** And on the other side, at thirty-nine years old, in what was almost certainly his last World Cup, Lionel Messi didn't have any excuses to offer. "I feel sad," he said. "They were better, to be honest."
+
+**Duration:** 11 seconds
+
+**Story Beat:** reflection
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "quote": "I feel sad. They were better, to be honest.",
+  "attribution": "Lionel Messi, after the final"
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Chapter
+
+**Narration:** Spain's second World Cup title — their first since twenty ten. Ferran Torres said afterward that the goal belonged to forty-seven million people back home. And Messi, the first man to ever start three World Cup finals, walked off the biggest stage in football for what was almost certainly the last time.
+
+**Annotation:** SPAIN'S SECOND STAR
+
+**Duration:** 12 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+---

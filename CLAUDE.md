@@ -14,9 +14,10 @@ roundups, see News pipeline below).
 User runs a YouTube channel around football content, called **The Tactical Debrief** — this
 project's primary output channel; every `analyses/` script and rendered video described in this
 file feeds it. (User also runs a second, separate multi-topic explainer channel, **Second Order
-Synce**, spanning business/finance/tech/aerospace/football — not this project's concern beyond the
-football-topic overlap, but its name/branding is worth knowing since both channels come up in the
-same conversations.) Core pain points: hours of manual editing,
+Synce**, spanning business, maths, software engineering, aerospace, and other fields — no football
+content; not this project's concern beyond scripts occasionally being drafted here, but its
+name/branding is worth knowing since both channels come up in the same conversations.) Core pain
+points: hours of manual editing,
 copyright strikes from reposting broadcast footage, and (discovered through building this) an
 unwillingness to be on camera or record their own voice confidently. This direction is the one
 that survived contact with all of those constraints — see history.
@@ -255,8 +256,8 @@ faceted geometric "shard" art style — vibrant multi-color palette (electric bl
 teal), sharp triangular facets, flat color per facet (no gradients within a shard), near-black
 background, high contrast.
 
-**Banner/DP art style for Second Order Synce** (the multi-topic business/finance/tech/aerospace/
-football channel): dark near-black background (#111315), electric blue (#4f6bff) accent, flat
+**Banner/DP art style for Second Order Synce** (the multi-topic business/maths/software-
+engineering/aerospace channel — no football): dark near-black background (#111315), electric blue (#4f6bff) accent, flat
 professional/corporate style — no gradients, no glossy/3D effects. DP: a single smooth curved arc
 resolving into a straight line (the "looks complicated, is actually simple once revealed" motif).
 Banner: subtle overlapping schematic linework (flight paths, tactical arrows, growth curves,

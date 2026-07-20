@@ -61,6 +61,74 @@ export interface TimelinePayload {
 
 const OUTPUT_DIR = path.join(process.cwd(), "output");
 
+/** A segment's real floor once real narration resolves is
+ * `Math.max(durationSeconds, visualMinDurationSeconds)` — matches the same
+ * helper duplicated in the timeline-editor UI (GeneratePage.tsx/Timeline.tsx). */
+function effectiveDurationOf(segment: TimedSegment): number {
+  return Math.max(segment.durationSeconds, segment.visualMinDurationSeconds ?? 0);
+}
+
+function cumulativeStarts(segments: TimedSegment[]): number[] {
+  const starts: number[] = [];
+  let acc = 0;
+  for (const segment of segments) {
+    starts.push(acc);
+    acc += effectiveDurationOf(segment);
+  }
+  return starts;
+}
+
+/** Audio clips placed in the pre-generation timeline preview are positioned
+ * against ESTIMATED segment durations (word-count guesses, or a script's
+ * authored `Duration:` field) — real narration audio essentially never
+ * matches that estimate exactly, so every segment's real start time shifts
+ * a little (sometimes a lot, for a multi-phase Canvas/TacticalBoard scene
+ * whose floor the estimate undershot) once `resolveSegmentAudio` runs. Left
+ * alone, a clip's untouched absolute `startSeconds` silently drifts out of
+ * sync with whatever moment in the narration it was actually placed against
+ * — this is what "my sfx landed in the wrong place after render" was.
+ *
+ * Fix: find which segment each clip was positioned relative to (using the
+ * OLD/estimated timeline), then re-anchor it to the same relative position
+ * within that same segment's NEW/real span — proportionally scaled if the
+ * segment's own duration changed, so a clip placed a third of the way into
+ * a scene stays a third of the way into that scene even if the scene grew
+ * or shrank. Segment count/order is guaranteed identical before and after
+ * (resolveSegmentAudio only ever changes each segment's own duration/audio
+ * fields, 1:1 by index — see its own `segments.map`), so aligning by index
+ * between the two timelines is safe. */
+function resyncAudioClipsToRealDurations(
+  oldSegments: TimedSegment[],
+  newSegments: TimedSegment[],
+  audioClips: AudioClipPlacement[],
+): AudioClipPlacement[] {
+  if (oldSegments.length === 0 || oldSegments.length !== newSegments.length) return audioClips;
+  const oldStarts = cumulativeStarts(oldSegments);
+  const newStarts = cumulativeStarts(newSegments);
+  const newTotal = newStarts[newStarts.length - 1] + effectiveDurationOf(newSegments[newSegments.length - 1]);
+
+  return audioClips.map((clip) => {
+    let idx = 0;
+    for (let i = 0; i < oldStarts.length; i++) {
+      if (oldStarts[i] <= clip.startSeconds) idx = i;
+      else break;
+    }
+    const oldSegStart = oldStarts[idx];
+    const oldSegDuration = effectiveDurationOf(oldSegments[idx]);
+    const newSegStart = newStarts[idx];
+    const newSegDuration = effectiveDurationOf(newSegments[idx]);
+
+    const offsetIntoSegment = clip.startSeconds - oldSegStart;
+    const scale = oldSegDuration > 0 ? newSegDuration / oldSegDuration : 1;
+    const resyncedStart = newSegStart + offsetIntoSegment * scale;
+
+    // Never let the resync push a clip past the real video's own end —
+    // same "clip clips itself" floor as everywhere else this is handled.
+    const maxStart = Math.max(0, newTotal - clip.durationSeconds);
+    return { ...clip, startSeconds: Math.min(Math.max(0, resyncedStart), maxStart) };
+  });
+}
+
 /** Renders a timeline and writes a sidecar `<outputName>.json` next to the mp4
  * so a completed render can be reloaded and edited later — the in-memory job
  * tracking in server.ts is deleted right after each render finishes, so this
@@ -135,6 +203,7 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
     fixes.forEach((fix) => log(`  - ${fix}`));
   }
 
+  let audioClips = options.audioClips;
   let backgroundMusicPath = options.backgroundMusicPath;
   if (options.withAudio) {
     const provider = options.ttsProvider ?? "elevenlabs";
@@ -143,7 +212,12 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
         ? `Generating narration audio via Edge TTS (free, voice: ${options.edgeVoice ?? "default"})...`
         : "Generating narration audio via ElevenLabs (real API cost applies)...",
     );
+    const preAudioSegments = segments;
     segments = await resolveSegmentAudio(segments, { provider, edgeVoice: options.edgeVoice });
+    if (audioClips && audioClips.length > 0) {
+      audioClips = resyncAudioClipsToRealDurations(preAudioSegments, segments, audioClips);
+      log("Re-synced sound effect/music placements to the real narration timing.");
+    }
     if (backgroundMusicPath) {
       log("Using your uploaded background music file.");
     } else {
@@ -166,7 +240,7 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   const outputName = options.outputName ?? outputNameFor(aspectRatio, "generated");
   log(`Rendering to output/${outputName}.mp4...`);
   const { outputPath, totalSeconds: renderedTotalSeconds } = await renderAndPersist(
-    { segments, aspectRatio, backgroundMusicPath, audioClips: options.audioClips },
+    { segments, aspectRatio, backgroundMusicPath, audioClips },
     outputName,
     options.onProgress,
     options.concurrency,

@@ -32,12 +32,23 @@ function clipDisplayName(clip: AudioClipPlacement): string {
   return clip.label || fileNameOf(clip.staticPath);
 }
 
+/** A segment's real floor once real narration resolves is
+ * `Math.max(durationSeconds, visualMinDurationSeconds)` (see
+ * resolveSegmentAudio) — a multi-phase Canvas/TacticalBoard scene can't
+ * finish faster than its phase count requires. Using the raw estimate alone
+ * here undercounts the video's true minimum length in the pre-generation
+ * preview, which is exactly what let a background-music/sfx clip get placed
+ * against a shorter length than the real render ends up enforcing. */
+function effectiveDurationOf(segment: TimedSegment): number {
+  return Math.max(segment.durationSeconds, segment.visualMinDurationSeconds ?? 0);
+}
+
 function segmentStartTimes(segments: TimedSegment[]): number[] {
   const starts: number[] = [];
   let acc = 0;
   for (const segment of segments) {
     starts.push(acc);
-    acc += segment.durationSeconds;
+    acc += effectiveDurationOf(segment);
   }
   return starts;
 }
@@ -306,7 +317,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   // The video's real, rendered length — driven by scenes alone. Audio can
   // never play past this: it's the ceiling every clip drag/resize clamps
   // against, regardless of how long the uploaded source file actually is.
-  const videoDurationSeconds = starts.length > 0 ? starts[starts.length - 1] + segments[starts.length - 1].durationSeconds : 0;
+  const videoDurationSeconds = starts.length > 0 ? starts[starts.length - 1] + effectiveDurationOf(segments[starts.length - 1]) : 0;
   const clipsEnd = audioClips.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0);
   const totalSeconds = Math.max(videoDurationSeconds, clipsEnd, 1);
 
@@ -645,7 +656,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 className={`absolute top-1 bottom-1 rounded-md bg-panel-alt border px-2 py-1 overflow-hidden cursor-grab active:cursor-grabbing select-none ${
                   resizingIndex === index ? "border-accent" : "border-border"
                 }`}
-                style={{ left: starts[index] * pixelsPerSecond, width: Math.max(20, segment.durationSeconds * pixelsPerSecond) }}
+                style={{ left: starts[index] * pixelsPerSecond, width: Math.max(20, effectiveDurationOf(segment) * pixelsPerSecond) }}
               >
                 <div className="text-[10px] text-text-dim truncate">{segment.type}</div>
                 <div className="text-[11px] leading-tight truncate">{segmentLabel(segment)}</div>

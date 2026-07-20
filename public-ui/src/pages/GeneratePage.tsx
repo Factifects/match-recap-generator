@@ -38,8 +38,22 @@ function newClipId(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Math.random());
 }
 
+/** A segment's real floor once real narration resolves is
+ * `Math.max(durationSeconds, visualMinDurationSeconds)` (see
+ * resolveSegmentAudio) — a multi-phase Canvas/TacticalBoard scene can't
+ * finish faster than its phase count requires, regardless of how short its
+ * authored `Duration:` guess or word-count estimate was. Ignoring
+ * `visualMinDurationSeconds` here (as this used to) undercounts the video's
+ * true minimum length in the *pre*-generation preview, so a background-
+ * music/sfx clip placed against that shorter estimate falls short once the
+ * real render enforces the floor — the exact "video ends up a bit longer
+ * than the music" drift this now prevents. */
+function effectiveDurationOf(segment: TimedSegment): number {
+  return Math.max(segment.durationSeconds, segment.visualMinDurationSeconds ?? 0);
+}
+
 function videoDurationOf(segments: TimedSegment[]): number {
-  return segments.reduce((sum, s) => sum + s.durationSeconds, 0);
+  return segments.reduce((sum, s) => sum + effectiveDurationOf(s), 0);
 }
 
 /** Appends `newClip` right after whatever's already last in its lane (music
