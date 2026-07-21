@@ -104,7 +104,14 @@ export const AnalysisVideo: React.FC<{
         // dissolve, 1 for a hard cut) — no extra dead air on top, since that padding
         // used to be a flat 20 frames regardless of transition, leaving audible silence
         // after the narration ended and before the next segment's crossfade even began.
-        const durationInFrames = Math.ceil(segment.durationSeconds * fps) + transitionFramesFor(segment);
+        // Floors at visualMinDurationSeconds the same way resolveSegmentAudio and the
+        // editor UI's effectiveDurationOf do — this is the actual renderer, so it has
+        // to be the authoritative last line of defense: if durationSeconds ever reaches
+        // here below the segment's own floor (a stale sidecar JSON, a future editor bug),
+        // rendering it that short anyway would silently desync every clip placed after it
+        // from what the editor displayed, which is exactly the bug this guards against.
+        const effectiveDurationSeconds = Math.max(segment.durationSeconds, segment.visualMinDurationSeconds ?? 0);
+        const durationInFrames = Math.ceil(effectiveDurationSeconds * fps) + transitionFramesFor(segment);
         return (
           <React.Fragment key={index}>
             <TransitionSeries.Sequence durationInFrames={durationInFrames}>

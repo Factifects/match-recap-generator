@@ -27,6 +27,7 @@ import { PackedCirclesCard } from "./compositions/PackedCirclesCard";
 import { SplitCardsCard } from "./compositions/SplitCardsCard";
 import { SequenceCard } from "./compositions/SequenceCard";
 import { QuoteCard } from "./compositions/QuoteCard";
+import { CodeSnippetCard } from "./compositions/CodeSnippetCard";
 import { CareerPathCard } from "./compositions/CareerPathCard";
 import { GridCard } from "./compositions/GridCard";
 import { IconInfographicCard } from "./compositions/IconInfographicCard";
@@ -67,6 +68,7 @@ export const VISUAL_COMPONENTS: { [K in Visual["kind"]]: React.FC<{ data: DataFo
   "split-cards": SplitCardsCard,
   sequence: SequenceCard,
   quote: QuoteCard,
+  code: CodeSnippetCard,
   "career-path": CareerPathCard,
   grid: GridCard,
   icon: IconInfographicCard,

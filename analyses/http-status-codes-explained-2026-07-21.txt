@@ -1,0 +1,535 @@
+### SCENE 1
+
+**Scene Type:** Canvas
+
+**Narration:** You've seen this number a thousand times: four-oh-four, page not found. But that number isn't random — it's part of a whole system, and once you know how it actually works, you'll never look at a broken link the same way.
+
+**Duration:** 13 seconds
+
+**Story Beat:** hook
+
+**Transition Style:** zoom in
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "You Know This Number...",
+  "objects": [
+    { "id": "codeTile", "type": "roundedRectangle", "x": 50, "y": 42, "width": 34, "height": 30, "radius": 6, "color": "#dc2626", "filled": true, "label": "404" },
+    { "id": "subLabel", "type": "label", "x": 50, "y": 68, "label": "NOT FOUND", "color": "#fca5a5" },
+    { "id": "caption", "type": "label", "x": 50, "y": 86, "label": "...But What Does It Actually Mean?", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "codeTile", "type": "roundedRectangle", "x": 50, "y": 38, "width": 30, "height": 26, "radius": 6, "color": "#dc2626", "filled": true, "label": "404", "opacity": 0.5 },
+        { "id": "subLabel", "type": "label", "x": 50, "y": 62, "label": "NOT FOUND", "color": "#94a3b8", "opacity": 0.5 },
+        { "id": "questionIcon", "type": "icon", "icon": "search", "x": 50, "y": 78, "color": "#fde68a", "radius": 7, "enter": "scale" },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "It's Part Of A Whole System", "color": "#fde68a" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** Every time you visit a website, your browser sends a request across the internet to a server, asking for a page. The server sends something back — and buried in that response is a three-digit number, the status code, reporting exactly what happened.
+
+**Duration:** 14 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Every Visit Is A Conversation",
+  "objects": [
+    { "id": "browserIcon", "type": "icon", "icon": "device", "x": 20, "y": 48, "color": "#38bdf8", "radius": 9 },
+    { "id": "browserLabel", "type": "label", "x": 20, "y": 66, "label": "Browser", "color": "#93c5fd" },
+    { "id": "serverIcon", "type": "icon", "icon": "server", "x": 80, "y": 48, "color": "#4ade80", "radius": 9 },
+    { "id": "serverLabel", "type": "label", "x": 80, "y": 66, "label": "Server", "color": "#86efac" },
+    { "id": "packet", "type": "roundedRectangle", "x": 20, "y": 30, "width": 16, "height": 10, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /" },
+    { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "Your Browser Sends A Request", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "browserIcon", "type": "icon", "icon": "device", "x": 20, "y": 48, "color": "#38bdf8", "radius": 9 },
+        { "id": "browserLabel", "type": "label", "x": 20, "y": 66, "label": "Browser", "color": "#93c5fd" },
+        { "id": "serverIcon", "type": "icon", "icon": "server", "x": 80, "y": 48, "color": "#4ade80", "radius": 9 },
+        { "id": "serverLabel", "type": "label", "x": 80, "y": 66, "label": "Server", "color": "#86efac" },
+        { "id": "packet", "type": "roundedRectangle", "x": 72, "y": 30, "width": 16, "height": 10, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /", "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "It Arrives At The Server", "color": "#cbd5e1" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "browserIcon", "type": "icon", "icon": "device", "x": 20, "y": 48, "color": "#38bdf8", "radius": 9 },
+        { "id": "browserLabel", "type": "label", "x": 20, "y": 66, "label": "Browser", "color": "#93c5fd" },
+        { "id": "serverIcon", "type": "icon", "icon": "server", "x": 80, "y": 48, "color": "#4ade80", "radius": 9 },
+        { "id": "serverLabel", "type": "label", "x": 80, "y": 66, "label": "Server", "color": "#86efac" },
+        { "id": "packet", "type": "roundedRectangle", "x": 28, "y": 30, "width": 20, "height": 12, "radius": 3, "color": "#fbbf24", "filled": true, "label": "Status Code", "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "The Response Carries A Status Code Back", "color": "#fde68a" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Code
+
+**Narration:** Here's what your browser actually receives, stripped of the pretty rendering: a raw text response, starting with a status line — HTTP slash one point one, two hundred, OK — followed by headers, then the real content. Open your browser's dev tools right now, and you'll see this exact format. Same format every time — just the numbers change.
+
+**Duration:** 18 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "filename": "Network Tab",
+  "language": "HTTP",
+  "lines": [
+    [{ "text": "HTTP/1.1 200 OK", "token": "function" }],
+    [{ "text": "Content-Type: application/json", "token": "comment" }],
+    [],
+    [
+      { "text": "{ ", "token": "plain" },
+      { "text": "\"status\"", "token": "string" },
+      { "text": ": ", "token": "plain" },
+      { "text": "\"success\"", "token": "string" },
+      { "text": " }", "token": "plain" }
+    ]
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Canvas
+
+**Narration:** Every status code starts with one of five digits, and that first digit alone tells you the category: one means "still working on it." Two means success. Three means "look elsewhere." Four means you made a mistake. Five means the server did.
+
+**Duration:** 15 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Five Categories, One Digit",
+  "objects": [
+    { "id": "row1", "type": "roundedRectangle", "x": 50, "y": 20, "width": 70, "height": 10, "radius": 2, "color": "#64748b", "filled": true, "label": "1xx — Still Working" },
+    { "id": "row2", "type": "roundedRectangle", "x": 50, "y": 34, "width": 70, "height": 10, "radius": 2, "color": "#16a34a", "filled": true, "label": "2xx — Success" },
+    { "id": "row3", "type": "roundedRectangle", "x": 50, "y": 48, "width": 70, "height": 10, "radius": 2, "color": "#2563eb", "filled": true, "label": "3xx — Look Elsewhere" },
+    { "id": "row4", "type": "roundedRectangle", "x": 50, "y": 62, "width": 70, "height": 10, "radius": 2, "color": "#f59e0b", "filled": true, "label": "4xx — You Made A Mistake" },
+    { "id": "row5", "type": "roundedRectangle", "x": 50, "y": 76, "width": 70, "height": 10, "radius": 2, "color": "#dc2626", "filled": true, "label": "5xx — The Server Made A Mistake" }
+  ]
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Canvas
+
+**Narration:** The one you never notice, because it's what's supposed to happen: two hundred, OK. Call a weather API — GET slash forecast.
+
+**Duration:** 7 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "200 — OK",
+  "objects": [
+    { "id": "browserIcon", "type": "icon", "icon": "device", "x": 20, "y": 48, "color": "#38bdf8", "radius": 9 },
+    { "id": "serverIcon", "type": "icon", "icon": "server", "x": 80, "y": 48, "color": "#4ade80", "radius": 9 },
+    { "id": "packet", "type": "roundedRectangle", "x": 20, "y": 30, "width": 22, "height": 9, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /forecast" },
+    { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Request Sent", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "browserIcon", "type": "icon", "icon": "device", "x": 20, "y": 48, "color": "#38bdf8", "radius": 9 },
+        { "id": "serverIcon", "type": "icon", "icon": "server", "x": 80, "y": 48, "color": "#4ade80", "radius": 9 },
+        { "id": "packet", "type": "roundedRectangle", "x": 72, "y": 30, "width": 22, "height": 9, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /forecast", "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Server Has Exactly What You Asked For", "color": "#cbd5e1" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Code
+
+**Narration:** And back comes exactly what you asked for: a clean JSON body, temperature and condition, no errors, no drama — that's the whole point.
+
+**Duration:** 8 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "filename": "response.json",
+  "language": "JSON",
+  "lines": [
+    [{ "text": "HTTP/1.1 200 OK", "token": "function" }],
+    [],
+    [
+      { "text": "{ ", "token": "plain" },
+      { "text": "\"temp\"", "token": "string" },
+      { "text": ": ", "token": "plain" },
+      { "text": "72", "token": "number" },
+      { "text": ", ", "token": "plain" },
+      { "text": "\"condition\"", "token": "string" },
+      { "text": ": ", "token": "plain" },
+      { "text": "\"Sunny\"", "token": "string" },
+      { "text": " }", "token": "plain" }
+    ]
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** Three-oh-one means the page moved — permanently. The classic real case: your browser asks for the plain HTTP version of a site.
+
+**Duration:** 7 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "301 — Moved Permanently",
+  "objects": [
+    { "id": "browserIcon", "type": "icon", "icon": "device", "x": 18, "y": 48, "color": "#38bdf8", "radius": 8 },
+    { "id": "oldServerIcon", "type": "icon", "icon": "server", "x": 50, "y": 48, "color": "#94a3b8", "radius": 8 },
+    { "id": "oldServerLabel", "type": "label", "x": 50, "y": 64, "label": "http://site.com", "color": "#94a3b8" },
+    { "id": "packet", "type": "roundedRectangle", "x": 18, "y": 26, "width": 20, "height": 9, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /" },
+    { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Requesting The Plain HTTP Address", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "browserIcon", "type": "icon", "icon": "device", "x": 18, "y": 48, "color": "#38bdf8", "radius": 8 },
+        { "id": "oldServerIcon", "type": "icon", "icon": "server", "x": 50, "y": 48, "color": "#94a3b8", "radius": 8 },
+        { "id": "oldServerLabel", "type": "label", "x": 50, "y": 64, "label": "http://site.com", "color": "#94a3b8" },
+        { "id": "packet", "type": "roundedRectangle", "x": 42, "y": 26, "width": 20, "height": 9, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /", "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Requesting The Plain HTTP Address", "color": "#cbd5e1" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Code
+
+**Narration:** And the response doesn't send a page at all — it sends one header, "Location," pointing at the secure HTTPS address.
+
+**Duration:** 7 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "filename": "Headers",
+  "language": "HTTP",
+  "lines": [
+    [{ "text": "HTTP/1.1 301 Moved Permanently", "token": "function" }],
+    [
+      { "text": "Location: ", "token": "comment" },
+      { "text": "https://site.com", "token": "string" }
+    ]
+  ]
+}
+
+---
+
+### SCENE 9
+
+**Scene Type:** Canvas
+
+**Narration:** Your browser quietly follows it, requesting again, usually without you ever noticing.
+
+**Duration:** 6 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Quietly Following The Redirect",
+  "objects": [
+    { "id": "browserIcon", "type": "icon", "icon": "device", "x": 18, "y": 48, "color": "#38bdf8", "radius": 8 },
+    { "id": "oldServerIcon", "type": "icon", "icon": "server", "x": 50, "y": 48, "color": "#475569", "radius": 8, "opacity": 0.4 },
+    { "id": "newServerIcon", "type": "icon", "icon": "server", "x": 82, "y": 48, "color": "#4ade80", "radius": 8 },
+    { "id": "newServerLabel", "type": "label", "x": 82, "y": 64, "label": "https://site.com", "color": "#86efac" },
+    { "id": "packet", "type": "roundedRectangle", "x": 18, "y": 26, "width": 16, "height": 9, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /" },
+    { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Browser Quietly Re-Requests", "color": "#93c5fd" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "browserIcon", "type": "icon", "icon": "device", "x": 18, "y": 48, "color": "#38bdf8", "radius": 8 },
+        { "id": "oldServerIcon", "type": "icon", "icon": "server", "x": 50, "y": 48, "color": "#475569", "radius": 8, "opacity": 0.4 },
+        { "id": "newServerIcon", "type": "icon", "icon": "server", "x": 82, "y": 48, "color": "#4ade80", "radius": 8, "enter": "scale" },
+        { "id": "newServerLabel", "type": "label", "x": 82, "y": 64, "label": "https://site.com", "color": "#86efac" },
+        { "id": "packet", "type": "roundedRectangle", "x": 62, "y": 26, "width": 16, "height": 9, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /", "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "You Never See It Happen", "color": "#93c5fd" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 10
+
+**Scene Type:** Canvas
+
+**Narration:** Four-oh-four: not found. Ask an API for a user that doesn't exist — user four-four-oh-four.
+
+**Duration:** 7 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "404 — Not Found",
+  "objects": [
+    { "id": "browserIcon", "type": "icon", "icon": "device", "x": 20, "y": 48, "color": "#38bdf8", "radius": 8 },
+    { "id": "serverIcon", "type": "icon", "icon": "server", "x": 80, "y": 48, "color": "#4ade80", "radius": 8 },
+    { "id": "serverLabel", "type": "label", "x": 80, "y": 64, "label": "Working Fine", "color": "#86efac" },
+    { "id": "packet", "type": "roundedRectangle", "x": 20, "y": 28, "width": 24, "height": 9, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /users/4404" },
+    { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Requesting A User That Doesn't Exist", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "browserIcon", "type": "icon", "icon": "device", "x": 20, "y": 48, "color": "#38bdf8", "radius": 8 },
+        { "id": "serverIcon", "type": "icon", "icon": "server", "x": 80, "y": 48, "color": "#4ade80", "radius": 8 },
+        { "id": "serverLabel", "type": "label", "x": 80, "y": 64, "label": "Working Fine", "color": "#86efac" },
+        { "id": "packet", "type": "roundedRectangle", "x": 72, "y": 28, "width": 24, "height": 9, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /users/4404", "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Server Checks — No Such User", "color": "#cbd5e1" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 11
+
+**Scene Type:** Code
+
+**Narration:** And the server responds cleanly with its own error object: "error, user not found." The server did its job perfectly. The thing you asked for just isn't there.
+
+**Duration:** 9 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "filename": "response.json",
+  "language": "JSON",
+  "lines": [
+    [{ "text": "HTTP/1.1 404 Not Found", "token": "keyword" }],
+    [],
+    [
+      { "text": "{ ", "token": "plain" },
+      { "text": "\"error\"", "token": "string" },
+      { "text": ": ", "token": "plain" },
+      { "text": "\"User not found\"", "token": "string" },
+      { "text": " }", "token": "plain" }
+    ]
+  ]
+}
+
+---
+
+### SCENE 12
+
+**Scene Type:** Canvas
+
+**Narration:** Five hundred flips that entirely: internal server error. The request was completely valid — the server itself broke while trying to handle it, maybe a database timeout, maybe a bug.
+
+**Duration:** 9 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "500 — Internal Server Error",
+  "objects": [
+    { "id": "browserIcon", "type": "icon", "icon": "device", "x": 20, "y": 48, "color": "#38bdf8", "radius": 8 },
+    { "id": "serverIcon", "type": "icon", "icon": "server", "x": 80, "y": 48, "color": "#4ade80", "radius": 8 },
+    { "id": "packet", "type": "roundedRectangle", "x": 20, "y": 28, "width": 20, "height": 9, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /" },
+    { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "A Perfectly Valid Request", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "browserIcon", "type": "icon", "icon": "device", "x": 20, "y": 48, "color": "#38bdf8", "radius": 8 },
+        { "id": "serverIcon", "type": "icon", "icon": "warning", "x": 80, "y": 48, "color": "#f87171", "radius": 9, "scale": 1.2 },
+        { "id": "packet", "type": "roundedRectangle", "x": 72, "y": 28, "width": 20, "height": 9, "radius": 2, "color": "#f8fafc", "filled": true, "label": "GET /", "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "The Server Breaks While Handling It", "color": "#fecaca" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 13
+
+**Scene Type:** Code
+
+**Narration:** The response often looks just as vague as the failure: "error, internal server error." Same shape, opposite blame.
+
+**Duration:** 7 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "filename": "response.json",
+  "language": "JSON",
+  "lines": [
+    [{ "text": "HTTP/1.1 500 Internal Server Error", "token": "keyword" }],
+    [],
+    [
+      { "text": "{ ", "token": "plain" },
+      { "text": "\"error\"", "token": "string" },
+      { "text": ": ", "token": "plain" },
+      { "text": "\"Internal Server Error\"", "token": "string" },
+      { "text": " }", "token": "plain" }
+    ]
+  ]
+}
+
+---
+
+### SCENE 14
+
+**Scene Type:** Code
+
+**Narration:** Here's the actually clever part, and exactly where you'll see this in real code: software checks ranges, not exact numbers. "If status is greater than or equal to four hundred, and under five hundred" — that one line correctly catches four-oh-four, four-oh-three, even every code in between.
+
+**Duration:** 13 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** red
+
+**Data:**
+{
+  "filename": "check.js",
+  "language": "JS",
+  "lines": [
+    [
+      { "text": "if ", "token": "keyword" },
+      { "text": "(status >= ", "token": "plain" },
+      { "text": "400", "token": "number" },
+      { "text": " && status < ", "token": "plain" },
+      { "text": "500", "token": "number" },
+      { "text": ") {", "token": "plain" }
+    ],
+    [
+      { "text": "console", "token": "variable" },
+      { "text": ".log(", "token": "function" },
+      { "text": "\"Client error\"", "token": "string" },
+      { "text": ");", "token": "plain" }
+    ],
+    [{ "text": "}", "token": "plain" }]
+  ]
+}
+
+---
+
+### SCENE 15
+
+**Scene Type:** Canvas
+
+**Narration:** Even four-eighteen, the real official "I'm a teapot" code — a status a tool built years earlier has never even seen — still gets caught, correctly, by that same one line.
+
+**Duration:** 10 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "Never Seen Before — Caught Anyway",
+  "objects": [
+    { "id": "codeTile", "type": "roundedRectangle", "x": 50, "y": 42, "width": 20, "height": 16, "radius": 4, "color": "#f59e0b", "filled": true, "label": "418" },
+    { "id": "subLabel", "type": "label", "x": 50, "y": 60, "label": "\"I'm A Teapot\" — A Real Code", "color": "#fde68a" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "codeTile", "type": "roundedRectangle", "x": 50, "y": 38, "width": 24, "height": 18, "radius": 4, "color": "#4ade80", "filled": true, "label": "418", "scale": 1.1 },
+        { "id": "subLabel", "type": "label", "x": 50, "y": 58, "label": "\"I'm A Teapot\" — A Real Code", "color": "#86efac" },
+        { "id": "checkIcon", "type": "icon", "icon": "check", "x": 50, "y": 74, "color": "#4ade80", "radius": 7, "enter": "scale" },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "One Check Catches Every 400–499", "color": "#86efac" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 16
+
+**Scene Type:** Statement
+
+**Narration:** So next time you see one of these numbers, remember: it's not random. It's a small, deliberately designed language — and the very first digit already tells you most of the story.
+
+**Duration:** 10 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+**Panel Color:** blue
+
+---

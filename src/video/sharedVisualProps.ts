@@ -68,6 +68,7 @@ export type SplitCardsData = Extract<Visual, { kind: "split-cards" }>;
 export type GridData = Extract<Visual, { kind: "grid" }>;
 export type SequenceData = Extract<Visual, { kind: "sequence" }>;
 export type QuoteData = Extract<Visual, { kind: "quote" }>;
+export type CodeData = Extract<Visual, { kind: "code" }>;
 export type CareerPathData = Extract<Visual, { kind: "career-path" }>;
 export type IconData = Extract<Visual, { kind: "icon" }>;
 export type CanvasData = Extract<Visual, { kind: "canvas" }>;

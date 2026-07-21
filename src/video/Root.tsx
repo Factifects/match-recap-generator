@@ -18,7 +18,8 @@ const DIMENSIONS: Record<AspectRatio, { width: number; height: number }> = {
  * transitionFramesFor, so the same call is reused here to stay in sync. */
 function totalDurationInFrames(segments: TimedSegment[]): number {
   const rawSum = segments.reduce(
-    (sum, segment) => sum + Math.ceil(segment.durationSeconds * FPS) + transitionFramesFor(segment),
+    (sum, segment) =>
+      sum + Math.ceil(Math.max(segment.durationSeconds, segment.visualMinDurationSeconds ?? 0) * FPS) + transitionFramesFor(segment),
     0,
   );
   const transitionOverlap = segments.slice(0, -1).reduce((sum, segment) => sum + transitionFramesFor(segment), 0);

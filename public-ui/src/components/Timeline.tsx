@@ -363,14 +363,23 @@ export const Timeline: React.FC<TimelineProps> = ({
 
   function handleSceneResizeStart(e: React.MouseEvent, index: number) {
     const startDuration = segments[index].durationSeconds;
+    // A scene can never be dragged shorter than its own visualMinDurationSeconds
+    // (a multi-phase Canvas/TacticalBoard scene's animation genuinely needs that
+    // much time) — the ruler block's width is drawn from effectiveDurationOf,
+    // which already floors at this same value, so without this floor here the
+    // drag could silently store a shorter durationSeconds than the block's own
+    // displayed width implies. That gap is exactly what let the real render (which
+    // uses raw durationSeconds, not effectiveDurationOf) play a scene shorter than
+    // the editor showed, shifting every clip placed after it out of sync.
+    const floor = Math.max(MIN_DURATION_SECONDS, segments[index].visualMinDurationSeconds ?? 0);
     const candidates = snapCandidatesExcluding();
     setResizingIndex(index);
     startDrag(e, pixelsPerSecond, (deltaSeconds) => {
-      const raw = Math.max(MIN_DURATION_SECONDS, startDuration + deltaSeconds);
+      const raw = Math.max(floor, startDuration + deltaSeconds);
       const rawEnd = starts[index] + raw;
       const { value: snappedEnd, guide } = snapTo(rawEnd, candidates, snapSeconds);
       setSnapGuide(guide);
-      onResizeSegment(index, Math.max(MIN_DURATION_SECONDS, snappedEnd - starts[index]));
+      onResizeSegment(index, Math.max(floor, snappedEnd - starts[index]));
     });
     const stopWatch = () => {
       endDrag(() => setResizingIndex(null));

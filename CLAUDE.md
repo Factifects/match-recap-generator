@@ -219,6 +219,29 @@ A statement win for Brighton on the road.
 Do not write new scripts in this format — it's kept only because `generate.ts` still routes to it
 when a script doesn't match the `### SCENE N` marker.
 
+## Story structure — the narrative pattern (both channels)
+
+Standing rule for how every script opens, explains, and closes — established 2026-07-21 after
+direct feedback wanting scripts to follow Hannah Fry's explainer pattern (mathematician/broadcaster
+known for *The Mathematics of Love*, *Hello World*, and the *Curious Cases of Rutherford & Fry*
+podcast). Applies to **both** The Tactical Debrief and Second Order Synce. Revise this section (not
+just remember it in chat) if the approach changes.
+
+1. **Open on a lived experience, not a concept.** The first thing on screen/in narration is
+   something the viewer has actually felt, seen, or done — never a definition or an abstract setup.
+   This is what the existing "hook" Story Beat convention (see Known gaps below) is for.
+2. **Explain the actual mechanism**, not just the fact. State the causal chain plainly — this
+   happens, which causes that, which is why you notice/feel/see the thing the video opened with.
+   Don't stop at "it's true"; show why it's true.
+3. **Build to one genuine click.** Somewhere in the middle, overturn an assumption the viewer was
+   probably holding — they thought it was X, it's actually Y (e.g. "you assumed your phone was
+   vibrating — it wasn't, that's a tingling sensation your nerves manufacture on their own"). This
+   is the payoff the whole script is built around, not a fact dump with a punchline bolted on.
+4. **Land smaller than you started.** Close with something modest and concrete — a plain answer, a
+   small practical takeaway, ideally a light throwaway joke (e.g. "if your laptop's ever buzzing,
+   maybe just wash your hands") — not a grand inspirational statement. Keep any joke light and
+   don't force one if the topic doesn't naturally offer one.
+
 ## Current status
 
 The pipeline described above is built and working end-to-end via both `npm run generate --
@@ -235,6 +258,12 @@ Remotion scaffold) — everything described in this file is currently **uncommit
 state**, not yet checkpointed in git.
 
 Known gaps / next things to look at, not active work:
+- `Story Beat: hook` is used by every existing `analyses/` script's opening scene and referenced
+  below as "this project's existing 'hook' Story Beat convention," but `STORY_BEAT_KEYS` in
+  `parseSceneScript.ts` doesn't actually recognize `hook` as a value — it silently resolves to no
+  beat-driven transition default unless the scene also sets an explicit `Transition Style` (every
+  existing script happens to do this, so it hasn't caused a visible bug yet). Worth formalizing
+  `hook` as a first-class `StoryBeat` if a script ever omits the explicit field.
 - `.env.example` only lists `API_FOOTBALL_KEY` — the real `.env` also needs `ELEVENLABS_API_KEY`,
   and `.env.example` should be updated to match so a fresh setup doesn't miss it.
 - `config/news-sources.json` has exactly one feed configured (BBC Sport Football). Adding more

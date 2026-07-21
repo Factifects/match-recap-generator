@@ -1012,6 +1012,43 @@ export const VISUAL_DEFINITIONS = [
     }),
   },
   {
+    kind: "code",
+    category: "narrative-callouts",
+    label: "Code Snippet",
+    description:
+      "A code-editor-style window — real monospace font, left-aligned, per-token syntax-highlight coloring (keyword/string/function/variable/comment/number/plain), traffic-light chrome, a filename tab. For narration that references actual code, JSON, or a config/log line — not a generic diagram (use Canvas for that, even if it also contains text).",
+    sceneTypeKey: "code",
+    schema: z.object({
+      kind: z.literal("code"),
+      // Shown in the tab pill next to the language badge, e.g. "isPrime.js",
+      // "response.json" — purely cosmetic, no file is actually read.
+      filename: z.string().optional(),
+      // Badge text, e.g. "JS", "JSON", "HTTP" — short by convention (this is
+      // a small pill, not a label) but not constrained to a fixed list since
+      // new scripts may reference languages this file's author didn't
+      // anticipate.
+      language: z.string().optional(),
+      // One entry per line; each line is its own ordered list of colored
+      // tokens rendered left-to-right with no forced gaps (a token's own
+      // text should include whatever whitespace it needs, e.g. "const " not
+      // "const") — real per-token syntax highlighting, not a single flat
+      // color per line. An empty array renders as a blank spacer line
+      // (still takes up line-height), for grouping related statements the
+      // way real code uses blank lines between blocks.
+      lines: z
+        .array(
+          z.array(
+            z.object({
+              text: z.string(),
+              token: z.enum(["keyword", "string", "function", "variable", "comment", "number", "plain"]).default("plain"),
+            }),
+          ),
+        )
+        .min(1)
+        .max(12),
+    }),
+  },
+  {
     kind: "canvas",
     category: "generic-diagrams",
     label: "Canvas",

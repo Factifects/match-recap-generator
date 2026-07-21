@@ -1,0 +1,330 @@
+### SCENE 1
+
+**Scene Type:** Canvas
+
+**Narration:** Look at a clock. Nine plus five isn't fourteen — it's two. The clock doesn't count past twelve; it just wraps back around. That wrap-around trick has a name — modular arithmetic — and it turns out to be one of the most useful ideas in all of math.
+
+**Duration:** 15 seconds
+
+**Story Beat:** hook
+
+**Transition Style:** zoom in
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "On A Clock, 9 + 5 = 2",
+  "objects": [
+    { "id": "clockCircle", "type": "circle", "x": 50, "y": 52, "radius": 26, "color": "#475569", "filled": false, "strokeWidth": 3 },
+    { "id": "twelveDot", "type": "dot", "x": 50, "y": 26, "color": "#64748b", "label": "12" },
+    { "id": "travelerDot", "type": "dot", "x": 24, "y": 52, "color": "#fbbf24", "label": "9", "trail": true },
+    { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Start At 9", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "clockCircle", "type": "circle", "x": 50, "y": 52, "radius": 26, "color": "#475569", "filled": false, "strokeWidth": 3 },
+        { "id": "twelveDot", "type": "dot", "x": 50, "y": 26, "color": "#64748b", "label": "12" },
+        { "id": "travelerDot", "type": "dot", "x": 50, "y": 26, "color": "#f59e0b", "label": "+3", "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "9 + 3 = 12 — Reaches The Top", "color": "#fde68a" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "clockCircle", "type": "circle", "x": 50, "y": 52, "radius": 26, "color": "#475569", "filled": false, "strokeWidth": 3 },
+        { "id": "twelveDot", "type": "dot", "x": 50, "y": 26, "color": "#64748b", "label": "12" },
+        { "id": "travelerDot", "type": "dot", "x": 68, "y": 34, "color": "#38bdf8", "label": "2", "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Wraps Past 12 → Lands On 2", "color": "#93c5fd" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** That's called "mod." Nine mod twelve just means: divide by twelve, and keep only the remainder. It doesn't have to be twelve, either — you can wrap around any number you like. Mod five wraps every five counts. Mod seven, every seven.
+
+**Duration:** 15 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "What 'Mod' Actually Means",
+  "objects": [
+    { "id": "equation", "type": "label", "x": 50, "y": 28, "label": "17 mod 5 = 2", "color": "#f8fafc" },
+    { "id": "eqCaption", "type": "label", "x": 50, "y": 42, "label": "Divide, Keep Only What's Left Over", "color": "#cbd5e1" },
+    { "id": "modA", "type": "circle", "x": 25, "y": 68, "radius": 10, "color": "#38bdf8", "filled": false, "strokeWidth": 2 },
+    { "id": "modALabel", "type": "label", "x": 25, "y": 84, "label": "mod 5", "color": "#93c5fd" },
+    { "id": "modB", "type": "circle", "x": 50, "y": 68, "radius": 10, "color": "#38bdf8", "filled": false, "strokeWidth": 2 },
+    { "id": "modBLabel", "type": "label", "x": 50, "y": 84, "label": "mod 7", "color": "#93c5fd" },
+    { "id": "modC", "type": "circle", "x": 75, "y": 68, "radius": 10, "color": "#38bdf8", "filled": false, "strokeWidth": 2 },
+    { "id": "modCLabel", "type": "label", "x": 75, "y": 84, "label": "mod 12", "color": "#93c5fd" }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Canvas
+
+**Narration:** Picture it as a number line that's been bent into a loop. Walk forward past the top, and you don't fall off — you just land back at the start and keep counting. Every number eventually lands on one of just a few possible remainders, over and over, forever.
+
+**Duration:** 16 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Numbers Wrap Around Forever",
+  "objects": [
+    { "id": "loopCircle", "type": "circle", "x": 50, "y": 50, "radius": 24, "color": "#334155", "filled": false, "strokeWidth": 2 },
+    { "id": "dot0", "type": "dot", "x": 50, "y": 24, "color": "#64748b", "label": "0" },
+    { "id": "dot1", "type": "dot", "x": 72, "y": 38, "color": "#64748b", "label": "1" },
+    { "id": "dot2", "type": "dot", "x": 64, "y": 64, "color": "#64748b", "label": "2" },
+    { "id": "dot3", "type": "dot", "x": 36, "y": 64, "color": "#64748b", "label": "3" },
+    { "id": "dot4", "type": "dot", "x": 28, "y": 38, "color": "#64748b", "label": "4" },
+    { "id": "walker", "type": "dot", "x": 50, "y": 24, "color": "#fbbf24", "radius": 3, "trail": true },
+    { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Counting: 0", "color": "#fde68a" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "loopCircle", "type": "circle", "x": 50, "y": 50, "radius": 24, "color": "#334155", "filled": false, "strokeWidth": 2 },
+        { "id": "dot0", "type": "dot", "x": 50, "y": 24, "color": "#64748b", "label": "0" },
+        { "id": "dot1", "type": "dot", "x": 72, "y": 38, "color": "#64748b", "label": "1" },
+        { "id": "dot2", "type": "dot", "x": 64, "y": 64, "color": "#64748b", "label": "2" },
+        { "id": "dot3", "type": "dot", "x": 36, "y": 64, "color": "#64748b", "label": "3" },
+        { "id": "dot4", "type": "dot", "x": 28, "y": 38, "color": "#64748b", "label": "4" },
+        { "id": "walker", "type": "dot", "x": 72, "y": 38, "color": "#fbbf24", "radius": 3, "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Counting: 1", "color": "#fde68a" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "loopCircle", "type": "circle", "x": 50, "y": 50, "radius": 24, "color": "#334155", "filled": false, "strokeWidth": 2 },
+        { "id": "dot0", "type": "dot", "x": 50, "y": 24, "color": "#64748b", "label": "0" },
+        { "id": "dot1", "type": "dot", "x": 72, "y": 38, "color": "#64748b", "label": "1" },
+        { "id": "dot2", "type": "dot", "x": 64, "y": 64, "color": "#64748b", "label": "2" },
+        { "id": "dot3", "type": "dot", "x": 36, "y": 64, "color": "#64748b", "label": "3" },
+        { "id": "dot4", "type": "dot", "x": 28, "y": 38, "color": "#64748b", "label": "4" },
+        { "id": "walker", "type": "dot", "x": 64, "y": 64, "color": "#fbbf24", "radius": 3, "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Counting: 2", "color": "#fde68a" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "loopCircle", "type": "circle", "x": 50, "y": 50, "radius": 24, "color": "#334155", "filled": false, "strokeWidth": 2 },
+        { "id": "dot0", "type": "dot", "x": 50, "y": 24, "color": "#64748b", "label": "0" },
+        { "id": "dot1", "type": "dot", "x": 72, "y": 38, "color": "#64748b", "label": "1" },
+        { "id": "dot2", "type": "dot", "x": 64, "y": 64, "color": "#64748b", "label": "2" },
+        { "id": "dot3", "type": "dot", "x": 36, "y": 64, "color": "#64748b", "label": "3" },
+        { "id": "dot4", "type": "dot", "x": 28, "y": 38, "color": "#64748b", "label": "4" },
+        { "id": "walker", "type": "dot", "x": 36, "y": 64, "color": "#fbbf24", "radius": 3, "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Counting: 3", "color": "#fde68a" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "loopCircle", "type": "circle", "x": 50, "y": 50, "radius": 24, "color": "#334155", "filled": false, "strokeWidth": 2 },
+        { "id": "dot0", "type": "dot", "x": 50, "y": 24, "color": "#64748b", "label": "0" },
+        { "id": "dot1", "type": "dot", "x": 72, "y": 38, "color": "#64748b", "label": "1" },
+        { "id": "dot2", "type": "dot", "x": 64, "y": 64, "color": "#64748b", "label": "2" },
+        { "id": "dot3", "type": "dot", "x": 36, "y": 64, "color": "#64748b", "label": "3" },
+        { "id": "dot4", "type": "dot", "x": 28, "y": 38, "color": "#64748b", "label": "4" },
+        { "id": "walker", "type": "dot", "x": 28, "y": 38, "color": "#fbbf24", "radius": 3, "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Counting: 4", "color": "#fde68a" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "loopCircle", "type": "circle", "x": 50, "y": 50, "radius": 24, "color": "#334155", "filled": false, "strokeWidth": 2 },
+        { "id": "dot0", "type": "dot", "x": 50, "y": 24, "color": "#64748b", "label": "0" },
+        { "id": "dot1", "type": "dot", "x": 72, "y": 38, "color": "#64748b", "label": "1" },
+        { "id": "dot2", "type": "dot", "x": 64, "y": 64, "color": "#64748b", "label": "2" },
+        { "id": "dot3", "type": "dot", "x": 36, "y": 64, "color": "#64748b", "label": "3" },
+        { "id": "dot4", "type": "dot", "x": 28, "y": 38, "color": "#64748b", "label": "4" },
+        { "id": "walker", "type": "dot", "x": 50, "y": 24, "color": "#4ade80", "radius": 3, "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Back To 0 — And It Loops Forever", "color": "#86efac" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Canvas
+
+**Narration:** Here's a real place this shows up: the last digit of your credit card number, or a barcode, isn't part of the account — it's a check digit, computed from every digit before it using modular math. Mistype a digit while typing it in, and that modular check catches it almost every time.
+
+**Duration:** 17 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "Your Card's Last Digit Isn't Random",
+  "objects": [
+    { "id": "d1", "type": "roundedRectangle", "x": 30, "y": 45, "width": 12, "height": 16, "radius": 2, "color": "#475569", "filled": true, "label": "8" },
+    { "id": "d2", "type": "roundedRectangle", "x": 43, "y": 45, "width": 12, "height": 16, "radius": 2, "color": "#475569", "filled": true, "label": "3" },
+    { "id": "d3", "type": "roundedRectangle", "x": 56, "y": 45, "width": 12, "height": 16, "radius": 2, "color": "#475569", "filled": true, "label": "7" },
+    { "id": "d4", "type": "roundedRectangle", "x": 69, "y": 45, "width": 12, "height": 16, "radius": 2, "color": "#fbbf24", "filled": true, "label": "2" },
+    { "id": "checkLabel", "type": "label", "x": 69, "y": 66, "label": "Check Digit", "color": "#fde68a" },
+    { "id": "luhnCaption", "type": "label", "x": 50, "y": 84, "label": "The Luhn Algorithm — Mod 10", "color": "#93c5fd" }
+  ]
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Canvas
+
+**Narration:** Modular math gets really powerful once you add exponents. Take three, raised to the seventh power, inside mod eleven — multiply by three, wrap, multiply by three, wrap, seven times over. The answer: nine. Straightforward to compute, even by hand.
+
+**Duration:** 15 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "3⁷ mod 11 = 9",
+  "objects": [
+    { "id": "s1", "type": "roundedRectangle", "x": 13, "y": 60, "width": 10, "height": 13, "radius": 2, "color": "#fbbf24", "filled": true, "label": "3", "scale": 1.15 },
+    { "id": "s2", "type": "roundedRectangle", "x": 26, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "9", "opacity": 0.2 },
+    { "id": "s3", "type": "roundedRectangle", "x": 39, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "5", "opacity": 0.2 },
+    { "id": "s4", "type": "roundedRectangle", "x": 52, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "4", "opacity": 0.2 },
+    { "id": "s5", "type": "roundedRectangle", "x": 65, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "1", "opacity": 0.2 },
+    { "id": "s6", "type": "roundedRectangle", "x": 78, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "3", "opacity": 0.2 },
+    { "id": "s7", "type": "roundedRectangle", "x": 91, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "9", "opacity": 0.2 },
+    { "id": "caption", "type": "label", "x": 50, "y": 82, "label": "3¹ mod 11 = 3", "color": "#fde68a" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "s1", "type": "roundedRectangle", "x": 13, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#475569", "filled": true, "label": "3" },
+        { "id": "s2", "type": "roundedRectangle", "x": 26, "y": 60, "width": 10, "height": 13, "radius": 2, "color": "#fbbf24", "filled": true, "label": "9", "scale": 1.15 },
+        { "id": "s3", "type": "roundedRectangle", "x": 39, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "5", "opacity": 0.2 },
+        { "id": "s4", "type": "roundedRectangle", "x": 52, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "4", "opacity": 0.2 },
+        { "id": "s5", "type": "roundedRectangle", "x": 65, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "1", "opacity": 0.2 },
+        { "id": "s6", "type": "roundedRectangle", "x": 78, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "3", "opacity": 0.2 },
+        { "id": "s7", "type": "roundedRectangle", "x": 91, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "9", "opacity": 0.2 },
+        { "id": "caption", "type": "label", "x": 50, "y": 82, "label": "3² mod 11 = 9", "color": "#fde68a" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "s1", "type": "roundedRectangle", "x": 13, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#475569", "filled": true, "label": "3" },
+        { "id": "s2", "type": "roundedRectangle", "x": 26, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#475569", "filled": true, "label": "9" },
+        { "id": "s3", "type": "roundedRectangle", "x": 39, "y": 60, "width": 10, "height": 13, "radius": 2, "color": "#fbbf24", "filled": true, "label": "5", "scale": 1.15 },
+        { "id": "s4", "type": "roundedRectangle", "x": 52, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "4", "opacity": 0.2 },
+        { "id": "s5", "type": "roundedRectangle", "x": 65, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "1", "opacity": 0.2 },
+        { "id": "s6", "type": "roundedRectangle", "x": 78, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "3", "opacity": 0.2 },
+        { "id": "s7", "type": "roundedRectangle", "x": 91, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#334155", "filled": true, "label": "9", "opacity": 0.2 },
+        { "id": "caption", "type": "label", "x": 50, "y": 82, "label": "3³ mod 11 = 5 — Just Keeps Wrapping", "color": "#fde68a" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "s1", "type": "roundedRectangle", "x": 13, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#475569", "filled": true, "label": "3" },
+        { "id": "s2", "type": "roundedRectangle", "x": 26, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#475569", "filled": true, "label": "9" },
+        { "id": "s3", "type": "roundedRectangle", "x": 39, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#475569", "filled": true, "label": "5" },
+        { "id": "s4", "type": "roundedRectangle", "x": 52, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#475569", "filled": true, "label": "4" },
+        { "id": "s5", "type": "roundedRectangle", "x": 65, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#475569", "filled": true, "label": "1" },
+        { "id": "s6", "type": "roundedRectangle", "x": 78, "y": 60, "width": 9, "height": 12, "radius": 2, "color": "#475569", "filled": true, "label": "3" },
+        { "id": "s7", "type": "roundedRectangle", "x": 91, "y": 60, "width": 10, "height": 13, "radius": 2, "color": "#4ade80", "filled": true, "label": "9", "scale": 1.15 },
+        { "id": "caption", "type": "label", "x": 50, "y": 82, "label": "3⁷ mod 11 = 9", "color": "#86efac" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Canvas
+
+**Narration:** Here's the trick that makes this useful for security: going forward — plugging in numbers and computing the wrapped result — is easy, even for enormous numbers. Going backward — given only the result, figuring out which secret number produced it — becomes brutally, deliberately hard once those numbers get large enough. That one-way street is not an accident. It's the whole design.
+
+**Duration:** 21 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "A One-Way Street, On Purpose",
+  "objects": [
+    { "id": "fwdLabel", "type": "label", "x": 24, "y": 32, "label": "FORWARD", "color": "#f8fafc" },
+    { "id": "fwdIcon", "type": "icon", "icon": "check", "x": 55, "y": 32, "color": "#4ade80", "radius": 6 },
+    { "id": "fwdCaption", "type": "label", "x": 82, "y": 32, "label": "easy", "color": "#86efac" },
+    { "id": "bwdLabel", "type": "label", "x": 24, "y": 60, "label": "BACKWARD", "color": "#fecaca" },
+    { "id": "bwdIcon", "type": "icon", "icon": "warning", "x": 55, "y": 60, "color": "#f87171", "radius": 6 },
+    { "id": "bwdCaption", "type": "label", "x": 82, "y": 60, "label": "brutal", "color": "#fca5a5" }
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** Now combine that one-way trick with something from last time: swap in a modulus built from two absolutely massive primes multiplied together, and reversing the process would mean factoring that giant product back apart — the exact wall we hit in the primes video. Stack those two ideas together, and you've built the encryption protecting nearly every private connection on the internet.
+
+**Duration:** 20 seconds
+
+**Story Beat:** payoff
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "The Two Ideas, Combined",
+  "objects": [
+    { "id": "primeA", "type": "roundedRectangle", "x": 28, "y": 34, "width": 18, "height": 20, "radius": 4, "color": "#fbbf24", "filled": true, "label": "P" },
+    { "id": "primeB", "type": "roundedRectangle", "x": 72, "y": 34, "width": 18, "height": 20, "radius": 4, "color": "#fbbf24", "filled": true, "label": "Q" },
+    { "id": "lockIcon", "type": "icon", "icon": "lock", "x": 50, "y": 64, "color": "#38bdf8", "radius": 10 },
+    { "id": "caption", "type": "label", "x": 50, "y": 86, "label": "One-Way Math + Two Massive Primes", "color": "#93c5fd" }
+  ],
+  "arrows": [
+    { "from": "primeA", "to": "lockIcon", "style": "dashed", "color": "#fde68a" },
+    { "from": "primeB", "to": "lockIcon", "style": "dashed", "color": "#fde68a" }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Statement
+
+**Narration:** So the next time a clock rolls from eleven back to twelve, remember: that same wrap-around trick, scaled up with primes so big they'd take longer than the universe's age to factor, is quietly running every secure connection you make.
+
+**Duration:** 13 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+**Panel Color:** blue
+
+---

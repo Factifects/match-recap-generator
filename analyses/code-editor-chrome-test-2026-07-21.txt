@@ -1,0 +1,122 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** Testing the new Code Snippet visual.
+
+**Annotation:** CODE SNIPPET VISUAL TEST
+
+**Duration:** 4 seconds
+
+**Story Beat:** hook
+
+**Panel Color:** blue
+
+---
+
+### SCENE 2
+
+**Scene Type:** Code
+
+**Narration:** Real monospace font, real syntax highlighting, a proper filename tab.
+
+**Duration:** 8 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "filename": "snippet.js",
+  "language": "JS",
+  "lines": [
+    [
+      { "text": "const ", "token": "keyword" },
+      { "text": "msg", "token": "variable" },
+      { "text": " = ", "token": "plain" },
+      { "text": "'Wow this is awesome!'", "token": "string" },
+      { "text": ";", "token": "plain" }
+    ],
+    [
+      { "text": "console", "token": "variable" },
+      { "text": ".log(", "token": "function" },
+      { "text": "msg", "token": "variable" },
+      { "text": ");", "token": "plain" }
+    ],
+    [],
+    [
+      { "text": "const ", "token": "keyword" },
+      { "text": "plug", "token": "variable" },
+      { "text": " = ", "token": "plain" },
+      { "text": "'You should use snappify'", "token": "string" },
+      { "text": ";", "token": "plain" }
+    ],
+    [
+      { "text": "console", "token": "variable" },
+      { "text": ".log(", "token": "function" },
+      { "text": "plug", "token": "variable" },
+      { "text": ");", "token": "plain" }
+    ]
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Code
+
+**Narration:** No filename or language — just the traffic lights and the code, when that's all a scene needs.
+
+**Duration:** 8 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "lines": [
+    [
+      { "text": "function ", "token": "keyword" },
+      { "text": "isPrime", "token": "function" },
+      { "text": "(n) {", "token": "plain" }
+    ],
+    [
+      { "text": "  for ", "token": "keyword" },
+      { "text": "(i = 2; i < n; i++)", "token": "plain" }
+    ],
+    [
+      { "text": "    if ", "token": "keyword" },
+      { "text": "(n % i === ", "token": "plain" },
+      { "text": "0", "token": "number" },
+      { "text": ") ", "token": "plain" },
+      { "text": "return ", "token": "keyword" },
+      { "text": "false;", "token": "plain" }
+    ],
+    [
+      { "text": "  return ", "token": "keyword" },
+      { "text": "true;", "token": "plain" }
+    ],
+    [
+      { "text": "}", "token": "plain" }
+    ]
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Statement
+
+**Narration:** That's the real fix — a standalone visual, not text stuffed into a box.
+
+**Duration:** 5 seconds
+
+**Story Beat:** reflection
+
+**Panel Color:** blue
+
+---
