@@ -153,6 +153,17 @@ export const AnalysisVideo: React.FC<{
               {segment.audioStaticPath && (
                 <Html5Audio src={staticFile(segment.audioStaticPath)} volume={segment.narrationVolume ?? 1} />
               )}
+              {segment.narrationClips?.map((clip, clipIndex) =>
+                clip.staticPath ? (
+                  <Sequence
+                    key={clipIndex}
+                    from={Math.round((clip.offsetSeconds ?? 0) * fps)}
+                    durationInFrames={Math.max(1, Math.round((clip.durationSeconds ?? 0) * fps))}
+                  >
+                    <Html5Audio src={staticFile(clip.staticPath)} volume={clip.volume ?? segment.narrationVolume ?? 1} />
+                  </Sequence>
+                ) : null,
+              )}
               {segment.sfxStaticPath && <Html5Audio src={staticFile(segment.sfxStaticPath)} volume={0.5} />}
             </TransitionSeries.Sequence>
             {index < segments.length - 1 && (

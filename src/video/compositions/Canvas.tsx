@@ -1,6 +1,6 @@
 import React from "react";
 import { useCurrentFrame } from "remotion";
-import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter } from "../theme";
+import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter, FPS } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, drawIn, slideIn, pulse, type EasingName } from "../motion";
 import { CANVAS_ICON_COMPONENTS } from "../canvasIcons";
@@ -123,6 +123,35 @@ interface ResolvedPhase {
   objects: CanvasData["objects"];
   arrows: CanvasData["arrows"];
   camera: CanvasCameraT | undefined;
+  // Anchors this phase to an absolute frame instead of the default fixed-
+  // cadence spacing — see resolvePhaseStartFrames below. Only ever set on a
+  // folded-in scene's boundary phase (mergeCanvasContinuity.ts); every
+  // script-authored phase leaves this undefined, reproducing today's exact
+  // fixed-cadence behavior.
+  startSeconds?: number;
+}
+
+/** Each phase's effective start frame: an explicit `startSeconds` (converted
+ * to frames) pins that phase directly; any phase without one holds for
+ * exactly CANVAS_PHASE_DURATION_FRAMES after the PREVIOUS phase's own
+ * (possibly anchored) start — so an anchor on phase i doesn't just move phase
+ * i, it re-bases the fixed cadence for every unanchored phase after it too.
+ * No phase anywhere specifying `startSeconds` (every script authored
+ * directly today) reproduces `i * CANVAS_PHASE_DURATION_FRAMES` exactly,
+ * byte-for-byte the same selection `Math.floor(frame /
+ * CANVAS_PHASE_DURATION_FRAMES)` already produced. Mirrors
+ * PhaseCaptionOverlay.tsx's own `resolvePhaseStartFrames`, just with a fixed-
+ * cadence fallback instead of an even split (Canvas phases hold for a fixed
+ * beat, not "spread evenly across the segment's total duration"). */
+function resolvePhaseStartFrames(phases: ResolvedPhase[]): number[] {
+  const starts: number[] = [];
+  for (let i = 0; i < phases.length; i++) {
+    const explicit = phases[i].startSeconds;
+    if (explicit !== undefined) starts.push(Math.round(explicit * FPS));
+    else if (i === 0) starts.push(0);
+    else starts.push(starts[i - 1] + CANVAS_PHASE_DURATION_FRAMES);
+  }
+  return starts;
 }
 
 /** Every animatable property (x/y/radius/width/height/rotation/scale/
@@ -186,10 +215,19 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
 
   const allPhases: ResolvedPhase[] = [
     { objects, arrows, camera: topCamera },
-    ...(dataPhases ?? []).map((phase) => ({ objects: phase.objects, arrows: phase.arrows ?? [], camera: phase.camera })),
+    ...(dataPhases ?? []).map((phase) => ({
+      objects: phase.objects,
+      arrows: phase.arrows ?? [],
+      camera: phase.camera,
+      startSeconds: phase.startSeconds,
+    })),
   ];
-  const phaseIndex = Math.min(allPhases.length - 1, Math.floor(frame / CANVAS_PHASE_DURATION_FRAMES));
-  const phaseLocalFrame = frame - phaseIndex * CANVAS_PHASE_DURATION_FRAMES;
+  const phaseStartFrames = resolvePhaseStartFrames(allPhases);
+  let phaseIndex = 0;
+  for (let i = 0; i < phaseStartFrames.length; i++) {
+    if (frame >= phaseStartFrames[i]) phaseIndex = i;
+  }
+  const phaseLocalFrame = frame - phaseStartFrames[phaseIndex];
   const currentPhase = allPhases[phaseIndex];
   const previousPhase = phaseIndex > 0 ? allPhases[phaseIndex - 1] : undefined;
 
@@ -735,21 +773,6 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
           )}
         </div>
 
-        {allPhases.length > 1 && (
-          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-            {allPhases.map((_, index) => (
-              <div
-                key={index}
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  background: index === phaseIndex ? COLORS.highlight : COLORS.border,
-                }}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </SceneFrame>
   );

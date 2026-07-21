@@ -68,3 +68,51 @@ describe("parseSceneScript — tactical-board", () => {
     expect(visual.phases).toBeDefined();
   });
 });
+
+describe("parseSceneScript — Continue Canvas", () => {
+  it("sets continuesCanvasFrom when the field is 'true'", () => {
+    const script = `### SCENE 1
+
+**Scene Type:** Canvas
+
+**Narration:** First beat.
+
+**Data:** {"objects":[{"id":"a","type":"dot","x":50,"y":50}]}
+
+**Duration:** 4 seconds
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** Second beat, continues the first.
+
+**Continue Canvas:** true
+
+**Data:** {"objects":[{"id":"b","type":"dot","x":60,"y":60}]}
+
+**Duration:** 4 seconds
+`;
+    const segments = parseSceneScript(script);
+    expect(segments).toHaveLength(2);
+    expect(segments[0].continuesCanvasFrom).toBeUndefined();
+    expect(segments[1].continuesCanvasFrom).toBe(true);
+  });
+
+  it("leaves continuesCanvasFrom unset when the field is absent or not 'true'", () => {
+    const script = `### SCENE 1
+
+**Scene Type:** Canvas
+
+**Narration:** No continuation field at all.
+
+**Data:** {"objects":[{"id":"a","type":"dot","x":50,"y":50}]}
+
+**Duration:** 4 seconds
+`;
+    const segments = parseSceneScript(script);
+    expect(segments[0].continuesCanvasFrom).toBeUndefined();
+  });
+});

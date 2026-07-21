@@ -198,4 +198,39 @@ export type TimedSegment = Segment & {
    * own duration, on top of whichever visual is showing — works identically
    * regardless of visual kind (rendered as a sibling overlay, not per-card). */
   phases?: { caption: string; startSeconds?: number }[];
+  /** Scene-spec scripts only: set when this scene's `**Continue Canvas:**`
+   * field is `true` — a signal to mergeCanvasContinuity.ts (src/script/) that
+   * this scene's Canvas visual should be folded into the immediately
+   * preceding scene's Canvas as more phases (camera glides/pans into it
+   * rather than a cut/dissolve) instead of becoming its own segment. Consumed
+   * and never persisted past that merge step — a scene that actually reaches
+   * rendering never has this set to true (it's been absorbed into its
+   * predecessor by then). */
+  continuesCanvasFrom?: boolean;
+  /** Set by mergeCanvasContinuity.ts + resolveSegmentAudio in place of a
+   * single `audioStaticPath` when this segment is a merged Canvas passage
+   * (multiple originally-independent scenes folded into one) — each entry is
+   * one sub-scene's own narration, played back at its own offset within this
+   * segment's total duration rather than one continuous clip. Absent for
+   * every ordinary (non-merged) segment, which keeps using `audioStaticPath`
+   * exactly as today. `staticPath`/`offsetSeconds`/`durationSeconds` are
+   * filled in by resolveSegmentAudio once real TTS duration is known — before
+   * that, an entry only has `text`. */
+  narrationClips?: { text: string; staticPath?: string; offsetSeconds?: number; durationSeconds?: number; volume?: number }[];
+  /** Internal bookkeeping set by mergeCanvasContinuity.ts, consumed and
+   * deleted by resolveSegmentAudio — never reaches the rendered sidecar JSON.
+   * One entry per `narrationClips` entry AFTER the first (a merged passage's
+   * first sub-scene starts at offset 0 and needs no anchor): the index into
+   * `visual.phases` (Canvas only) of that sub-scene's own boundary phase,
+   * whose `startSeconds` gets patched to that sub-scene's real cumulative
+   * narration offset once resolveSegmentAudio knows it. */
+  _canvasClipBoundaries?: number[];
+  /** Internal bookkeeping set by mergeCanvasContinuity.ts, consumed and
+   * deleted by resolveSegmentAudio — never reaches the rendered sidecar JSON.
+   * One `[from, to)` slice of `phases` (on-screen captions) per
+   * `narrationClips` entry, INCLUDING the first — every caption in `phases`
+   * already has an absolute `startSeconds` within its own sub-scene's span by
+   * the time this is set; resolveSegmentAudio only needs to add each range's
+   * clip's real cumulative offset to every caption inside it. */
+  _canvasCaptionRanges?: { from: number; to: number }[];
 };

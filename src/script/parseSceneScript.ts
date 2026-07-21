@@ -34,7 +34,7 @@ const TIMELINE_SETTLE_BUFFER_SECONDS = 1;
  * each of whose phases hold the screen for a fixed per-phase frame count so a
  * real breakdown legitimately runs long because it has real content, not
  * because of an inflated word-count guess. */
-function computeVisualMinDurationSeconds(visual: Visual | undefined): number {
+export function computeVisualMinDurationSeconds(visual: Visual | undefined): number {
   // A `timeline`-authored board's real choreographed length is knowable
   // directly from its own authored timing — a genuinely better floor than
   // guessing from phase count, since it reflects exactly how much action was
@@ -506,6 +506,19 @@ function resolvePanelColor(fields: SceneFields): "neutral" | "red" | "blue" | "y
   return value && PANEL_COLOR_KEYS.has(value) ? (value as "neutral" | "red" | "blue" | "yellow") : undefined;
 }
 
+/** An optional **Continue Canvas:** true field, set on the scene AFTER the
+ * one it should visually continue from — a signal to mergeCanvasContinuity.ts
+ * (run as a post-parse pass in generate.ts) that this scene's Canvas visual
+ * should be folded into the immediately preceding scene's Canvas as more
+ * phases, so the camera glides/pans into it instead of cutting/dissolving.
+ * Absent or any other value means today's behavior: this scene renders as its
+ * own independent segment, unaffected. Only meaningful when both this scene
+ * and its predecessor are `Scene Type: Canvas` — mergeCanvasContinuity.ts is
+ * responsible for that check, not this parser. */
+function resolveContinueCanvas(fields: SceneFields): true | undefined {
+  return fields["Continue Canvas"]?.trim().toLowerCase() === "true" ? true : undefined;
+}
+
 const BOARD_POSITION_KEYS = new Set(["left", "right", "center"]);
 
 /** An optional **Board Position:** field, TacticalBoard/Formation only —
@@ -691,6 +704,7 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
       boardPosition: resolveBoardPosition(visual, fields),
       animation: resolveAnimation(fields),
       phases: resolvePhases(fields),
+      continuesCanvasFrom: resolveContinueCanvas(fields),
     });
   }
 

@@ -552,6 +552,16 @@ const canvasPhaseSchema = z.object({
   objects: z.array(canvasObjectSchema).min(1),
   arrows: z.array(canvasArrowSchema).optional(),
   camera: canvasCameraSchema.optional(),
+  // Anchors this phase to an absolute point in the segment's timeline instead
+  // of the default fixed CANVAS_PHASE_DURATION_FRAMES cadence (see Canvas.tsx)
+  // — set by mergeCanvasContinuity.ts on a folded-in scene's first phase once
+  // that sub-scene's real narration offset is known, so the camera arrives
+  // exactly when that sub-scene's audio starts rather than at a fixed frame
+  // count. Absent (every script authored directly, today's only case) keeps
+  // the existing fixed-cadence behavior unchanged; a phase after an anchored
+  // one with no startSeconds of its own resumes fixed-cadence spacing FROM
+  // that anchor.
+  startSeconds: z.number().min(0).optional(),
 });
 
 export interface VisualDefinition<Schema extends z.ZodTypeAny = z.ZodTypeAny> {

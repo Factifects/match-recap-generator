@@ -3,6 +3,7 @@ import path from "node:path";
 import { parseAnalysisScript } from "./script/parseAnalysisScript";
 import { parseSceneScript, isSceneScript } from "./script/parseSceneScript";
 import { autoFixGeometry } from "./script/validateGeometry";
+import { mergeCanvasContinuity } from "./script/mergeCanvasContinuity";
 import { resolveSegmentAudio, generateBackgroundMusic, type TtsProvider } from "./audio/resolveAudio";
 import { renderVideo, type RenderProgress } from "./render/renderVideo";
 import type { TimedSegment, AspectRatio, AudioClipPlacement } from "./model/Segment";
@@ -201,6 +202,18 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   if (fixes.length > 0) {
     log(`Auto-corrected ${fixes.length} left/right position mistake${fixes.length > 1 ? "s" : ""}:`);
     fixes.forEach((fix) => log(`  - ${fix}`));
+  }
+
+  // Folds any `**Continue Canvas:** true` scenes into the continuous camera
+  // passage they belong to — must run before the preAudioSegments snapshot
+  // below, since resyncAudioClipsToRealDurations requires segment count to
+  // already match between the pre- and post-audio arrays (see its own
+  // comment). No-op when no script uses the feature.
+  const { segments: canvasMergedSegments, notes: canvasMergeNotes } = mergeCanvasContinuity(segments);
+  segments = canvasMergedSegments;
+  if (canvasMergeNotes.length > 0) {
+    log(`Merged continuous Canvas passages (${canvasMergeNotes.length} note${canvasMergeNotes.length > 1 ? "s" : ""}):`);
+    canvasMergeNotes.forEach((note) => log(`  - ${note}`));
   }
 
   let audioClips = options.audioClips;

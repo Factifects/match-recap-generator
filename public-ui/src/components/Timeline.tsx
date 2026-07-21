@@ -15,11 +15,26 @@ const MIN_DURATION_SECONDS = MIN_CLIP_DURATION_SECONDS;
  * count, not a fixed seconds value, so snapping feels equally precise at
  * any zoom level. */
 const SNAP_PIXELS = 10;
+/** How close two clip edges have to sit (in seconds) to count as "glued"
+ * for ripple-trim purposes below — small enough to never falsely catch two
+ * clips that are genuinely, deliberately separated, large enough to absorb
+ * float rounding from a prior snap. */
+const GLUE_EPSILON_SECONDS = 0.05;
 
 const ROW_HEIGHT_PX = 56;
 const ROW_INSET_PX = 4;
 
 function segmentLabel(segment: TimedSegment): string {
+  // A merged continuous-Canvas passage (see mergeCanvasContinuity.ts) holds
+  // several originally-independent scenes' worth of text in `segment.text` —
+  // showing that concatenation truncated to 40 chars reads as a garbled
+  // half-sentence, not a useful label, so it gets its own summary instead.
+  // The passage still drags/trims as one opaque block, same as any other
+  // scene track entry (see Timeline.tsx's drag/resize handlers, both of which
+  // read/write plain per-index `durationSeconds`, unaffected by this).
+  if (segment.narrationClips && segment.narrationClips.length > 1) {
+    return `Canvas passage (${segment.narrationClips.length} scenes)`;
+  }
   const text = segment.text;
   return text.length > 40 ? `${text.slice(0, 40)}…` : text;
 }
@@ -446,6 +461,17 @@ export const Timeline: React.FC<TimelineProps> = ({
     const trimStart = clip.trimStartSeconds ?? 0;
     const sourceLength = clip.sourceDurationSeconds;
     const startSeconds = clip.startSeconds;
+    const lane = clip.lane ?? 0;
+    // A clip sitting flush against this one's tail (e.g. a duplicated copy
+    // placed right after it) — captured once, at drag start, so shortening
+    // this clip's tail carries it along instead of leaving it stranded at
+    // its old position. Without this, trimming a clip after a neighbor was
+    // already placed against it (the common "duplicate, then trim both
+    // ends to smooth the join" workflow) leaves that neighbor's original,
+    // now-stale gap in place — silence where the two were meant to meet.
+    const gluedSuccessor = audioClips.find(
+      (c) => c.id !== clip.id && (c.lane ?? 0) === lane && Math.abs(c.startSeconds - (startSeconds + duration)) < GLUE_EPSILON_SECONDS,
+    );
     const candidates = snapCandidatesExcluding(clip.id);
     startDrag(e, pixelsPerSecond, (deltaSeconds) => {
       let next = Math.max(MIN_DURATION_SECONDS, duration + deltaSeconds);
@@ -455,7 +481,9 @@ export const Timeline: React.FC<TimelineProps> = ({
       const rawEnd = startSeconds + next;
       const { value: snappedEnd, guide } = snapTo(rawEnd, candidates, snapSeconds);
       setSnapGuide(guide);
-      onUpdateClip(clip.id, { durationSeconds: Math.max(MIN_DURATION_SECONDS, snappedEnd - startSeconds) });
+      const newDuration = Math.max(MIN_DURATION_SECONDS, snappedEnd - startSeconds);
+      onUpdateClip(clip.id, { durationSeconds: newDuration });
+      if (gluedSuccessor) onUpdateClip(gluedSuccessor.id, { startSeconds: startSeconds + newDuration });
     });
     const stopWatch = () => {
       endDrag(() => {});

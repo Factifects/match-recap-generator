@@ -1,4 +1,4 @@
-import { generateSoundEffect, generateSpeech } from "./elevenLabs";
+import { generateSoundEffect, generateSpeech, type GeneratedSpeech } from "./elevenLabs";
 import { generateSpeechEdge } from "./edgeTts";
 import type { TimedSegment } from "../model/Segment";
 
@@ -58,29 +58,118 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T,
  * which stays capped by free RAM (see renderVideo.ts's safeConcurrency).
  * ElevenLabs generation stays sequential, one call at a time, to keep its
  * cost/rate-limit behavior exactly as it's always been. */
+/** Synthesizes one piece of text via whichever provider is active — the
+ * single call site every branch below (single-clip and multi-clip alike)
+ * funnels through, so provider selection only lives in one place. */
+function synthesizeOne(text: string, provider: TtsProvider, edgeVoice?: string): Promise<GeneratedSpeech> {
+  return provider === "edge" ? generateSpeechEdge(text, edgeVoice) : generateSpeech(text);
+}
+
 export async function resolveSegmentAudio(
   segments: TimedSegment[],
   options: ResolveAudioOptions = {},
 ): Promise<TimedSegment[]> {
   const provider = options.provider ?? "elevenlabs";
+  const edgeVoice = options.edgeVoice;
   const sfx = provider === "elevenlabs" ? await generateSoundEffect(CHAPTER_WHOOSH_PROMPT, 1) : null;
 
-  // `narrationText` wins when set (Chapter scenes: a short on-screen
-  // Annotation shouldn't also cap what actually gets spoken) — see its
-  // definition on TimedSegment for why this exists at all.
-  const speeches =
+  // A merged Canvas passage (see mergeCanvasContinuity.ts) carries several
+  // sub-scenes' own narration in `narrationClips` instead of one text in
+  // `text`/`narrationText` — each of its clips needs its own `generateSpeech`
+  // call, synthesized in the same order as the clips themselves (still one
+  // ElevenLabs call at a time for that segment, matching this function's
+  // existing "stay sequential" cost/rate-limit posture; edge-tts's bounded
+  // cross-segment concurrency below is otherwise unaffected). Every ordinary
+  // segment (the overwhelming majority) takes the exact same single-text path
+  // as before — `narrationText` still wins over `text` when set (Chapter
+  // scenes: a short on-screen Annotation shouldn't also cap what actually
+  // gets spoken).
+  async function synthesizeSegment(segment: TimedSegment): Promise<GeneratedSpeech | GeneratedSpeech[]> {
+    if (segment.narrationClips) {
+      const results: GeneratedSpeech[] = [];
+      for (const clip of segment.narrationClips) results.push(await synthesizeOne(clip.text, provider, edgeVoice));
+      return results;
+    }
+    return synthesizeOne(segment.narrationText ?? segment.text, provider, edgeVoice);
+  }
+
+  const speeches: (GeneratedSpeech | GeneratedSpeech[])[] =
     provider === "edge"
-      ? await mapWithConcurrency(segments, EDGE_TTS_CONCURRENCY, (segment) =>
-          generateSpeechEdge(segment.narrationText ?? segment.text, options.edgeVoice),
-        )
+      ? await mapWithConcurrency(segments, EDGE_TTS_CONCURRENCY, (segment) => synthesizeSegment(segment))
       : await (async () => {
-          const results = [];
-          for (const segment of segments) results.push(await generateSpeech(segment.narrationText ?? segment.text));
+          const results: (GeneratedSpeech | GeneratedSpeech[])[] = [];
+          for (const segment of segments) results.push(await synthesizeSegment(segment));
           return results;
         })();
 
   return segments.map((segment, index) => {
     const speech = speeches[index];
+
+    if (Array.isArray(speech)) {
+      // Only mergeCanvasContinuity.ts ever sets `narrationClips`, and only on
+      // a "statement" segment (chapters have no Canvas visual to merge) — this
+      // narrows `segment` so `.visual` is accessible below without every
+      // other branch of TimedSegment's discriminated union getting in the way.
+      if (segment.type !== "statement") throw new Error("narrationClips set on a non-statement segment — mergeCanvasContinuity.ts invariant broken");
+
+      // Merged Canvas passage — each clip plays at the running sum of every
+      // prior clip's own real duration, so the total is exactly as long as
+      // all the narration takes, with no fixed-frame guess involved anywhere.
+      let offset = 0;
+      const narrationClips = segment.narrationClips!.map((clip, clipIndex) => {
+        const clipSpeech = speech[clipIndex];
+        const resolved = { ...clip, staticPath: clipSpeech.staticFilePath, offsetSeconds: offset, durationSeconds: clipSpeech.durationSeconds };
+        offset += clipSpeech.durationSeconds;
+        return resolved;
+      });
+      const totalSpeechSeconds = offset;
+      const durationSeconds = segment.manualDurationOverride
+        ? segment.durationSeconds
+        : segment.visualMinDurationSeconds
+          ? Math.max(totalSpeechSeconds, segment.visualMinDurationSeconds)
+          : totalSpeechSeconds;
+
+      // Anchor each folded-in sub-scene's boundary Canvas phase, and shift
+      // each sub-scene's own on-screen captions, to that sub-scene's real
+      // cumulative narration offset — see mergeCanvasContinuity.ts's own
+      // comments on `_canvasClipBoundaries`/`_canvasCaptionRanges` for why
+      // this can only happen now, once real (not estimated) durations exist.
+      let visual = segment.visual;
+      if (visual?.kind === "canvas" && segment._canvasClipBoundaries) {
+        const phases = [...(visual.phases ?? [])];
+        segment._canvasClipBoundaries.forEach((phaseIndex, boundaryIndex) => {
+          // boundaries[i] is the boundary phase for narrationClips[i + 1]
+          // (clip 0 — the passage's first sub-scene — always starts at 0 and
+          // has no boundary phase of its own; see foldCanvasScene).
+          phases[phaseIndex] = { ...phases[phaseIndex], startSeconds: narrationClips[boundaryIndex + 1].offsetSeconds };
+        });
+        visual = { ...visual, phases };
+      }
+      const phases = segment._canvasCaptionRanges
+        ? segment.phases?.map((caption, captionIndex) => {
+            const range = segment._canvasCaptionRanges!.find((r) => captionIndex >= r.from && captionIndex < r.to);
+            const clipIndex = range ? segment._canvasCaptionRanges!.indexOf(range) : 0;
+            const clipOffset = narrationClips[clipIndex]?.offsetSeconds ?? 0;
+            return { ...caption, startSeconds: (caption.startSeconds ?? 0) + clipOffset };
+          })
+        : segment.phases;
+
+      return {
+        ...segment,
+        durationSeconds,
+        visual,
+        phases,
+        narrationClips,
+        sfxStaticPath: undefined,
+        // Bookkeeping only mergeCanvasContinuity.ts/this branch needed —
+        // already fully applied above (boundary phases anchored, captions
+        // shifted), so cleared rather than left stale for anything
+        // downstream to mistake for still-pending work.
+        _canvasClipBoundaries: undefined,
+        _canvasCaptionRanges: undefined,
+      };
+    }
+
     // A duration the user explicitly set in the pre-generation timeline
     // preview wins outright — narration audio still gets attached below (so
     // it plays), but its real length no longer dictates on-screen duration
