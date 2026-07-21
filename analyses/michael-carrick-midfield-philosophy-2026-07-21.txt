@@ -1,0 +1,368 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Annotation:** STILL SPRINTING. STILL EXPOSED.
+
+**Narration:** You've watched it a dozen times this season — United sprint themselves into the ground for eighty-five minutes, the press finally breaks, and there's suddenly nobody left between the back four and the halfway line.
+
+**Duration:** 15 seconds
+
+**Story Beat:** hook
+
+**Transition Style:** zoom in
+
+---
+
+### SCENE 2
+
+**Scene Type:** TacticalBoard
+
+**Annotation:** One Pass, Fully Exposed
+
+**Narration:** Watch how little it takes to break United open right now: the double pivot sits too narrow, one simple ball goes beyond both of them, and by the time the run arrives in behind, there's a wide open lane straight through the middle.
+
+**Duration:** 19 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** red
+
+**Camera:** full pitch → central channel
+
+**Data:**
+{
+  "title": "One Pass, Fully Exposed",
+  "players": [
+    { "id": "gk", "x": 8, "y": 50, "team": "home", "label": "GK" },
+    { "id": "cbl", "x": 20, "y": 35, "team": "home", "label": "CB" },
+    { "id": "cbr", "x": 20, "y": 65, "team": "home", "label": "CB" },
+    { "id": "tielemans", "x": 42, "y": 45, "team": "home", "label": "Tielemans" },
+    { "id": "santos", "x": 42, "y": 55, "team": "home", "label": "Santos" },
+    { "id": "wingl", "x": 72, "y": 20, "team": "home", "label": "Winger" },
+    { "id": "wingr", "x": 72, "y": 80, "team": "home", "label": "Winger" },
+    { "id": "striker", "x": 82, "y": 50, "team": "home", "label": "Striker" },
+    { "id": "opdeep", "x": 50, "y": 60, "team": "away", "label": "DM" },
+    { "id": "opbuild", "x": 55, "y": 50, "team": "away", "label": "CB" },
+    { "id": "opoutlet", "x": 60, "y": 15, "team": "away", "label": "Winger" },
+    { "id": "oprunner", "x": 88, "y": 50, "team": "away", "label": "Striker" }
+  ],
+  "ball": { "x": 50, "y": 60, "belongsTo": "opdeep" },
+  "timeline": [
+    { "type": "possession", "startSeconds": 0.3, "durationSeconds": 1.0, "fromId": "opdeep", "toId": "opbuild", "action": "pass" },
+    { "type": "possession", "startSeconds": 1.6, "durationSeconds": 1.0, "fromId": "opbuild", "toId": "opoutlet", "action": "pass" },
+    { "type": "camera", "startSeconds": 1.6, "durationSeconds": 1.0, "focus": { "x": 60, "y": 15 }, "zoom": 1.4 },
+    { "type": "move", "actorId": "oprunner", "startSeconds": 2.9, "durationSeconds": 1.6, "to": { "x": 25, "y": 50 }, "runType": "counterRun" },
+    { "type": "possession", "startSeconds": 4.4, "durationSeconds": 1.1, "fromId": "opoutlet", "toId": "oprunner", "action": "pass" },
+    { "type": "camera", "startSeconds": 4.4, "durationSeconds": 1.4, "focus": { "x": 44, "y": 50 }, "zoom": 1.5 },
+    { "type": "freeze", "startSeconds": 5.8, "durationSeconds": 3.0, "annotations": [{ "text": "The Gap Between Them", "x": 44, "y": 50 }], "circles": [{ "x": 44, "y": 50, "radius": 10 }] }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** TacticalBoard
+
+**Narration:** This is exactly the gap Carrick's whole philosophy is built to close: watch the same two players adjust, just a few yards each, and that lane straight through the middle simply isn't there anymore.
+
+**Duration:** 15 seconds
+
+**Continue Board:** true
+
+**Data:**
+{
+  "title": "One Pass, Fully Exposed",
+  "players": [
+    { "id": "tielemans", "x": 42, "y": 45, "team": "home", "label": "Tielemans" },
+    { "id": "santos", "x": 42, "y": 55, "team": "home", "label": "Santos" },
+    { "id": "opdeep", "x": 50, "y": 60, "team": "away", "label": "DM" }
+  ],
+  "timeline": [
+    { "type": "move", "actorId": "tielemans", "startSeconds": 0.3, "durationSeconds": 1.0, "to": { "x": 48, "y": 38 } },
+    { "type": "move", "actorId": "santos", "startSeconds": 0.3, "durationSeconds": 1.0, "to": { "x": 48, "y": 62 } },
+    { "type": "move", "actorId": "opdeep", "startSeconds": 0.3, "durationSeconds": 1.0, "to": { "x": 58, "y": 74 }, "runType": "recoveryRun" },
+    { "type": "freeze", "startSeconds": 1.5, "durationSeconds": 3.0, "annotations": [{ "text": "Same Space, Closed Off", "x": 48, "y": 50 }] }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** TacticalBoard
+
+**Narration:** Watch what that actually looks like up close: not a sixty-yard raking ball, but a short pass into the exact gap Tielemans just closed off. The nearest presser is beaten instantly, two defenders have to shift just to cover it, and that half-second is enough to keep the move going forward — because the point was never the pass itself. It was making defenders move who didn't want to.
+
+**Duration:** 27 seconds
+
+**Continue Board:** true
+
+**Data:**
+{
+  "title": "One Pass, Fully Exposed",
+  "players": [
+    { "id": "tielemans", "x": 48, "y": 38, "team": "home", "label": "Tielemans" },
+    { "id": "santos", "x": 48, "y": 62, "team": "home", "label": "Santos" },
+    { "id": "striker", "x": 82, "y": 50, "team": "home", "label": "Striker" },
+    { "id": "opbuild", "x": 55, "y": 50, "team": "away", "label": "CB" },
+    { "id": "opoutlet", "x": 60, "y": 15, "team": "away", "label": "Winger" },
+    { "id": "opdeep", "x": 58, "y": 74, "team": "away", "label": "DM" }
+  ],
+  "timeline": [
+    { "type": "possession", "startSeconds": 0.4, "durationSeconds": 1.1, "fromId": "tielemans", "toId": "santos", "action": "pass" },
+    { "type": "camera", "startSeconds": 0.4, "durationSeconds": 1.1, "focus": { "x": 50, "y": 50 }, "zoom": 1.3 },
+    { "type": "move", "actorId": "opoutlet", "startSeconds": 1.9, "durationSeconds": 1.1, "to": { "x": 68, "y": 35 }, "runType": "recoveryRun" },
+    { "type": "move", "actorId": "opdeep", "startSeconds": 1.9, "durationSeconds": 1.1, "to": { "x": 68, "y": 55 }, "runType": "recoveryRun" },
+    { "type": "move", "actorId": "santos", "startSeconds": 3.2, "durationSeconds": 1.2, "to": { "x": 65, "y": 55 } },
+    { "type": "possession", "startSeconds": 4.6, "durationSeconds": 1.0, "fromId": "santos", "toId": "striker", "action": "pass" },
+    { "type": "camera", "startSeconds": 4.6, "durationSeconds": 1.2, "focus": { "x": 82, "y": 50 }, "zoom": 1.4 },
+    { "type": "freeze", "startSeconds": 5.9, "durationSeconds": 3.5, "annotations": [{ "text": "The Ball Barely Moved. They Did.", "x": 65, "y": 30 }], "circles": [{ "x": 65, "y": 55, "radius": 8 }] }
+  ]
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** TacticalBoard
+
+**Annotation:** Screening, Not Chasing
+
+**Narration:** And it's not a one-off: recycle it, try the exact same idea from the other side, and the exact same thing happens again — two players turning midfield into a chess board instead of a track meet, shutting every angle down a few yards at a time.
+
+**Duration:** 20 seconds
+
+**Continue Board:** true
+
+**Data:**
+{
+  "title": "One Pass, Fully Exposed",
+  "players": [
+    { "id": "tielemans", "x": 48, "y": 38, "team": "home", "label": "Tielemans" },
+    { "id": "santos", "x": 48, "y": 62, "team": "home", "label": "Santos" },
+    { "id": "opbuild", "x": 55, "y": 50, "team": "away", "label": "CB" },
+    { "id": "opoutlet", "x": 68, "y": 35, "team": "away", "label": "Winger" },
+    { "id": "opdeep", "x": 68, "y": 55, "team": "away", "label": "DM" }
+  ],
+  "timeline": [
+    { "type": "camera", "startSeconds": 0.1, "durationSeconds": 1.0, "focus": { "x": 56, "y": 50 }, "zoom": 1.4 },
+    { "type": "possession", "startSeconds": 0.3, "durationSeconds": 1.0, "fromId": "opbuild", "toId": "opoutlet", "action": "pass" },
+    { "type": "move", "actorId": "tielemans", "startSeconds": 1.0, "durationSeconds": 0.8, "to": { "x": 58, "y": 36 } },
+    { "type": "possession", "startSeconds": 1.9, "durationSeconds": 0.7, "fromId": "opoutlet", "toId": "tielemans", "action": "pass" },
+    { "type": "freeze", "startSeconds": 2.7, "durationSeconds": 2.0, "annotations": [{ "text": "Cut Out Before It Arrives", "x": 55, "y": 20 }] },
+    { "type": "possession", "startSeconds": 5.0, "durationSeconds": 0.9, "fromId": "tielemans", "toId": "santos", "action": "pass" },
+    { "type": "possession", "startSeconds": 6.2, "durationSeconds": 1.0, "fromId": "opbuild", "toId": "opdeep", "action": "pass" },
+    { "type": "move", "actorId": "santos", "startSeconds": 7.0, "durationSeconds": 0.8, "to": { "x": 58, "y": 64 } },
+    { "type": "possession", "startSeconds": 8.0, "durationSeconds": 0.7, "fromId": "opdeep", "toId": "santos", "action": "pass" },
+    { "type": "freeze", "startSeconds": 8.9, "durationSeconds": 3.0, "annotations": [{ "text": "Same Story, Other Side", "x": 58, "y": 80 }] }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Career Path
+
+**Narration:** This isn't a stranger to bring in. Carrick spent twelve years running United's midfield as a player, took interim charge of the first team in 2018, coached under three different managers, then took Middlesbrough's job in 2022.
+
+**Duration:** 15 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "The Ghost United Already Employed",
+  "stops": [
+    { "label": "Manchester United — Midfielder", "period": "2006-2018" },
+    { "label": "Interim Caretaker Manager", "period": "Dec 2018" },
+    { "label": "United First-Team Coach", "period": "2018-2021" },
+    { "label": "Middlesbrough — Head Coach", "period": "2022-Present" }
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Stat
+
+**Narration:** Five Premier League titles and a Champions League, across an era United signed superstar after superstar around him. The one constant in every single one of those seasons was the guy in the middle almost nobody talked about.
+
+**Duration:** 15 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "What Twelve Years Bought",
+  "value": 5,
+  "suffix": " Premier League Titles",
+  "context": "Plus a Champions League — won reading the game, not outrunning it"
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** TacticalBoard
+
+**Annotation:** Talent Isn't A System
+
+**Narration:** Here's the paradox in practice: drop a genuine talent like Andres Santos into this exact midfield today, and three markers close him down before his teammates are even close enough to help. Try to play the easy ball out, and a defender's already standing in the only lane that exists.
+
+**Duration:** 20 seconds
+
+**Story Beat:** comparison
+
+**Panel Color:** red
+
+**Camera:** central channel
+
+**Data:**
+{
+  "title": "Talent Isn't A System",
+  "players": [
+    { "id": "signing", "x": 50, "y": 50, "team": "home", "label": "A. Santos" },
+    { "id": "teammate1", "x": 25, "y": 30, "team": "home", "label": "Teammate" },
+    { "id": "teammate2", "x": 25, "y": 70, "team": "home", "label": "Teammate" },
+    { "id": "opp1", "x": 55, "y": 42, "team": "away", "label": "Presser" },
+    { "id": "opp2", "x": 55, "y": 58, "team": "away", "label": "Presser" },
+    { "id": "opp3", "x": 62, "y": 50, "team": "away", "label": "Presser" }
+  ],
+  "ball": { "x": 50, "y": 50, "belongsTo": "signing" },
+  "phases": [
+    {
+      "players": [
+        { "id": "signing", "x": 50, "y": 50, "team": "home", "label": "A. Santos" },
+        { "id": "teammate1", "x": 25, "y": 30, "team": "home", "label": "Teammate" },
+        { "id": "teammate2", "x": 25, "y": 70, "team": "home", "label": "Teammate" },
+        { "id": "opp1", "x": 52, "y": 45, "team": "away", "label": "Presser" },
+        { "id": "opp2", "x": 52, "y": 55, "team": "away", "label": "Presser" },
+        { "id": "opp3", "x": 58, "y": 50, "team": "away", "label": "Presser" }
+      ],
+      "highlightZone": { "x": 44, "y": 38, "width": 20, "height": 24 },
+      "caption": "No Passing Lane. No Screen. No System.",
+      "dataPoint": "Recruitment without structure wastes both"
+    },
+    {
+      "players": [
+        { "id": "signing", "x": 50, "y": 50, "team": "home", "label": "A. Santos" },
+        { "id": "teammate1", "x": 25, "y": 30, "team": "home", "label": "Teammate" },
+        { "id": "teammate2", "x": 25, "y": 70, "team": "home", "label": "Teammate" },
+        { "id": "opp1", "x": 38, "y": 38, "team": "away", "label": "Presser" },
+        { "id": "opp2", "x": 52, "y": 55, "team": "away", "label": "Presser" },
+        { "id": "opp3", "x": 58, "y": 50, "team": "away", "label": "Presser" }
+      ],
+      "arrows": [{ "from": "signing", "to": { "x": 38, "y": 38 }, "kind": "pass" }],
+      "caption": "Even The Easy Ball Isn't There",
+      "dataPoint": "Isolated talent is wasted talent"
+    }
+  ]
+}
+
+---
+
+### SCENE 9
+
+**Scene Type:** Formation
+
+**Narration:** Strip it down, and the profile Carrick's system actually needs is simple: two screening midfielders who value the ball over distance covered — Tielemans and Santos — freeing Bruno Fernandes to finally be the outlet, instead of the one dropping deep to go find it.
+
+**Duration:** 18 seconds
+
+**Story Beat:** reveal
+
+**Data:**
+{
+  "title": "The Shape His Philosophy Points To",
+  "sides": [
+    {
+      "team": "Manchester United",
+      "formationName": "4-2-3-1",
+      "side": "home",
+      "players": [
+        { "name": "Goalkeeper", "role": "GK" },
+        { "name": "Right-Back", "role": "RB" },
+        { "name": "Center-Back", "role": "CB" },
+        { "name": "Center-Back", "role": "CB" },
+        { "name": "Left-Back", "role": "LB" },
+        { "name": "Youri Tielemans", "role": "Pivot" },
+        { "name": "Andres Santos", "role": "Pivot" },
+        { "name": "Bruno Fernandes", "role": "AM" },
+        { "name": "Right Winger", "role": "RW" },
+        { "name": "Left Winger", "role": "LW" },
+        { "name": "Striker", "role": "ST" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 10
+
+**Scene Type:** TacticalBoard
+
+**Annotation:** What Cohesion Buys Bruno
+
+**Narration:** Give Bruno that platform, and the picture changes completely: the ball moves patiently through the pivot, Tielemans to Santos to Bruno, and by the time it reaches him there's real time on the ball — a drive into space, a ball played in behind, instead of a scramble to make something happen alone.
+
+**Duration:** 23 seconds
+
+**Story Beat:** payoff
+
+**Panel Color:** blue
+
+**Camera:** full pitch → central channel → follow Bruno
+
+**Data:**
+{
+  "title": "What Cohesion Buys Bruno",
+  "players": [
+    { "id": "cb", "x": 15, "y": 50, "team": "home", "label": "CB" },
+    { "id": "tielemans", "x": 40, "y": 40, "team": "home", "label": "Tielemans" },
+    { "id": "santos", "x": 40, "y": 60, "team": "home", "label": "Santos" },
+    { "id": "bruno", "x": 55, "y": 50, "team": "home", "label": "Bruno" },
+    { "id": "striker", "x": 85, "y": 50, "team": "home", "label": "Striker" },
+    { "id": "opp1", "x": 50, "y": 35, "team": "away", "label": "Marker" },
+    { "id": "opp2", "x": 50, "y": 65, "team": "away", "label": "Marker" },
+    { "id": "opp3", "x": 90, "y": 50, "team": "away", "label": "Defender" }
+  ],
+  "ball": { "x": 15, "y": 50, "belongsTo": "cb" },
+  "timeline": [
+    { "type": "possession", "startSeconds": 0.3, "durationSeconds": 1.0, "fromId": "cb", "toId": "tielemans", "action": "pass" },
+    { "type": "possession", "startSeconds": 1.5, "durationSeconds": 0.9, "fromId": "tielemans", "toId": "santos", "action": "pass" },
+    { "type": "possession", "startSeconds": 2.6, "durationSeconds": 1.0, "fromId": "santos", "toId": "bruno", "action": "pass" },
+    { "type": "state", "actorId": "bruno", "startSeconds": 3.6, "state": "receiving" },
+    { "type": "camera", "startSeconds": 3.6, "durationSeconds": 1.0, "focus": { "x": 60, "y": 50 }, "zoom": 1.3 },
+    { "type": "move", "actorId": "bruno", "startSeconds": 4.0, "durationSeconds": 1.0, "to": { "x": 68, "y": 48 } },
+    { "type": "possession", "startSeconds": 5.2, "durationSeconds": 1.0, "fromId": "bruno", "toId": "striker", "action": "pass" },
+    { "type": "camera", "startSeconds": 5.2, "durationSeconds": 1.2, "focus": "box-right", "zoom": 1.6 },
+    { "type": "freeze", "startSeconds": 6.5, "durationSeconds": 3.5, "annotations": [{ "text": "Time And A Passing Lane — Not Chaos", "x": 58, "y": 25 }] }
+  ]
+}
+
+---
+
+### SCENE 11
+
+**Scene Type:** Statement
+
+**Narration:** None of this wins United the league by itself. But next time a midfielder looks like he's barely jogging, watch the space he isn't filling — two passes later, that's usually where the goal comes from. Sometimes the smartest player on the pitch is the one who never chases the ball.
+
+**Duration:** 18 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+**Panel Color:** neutral
+
+---

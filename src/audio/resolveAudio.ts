@@ -154,6 +154,24 @@ export async function resolveSegmentAudio(
           })
         : segment.phases;
 
+      // A merged TacticalBoard passage (see mergeTacticalContinuity.ts)
+      // carries every folded-in sub-scene's `timeline` events still relative
+      // to that sub-scene's own local zero — shift every event inside each
+      // `_boardClipRanges` slice by that clip's real cumulative narration
+      // offset now that it's known, same "defer until real duration exists"
+      // approach as the Canvas boundary-phase anchoring above. Every action
+      // type carries its own `startSeconds`, so one flat map handles move/
+      // state/possession/camera/freeze alike.
+      if (visual?.kind === "tactical-board" && segment._boardClipRanges && visual.timeline) {
+        const timeline = visual.timeline.map((action, actionIndex) => {
+          const range = segment._boardClipRanges!.find((r) => actionIndex >= r.from && actionIndex < r.to);
+          const clipIndex = range ? segment._boardClipRanges!.indexOf(range) : 0;
+          const clipOffset = narrationClips[clipIndex]?.offsetSeconds ?? 0;
+          return { ...action, startSeconds: action.startSeconds + clipOffset };
+        });
+        visual = { ...visual, timeline };
+      }
+
       return {
         ...segment,
         durationSeconds,
@@ -161,12 +179,13 @@ export async function resolveSegmentAudio(
         phases,
         narrationClips,
         sfxStaticPath: undefined,
-        // Bookkeeping only mergeCanvasContinuity.ts/this branch needed —
-        // already fully applied above (boundary phases anchored, captions
-        // shifted), so cleared rather than left stale for anything
-        // downstream to mistake for still-pending work.
+        // Bookkeeping only mergeCanvasContinuity.ts/mergeTacticalContinuity.ts/
+        // this branch needed — already fully applied above (boundary phases/
+        // timeline events anchored, captions shifted), so cleared rather than
+        // left stale for anything downstream to mistake for still-pending work.
         _canvasClipBoundaries: undefined,
         _canvasCaptionRanges: undefined,
+        _boardClipRanges: undefined,
       };
     }
 

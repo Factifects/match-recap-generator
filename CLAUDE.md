@@ -295,6 +295,24 @@ circuit traces) behind a centered wordmark + tagline.
 Default to the matching style above whenever asked for a thumbnail/banner/DP prompt for either
 channel; don't propose a different visual style, or mix the two channels' styles, unless asked to.
 
+**Situational third thumbnail style: UI-mockup hook** — added 2026-07-21 after the user shared a
+reference thumbnail (bold "It's not magic." headline over a ChatGPT-style chat-input mockup, a
+hand-drawn arrow connecting them, a yellow-on-black timestamp badge in the corner). Not a
+replacement for the two styles above and not tied to either channel specifically — use it only
+when a video's actual hook is "look at this real interface/output" (an AI tool, an app, a
+software feature, a comparison of on-screen results), where showing the genuine UI *is* the
+curiosity driver, rather than a stat reveal (football) or an abstract motif (maths/aerospace/
+business). Elements when this style fits:
+- Near-black background, bold serif/display headline (2-5 words), off-white/cream text, with one
+  key word underlined or color-highlighted (e.g. red/maroon) for emphasis.
+- A real or realistic UI screenshot/mockup as the focal image — rounded card, authentic-looking
+  chrome — not an illustration.
+- A single hand-drawn-style curved arrow connecting headline to mockup, directing the eye.
+- Optional small corner badge mimicking a video-timestamp/duration overlay for a "caught mid-clip"
+  feel.
+Ask before using this style if it's unclear whether a given video's hook is UI/output-driven
+enough to fit — default to the channel's primary documented style otherwise.
+
 - **Thumbnail/title is the primary lever, not the video itself.** One clear focal point, 3-5 words
   of huge/legible text (test shrunk to ~120px wide — if unreadable there, it's too busy), a
   specific curiosity-driving claim in the title (not a flat description). This matters more than

@@ -233,4 +233,21 @@ export type TimedSegment = Segment & {
    * the time this is set; resolveSegmentAudio only needs to add each range's
    * clip's real cumulative offset to every caption inside it. */
   _canvasCaptionRanges?: { from: number; to: number }[];
+  /** Scene-spec scripts only: set when this scene's `**Continue Board:**`
+   * field is `true` — a signal to mergeTacticalContinuity.ts (src/script/)
+   * that this scene's TacticalBoard `timeline` should be folded into the
+   * immediately preceding scene's TacticalBoard as more timeline events
+   * (one continuous camera/roster, never cutting) instead of becoming its
+   * own segment. Consumed and never persisted past that merge step — a scene
+   * that actually reaches rendering never has this set to true. */
+  continuesBoardFrom?: boolean;
+  /** Internal bookkeeping set by mergeTacticalContinuity.ts, consumed and
+   * deleted by resolveSegmentAudio — never reaches the rendered sidecar
+   * JSON. One `[from, to)` slice of `visual.timeline` (TacticalBoard only)
+   * per `narrationClips` entry — every timeline event inside a range still
+   * has its `startSeconds` relative to that sub-scene's own local zero;
+   * resolveSegmentAudio adds that clip's real cumulative narration offset to
+   * every event in its range once real TTS duration is known (mirrors
+   * `_canvasCaptionRanges`'s role for Canvas captions). */
+  _boardClipRanges?: { from: number; to: number }[];
 };

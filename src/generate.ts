@@ -4,6 +4,7 @@ import { parseAnalysisScript } from "./script/parseAnalysisScript";
 import { parseSceneScript, isSceneScript } from "./script/parseSceneScript";
 import { autoFixGeometry } from "./script/validateGeometry";
 import { mergeCanvasContinuity } from "./script/mergeCanvasContinuity";
+import { mergeTacticalContinuity } from "./script/mergeTacticalContinuity";
 import { resolveSegmentAudio, generateBackgroundMusic, type TtsProvider } from "./audio/resolveAudio";
 import { renderVideo, type RenderProgress } from "./render/renderVideo";
 import type { TimedSegment, AspectRatio, AudioClipPlacement } from "./model/Segment";
@@ -214,6 +215,16 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   if (canvasMergeNotes.length > 0) {
     log(`Merged continuous Canvas passages (${canvasMergeNotes.length} note${canvasMergeNotes.length > 1 ? "s" : ""}):`);
     canvasMergeNotes.forEach((note) => log(`  - ${note}`));
+  }
+
+  // Same idea as the Canvas merge above, for `**Continue Board:** true`
+  // TacticalBoard scenes — folds a run of them into one continuous
+  // timeline-authored board instead of a fresh cut per scene.
+  const { segments: boardMergedSegments, notes: boardMergeNotes } = mergeTacticalContinuity(segments);
+  segments = boardMergedSegments;
+  if (boardMergeNotes.length > 0) {
+    log(`Merged continuous TacticalBoard passages (${boardMergeNotes.length} note${boardMergeNotes.length > 1 ? "s" : ""}):`);
+    boardMergeNotes.forEach((note) => log(`  - ${note}`));
   }
 
   let audioClips = options.audioClips;

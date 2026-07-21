@@ -519,6 +519,17 @@ function resolveContinueCanvas(fields: SceneFields): true | undefined {
   return fields["Continue Canvas"]?.trim().toLowerCase() === "true" ? true : undefined;
 }
 
+/** An optional **Continue Board:** true field — same convention as
+ * **Continue Canvas:** above, but for TacticalBoard's evented `timeline`
+ * instead of Canvas's `phases`. Consumed by mergeTacticalContinuity.ts (run
+ * as a post-parse pass in generate.ts); a scene isn't required to be
+ * `Scene Type: TacticalBoard` at parse time for this field to be set (same
+ * graceful-degradation posture as Continue Canvas — mergeTacticalContinuity.ts
+ * is responsible for checking that, not this parser). */
+function resolveContinueBoard(fields: SceneFields): true | undefined {
+  return fields["Continue Board"]?.trim().toLowerCase() === "true" ? true : undefined;
+}
+
 const BOARD_POSITION_KEYS = new Set(["left", "right", "center"]);
 
 /** An optional **Board Position:** field, TacticalBoard/Formation only —
@@ -705,6 +716,7 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
       animation: resolveAnimation(fields),
       phases: resolvePhases(fields),
       continuesCanvasFrom: resolveContinueCanvas(fields),
+      continuesBoardFrom: resolveContinueBoard(fields),
     });
   }
 

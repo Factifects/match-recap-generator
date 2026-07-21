@@ -1,0 +1,364 @@
+### SCENE 1
+
+**Scene Type:** Canvas
+
+**Narration:** You've felt this before: you finish editing a video, hit upload, and before a single stranger has watched a second of it, a banner's already waiting for you — a copyright claim, on a clip you were pretty sure you hadn't stolen from anyone.
+
+**Duration:** 15 seconds
+
+**Story Beat:** hook
+
+**Transition Style:** zoom in
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "The Banner That's Already Waiting",
+  "objects": [
+    { "id": "device", "type": "icon", "icon": "device", "x": 30, "y": 45, "color": "#38bdf8", "radius": 10 },
+    { "id": "cloud", "type": "icon", "icon": "cloud", "x": 65, "y": 30, "color": "#93c5fd", "radius": 8 },
+    { "id": "warning", "type": "icon", "icon": "warning", "x": 65, "y": 55, "color": "#f87171", "radius": 9 },
+    { "id": "label", "type": "label", "x": 65, "y": 70, "label": "Copyright Claim", "color": "#fca5a5" },
+    { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "Before A Single View", "color": "#cbd5e1" }
+  ]
+}
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** That banner isn't a person who watched your video. It's an automated system YouTube built called Content ID, and every single upload — yours, mine, everyone's — runs through it before another human ever sees the footage at all.
+
+**Duration:** 15 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Meet Content ID",
+  "objects": [
+    { "id": "upload", "type": "icon", "icon": "cloud", "x": 22, "y": 50, "color": "#93c5fd", "radius": 9 },
+    { "id": "system", "type": "roundedRectangle", "x": 78, "y": 50, "width": 26, "height": 22, "radius": 5, "color": "#f59e0b", "filled": true, "label": "Content ID" },
+    { "id": "caption", "type": "label", "x": 50, "y": 85, "label": "Runs Before A Human Ever Sees It", "color": "#cbd5e1" }
+  ],
+  "arrows": [
+    { "from": "upload", "to": "system", "style": "dashed", "flow": true, "color": "#93c5fd" }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Canvas
+
+**Narration:** Here's what it's actually doing — and it's not listening the way you or I would. It turns your audio into a spectrogram, a picture of every frequency playing at every moment, picks out the loudest peaks across that picture, and strings those peaks into a short run of numbers. That string is the fingerprint.
+
+**Duration:** 18 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Turning Sound Into A Fingerprint",
+  "objects": [
+    { "id": "wave", "type": "line", "x": 20, "y": 35, "width": 60, "rotation": 0, "color": "#38bdf8", "strokeWidth": 3 },
+    { "id": "peak1", "type": "dot", "x": 32, "y": 30, "color": "#fbbf24" },
+    { "id": "peak2", "type": "dot", "x": 48, "y": 22, "color": "#fbbf24" },
+    { "id": "peak3", "type": "dot", "x": 64, "y": 33, "color": "#fbbf24" },
+    { "id": "fingerprint", "type": "roundedRectangle", "x": 50, "y": 68, "width": 30, "height": 16, "radius": 4, "color": "#16a34a", "filled": true, "label": "4A 91 C2 06" },
+    { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "Peaks Become A String Of Numbers", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "wave", "type": "line", "x": 20, "y": 35, "width": 60, "rotation": 0, "color": "#38bdf8", "strokeWidth": 3, "opacity": 0.35 },
+        { "id": "peak1", "type": "dot", "x": 32, "y": 30, "color": "#fbbf24", "opacity": 0.35 },
+        { "id": "peak2", "type": "dot", "x": 48, "y": 22, "color": "#fbbf24", "opacity": 0.35 },
+        { "id": "peak3", "type": "dot", "x": 64, "y": 33, "color": "#fbbf24", "opacity": 0.35 },
+        { "id": "fingerprint", "type": "roundedRectangle", "x": 50, "y": 50, "width": 34, "height": 18, "radius": 4, "color": "#16a34a", "filled": true, "label": "4A 91 C2 06", "enter": "scale" },
+        { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "The Fingerprint — Not The Song Itself", "color": "#86efac" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Canvas
+
+**Narration:** That fingerprint, just a few kilobytes, gets checked against a reference database of hundreds of millions of fingerprints already on file — a comparison that would've taken a room full of lawyers weeks now finishes before your upload progress bar does.
+
+**Duration:** 16 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "Checked Against Everything On File",
+  "objects": [
+    { "id": "fingerprint", "type": "roundedRectangle", "x": 22, "y": 50, "width": 22, "height": 14, "radius": 4, "color": "#16a34a", "filled": true, "label": "4A 91 C2 06" },
+    { "id": "database", "type": "icon", "icon": "database", "x": 75, "y": 50, "color": "#38bdf8", "radius": 12 },
+    { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "Hundreds Of Millions Of Fingerprints", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "fingerprint", "type": "roundedRectangle", "x": 62, "y": 50, "width": 18, "height": 12, "radius": 4, "color": "#16a34a", "filled": true, "label": "4A 91 C2 06", "trail": true },
+        { "id": "database", "type": "icon", "icon": "database", "x": 75, "y": 50, "color": "#38bdf8", "radius": 12, "idle": "pulse" },
+        { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "Match Found — In Seconds", "color": "#93c5fd" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Stat
+
+**Narration:** To give you a sense of scale: Content ID's reference database has held more than one hundred million registered fingerprints since Google first built the system, all the way back in 2007.
+
+**Duration:** 12 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "title": "The Reference Database",
+  "value": 100,
+  "suffix": "M+ Reference Files",
+  "context": "Built by Google since Content ID launched in 2007"
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Canvas
+
+**Narration:** Video clips get the same treatment. YouTube breaks your footage into frames, tracks how blocks of pixels shift and change from one frame to the next, and turns that pattern of motion into its own fingerprint — which is exactly why even a cropped, resized, or filtered clip still gets caught. It's not comparing pixels one to one. It's comparing the shape of the change.
+
+**Duration:** 18 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "The Same Trick, For Video",
+  "objects": [
+    { "id": "frame1", "type": "roundedRectangle", "x": 22, "y": 45, "width": 16, "height": 20, "radius": 3, "color": "#334155", "filled": true },
+    { "id": "frame2", "type": "roundedRectangle", "x": 42, "y": 45, "width": 16, "height": 20, "radius": 3, "color": "#334155", "filled": true },
+    { "id": "frame3", "type": "roundedRectangle", "x": 62, "y": 45, "width": 16, "height": 20, "radius": 3, "color": "#334155", "filled": true },
+    { "id": "motionDot", "type": "dot", "x": 26, "y": 40, "color": "#fbbf24", "trail": true },
+    { "id": "caption", "type": "label", "x": 50, "y": 82, "label": "Tracking How Pixels Move, Frame To Frame", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "frame1", "type": "roundedRectangle", "x": 22, "y": 45, "width": 16, "height": 20, "radius": 3, "color": "#334155", "filled": true, "opacity": 0.5 },
+        { "id": "frame2", "type": "roundedRectangle", "x": 42, "y": 45, "width": 16, "height": 20, "radius": 3, "color": "#334155", "filled": true, "opacity": 0.5 },
+        { "id": "frame3", "type": "roundedRectangle", "x": 62, "y": 45, "width": 16, "height": 20, "radius": 3, "color": "#334155", "filled": true, "opacity": 0.5 },
+        { "id": "motionDot", "type": "dot", "x": 66, "y": 52, "color": "#fbbf24", "trail": true },
+        { "id": "fingerprint", "type": "roundedRectangle", "x": 50, "y": 72, "width": 26, "height": 14, "radius": 4, "color": "#16a34a", "filled": true, "label": "Video FP", "enter": "scale" },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Same Trick As A Cropped, Resized Clip", "color": "#86efac" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** Here's the part almost everyone gets wrong: Content ID isn't YouTube scanning the entire internet for anything that happens to be copyrighted. Every single fingerprint in that database was put there on purpose — by the rights holder themselves, a label or a studio or a distributor, actively choosing to register their own work.
+
+**Duration:** 18 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** yellow
+
+**Data:**
+{
+  "title": "Nobody's Scanning The Internet",
+  "objects": [
+    { "id": "studio", "type": "icon", "icon": "factory", "x": 25, "y": 40, "color": "#fbbf24", "radius": 9 },
+    { "id": "studioLabel", "type": "label", "x": 25, "y": 58, "label": "Rights Holder", "color": "#fde68a" },
+    { "id": "database", "type": "icon", "icon": "database", "x": 75, "y": 40, "color": "#38bdf8", "radius": 10 },
+    { "id": "caption", "type": "label", "x": 50, "y": 85, "label": "Registered On Purpose — Not Scraped", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "studio", "type": "icon", "icon": "factory", "x": 25, "y": 40, "color": "#fbbf24", "radius": 9 },
+        { "id": "studioLabel", "type": "label", "x": 25, "y": 58, "label": "Rights Holder", "color": "#fde68a" },
+        { "id": "database", "type": "icon", "icon": "database", "x": 75, "y": 40, "color": "#38bdf8", "radius": 10, "idle": "pulse" },
+        { "id": "arrow", "type": "dot", "x": 50, "y": 40, "color": "#fbbf24", "trail": true },
+        { "id": "caption", "type": "label", "x": 50, "y": 85, "label": "Uploaded By Choice, Track By Track", "color": "#fde68a" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Split Cards
+
+**Narration:** Which cuts both ways. An independent artist who's never registered a single track gets zero automatic protection at all — while a major label that's registered its entire back catalog can catch two faint seconds of a song playing in the background of your vlog.
+
+**Duration:** 16 seconds
+
+**Story Beat:** comparison
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Registration Decides Everything",
+  "left": { "label": "Unregistered Indie Track", "value": "No Automatic Match", "caption": "Never entered into Content ID" },
+  "right": { "label": "Major Label Catalog", "value": "Catches 2 Seconds", "caption": "Registered down to the last B-side" }
+}
+
+---
+
+### SCENE 9
+
+**Scene Type:** Grid
+
+**Narration:** Once it matches, it's the rights holder — not YouTube — who picks what happens next. They can mute the audio, block the video in certain countries, or, the option chosen more than any other, just quietly take the ad revenue for themselves. That's called a claim, and it isn't the same thing as a strike — your channel isn't in danger, someone else is simply getting paid.
+
+**Duration:** 20 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "The Rights Holder's Three Options",
+  "items": [
+    { "label": "Mute", "caption": "The audio goes silent" },
+    { "label": "Block", "caption": "Unavailable in certain countries" },
+    { "label": "Monetize", "caption": "The most common choice — they keep the ad revenue" }
+  ]
+}
+
+---
+
+### SCENE 10
+
+**Scene Type:** Canvas
+
+**Narration:** And the system genuinely doesn't care about intent. A song playing over a café's speakers behind you, a gym playlist soundtracking your workout vlog — the fingerprint matches exactly the same as if you'd deliberately dropped the studio track in yourself.
+
+**Duration:** 15 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "It Doesn't Judge Intent",
+  "objects": [
+    { "id": "person", "type": "icon", "icon": "person", "x": 30, "y": 45, "color": "#38bdf8", "radius": 9 },
+    { "id": "signal", "type": "icon", "icon": "signal", "x": 55, "y": 30, "color": "#fbbf24", "radius": 7 },
+    { "id": "fingerprint", "type": "roundedRectangle", "x": 75, "y": 55, "width": 20, "height": 14, "radius": 4, "color": "#16a34a", "filled": true, "label": "Match" },
+    { "id": "caption", "type": "label", "x": 50, "y": 85, "label": "Incidental Or Deliberate — Same Result", "color": "#cbd5e1" }
+  ],
+  "arrows": [
+    { "from": "signal", "to": "person", "style": "dotted", "color": "#fde68a" },
+    { "from": "person", "to": "fingerprint", "style": "solid", "flow": true, "color": "#4ade80" }
+  ]
+}
+
+---
+
+### SCENE 11
+
+**Scene Type:** Canvas
+
+**Narration:** But here's the click most people never expect: none of this — the fingerprinting, the automatic matching, any of it — applies to photos. Content ID only runs on audio and video. A photographer whose image gets lifted for a thumbnail has to notice it themselves, and file the takedown by hand.
+
+**Duration:** 17 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** red
+
+**Data:**
+{
+  "title": "Photos Aren't In This System At All",
+  "objects": [
+    { "id": "photo", "type": "icon", "icon": "camera", "x": 30, "y": 40, "color": "#fca5a5", "radius": 9 },
+    { "id": "cross", "type": "icon", "icon": "cross", "x": 30, "y": 62, "color": "#f87171", "radius": 6 },
+    { "id": "database", "type": "icon", "icon": "database", "x": 75, "y": 40, "color": "#64748b", "radius": 10, "opacity": 0.4 },
+    { "id": "caption", "type": "label", "x": 50, "y": 85, "label": "Content ID: Audio And Video Only", "color": "#fecaca" }
+  ],
+  "arrows": [
+    { "from": "photo", "to": "database", "style": "dashed", "color": "#64748b" }
+  ]
+}
+
+---
+
+### SCENE 12
+
+**Scene Type:** Canvas
+
+**Narration:** That manual process has a name — a DMCA takedown request — and it's the same backstop used for anything the automatic fingerprinting doesn't catch: a stolen photo, a lifted script, even a song that was simply never registered in the first place.
+
+**Duration:** 16 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "The Manual Backstop: DMCA",
+  "objects": [
+    { "id": "scale", "type": "icon", "icon": "scale", "x": 50, "y": 38, "color": "#93c5fd", "radius": 11 },
+    { "id": "label", "type": "label", "x": 50, "y": 58, "label": "A Human Has To File It", "color": "#93c5fd" },
+    { "id": "caption", "type": "label", "x": 50, "y": 85, "label": "For Anything Fingerprinting Doesn't Cover", "color": "#cbd5e1" }
+  ]
+}
+
+---
+
+### SCENE 13
+
+**Scene Type:** Statement
+
+**Narration:** None of this makes YouTube some all-seeing copyright detective. It makes it a very fast fingerprint-matching machine, checking your upload against whatever rights holders actually bothered to register. So if a claim ever catches you off guard, don't take it personally — it's not a courtroom, it's a database doing exactly what it was built to do. Maybe just double check where that gym playlist came from first.
+
+**Duration:** 20 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+**Panel Color:** blue
+
+---
