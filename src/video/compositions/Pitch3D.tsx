@@ -12,18 +12,17 @@ import {
   GOAL_HEIGHT_UNITS,
 } from "../coords3D";
 
-const LINE_COLOR = "#e8f0ec";
+// Same dark-grey pitch tokens as the 2D family (Pitch.tsx/PerspectivePitch.tsx)
+// — both suites were split from a single grass-green look and are now back
+// to matching each other (2026-07-22), so a script switching between a 2D
+// and 3D board mid-video doesn't visibly reset the pitch's look.
+const LINE_COLOR = COLORS.pitchLines;
 const LINE_HEIGHT = 0.015; // just above the ground plane, avoids z-fighting
-const LINE_WIDTH = 1.6;
+const LINE_WIDTH = 2.4;
+const LINE_OPACITY = 0.85;
 const STRIPE_COUNT = 10;
-
-// Local, brighter grass greens rather than the shared 2D COLORS.pitch/
-// pitchStripe — those are tuned dark on purpose for the 2D board's own
-// overlays; changing them here would ripple into every 2D pitch too. Kept
-// as flat (unlit) colors on purpose, same as before, so brightness is exact
-// and predictable rather than depending on the scene's light angle.
-const GRASS_COLOR = "#2f7d40";
-const GRASS_STRIPE_COLOR = "#357f47";
+const GRASS_COLOR = COLORS.pitch;
+const GRASS_STRIPE_COLOR = COLORS.pitchStripe;
 
 function circlePoints(radius: number, segments = 64): [number, number, number][] {
   return Array.from({ length: segments + 1 }, (_, i) => {
@@ -44,7 +43,7 @@ function boxOutline(nearEdgeX: number, direction: 1 | -1): [number, number, numb
 }
 
 /** The 3D counterpart to Pitch.tsx/PerspectivePitch.tsx — a ground-plane
- * pitch with mowing stripes and white line markings (boundary, halfway line,
+ * pitch with mowing stripes and light-grey line markings (boundary, halfway line,
  * center circle/spot, both penalty boxes) plus a simple goal frame at each
  * end. Shared by TacticalBoard3D/Formation3D/ShotMap3D so the pitch itself
  * looks identical across every 3D card, same role Pitch.tsx plays for the 2D
@@ -89,7 +88,7 @@ export const Pitch3D: React.FC = () => {
         color={LINE_COLOR}
         lineWidth={LINE_WIDTH}
         transparent
-        opacity={0.6}
+        opacity={LINE_OPACITY}
       />
 
       {/* Halfway line */}
@@ -101,14 +100,14 @@ export const Pitch3D: React.FC = () => {
         color={LINE_COLOR}
         lineWidth={LINE_WIDTH}
         transparent
-        opacity={0.6}
+        opacity={LINE_OPACITY}
       />
 
       {/* Center circle + spot */}
-      <Line points={centerCircle} color={LINE_COLOR} lineWidth={LINE_WIDTH} transparent opacity={0.6} />
+      <Line points={centerCircle} color={LINE_COLOR} lineWidth={LINE_WIDTH} transparent opacity={LINE_OPACITY} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, LINE_HEIGHT, 0]}>
         <circleGeometry args={[CENTER_SPOT_RADIUS_UNITS, 16]} />
-        <meshBasicMaterial color={LINE_COLOR} transparent opacity={0.6} />
+        <meshBasicMaterial color={LINE_COLOR} transparent opacity={LINE_OPACITY} />
       </mesh>
 
       {/* Penalty boxes, one at each goal line */}
@@ -117,14 +116,14 @@ export const Pitch3D: React.FC = () => {
         color={LINE_COLOR}
         lineWidth={LINE_WIDTH}
         transparent
-        opacity={0.6}
+        opacity={LINE_OPACITY}
       />
       <Line
         points={[...boxOutline(halfLength, -1), boxOutline(halfLength, -1)[0]]}
         color={LINE_COLOR}
         lineWidth={LINE_WIDTH}
         transparent
-        opacity={0.6}
+        opacity={LINE_OPACITY}
       />
 
       {/* Goal frames — simple wireframe boxes standing on each goal line */}

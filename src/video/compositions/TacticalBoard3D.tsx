@@ -25,30 +25,12 @@ const AWAY_COLOR = COLORS.awayTeam;
 const ARROW_DRAW_START = 26;
 const ARROW_DRAW_DURATION = 18;
 
-// A dense field of individual grass-blade strokes, without ever rendering
-// thousands of real elements — one small SVG tile (6 curved blades) gets
-// repeated by the browser's own CSS background-repeat, the same trick a
-// tileable ground texture uses. At a 34px tile over a 1920x1080 frame that's
-// roughly 57 x 32 tiles = ~1,824 repeats x 6 blades = ~10,900 blades total,
-// landing right around the density asked for, for the cost of rendering one
-// tiny SVG rather than an actual 10k-node scene.
-const GRASS_BLADE_TILE_SIZE = 34;
-const GRASS_BLADE_SVG = `<svg xmlns='http://www.w3.org/2000/svg' width='${GRASS_BLADE_TILE_SIZE}' height='${GRASS_BLADE_TILE_SIZE}'>
-  <path d='M3 34 Q5 18 2 0' stroke='#245e34' stroke-width='1.3' fill='none' opacity='0.55'/>
-  <path d='M9 34 Q12 20 7 2' stroke='#2f7d40' stroke-width='1.3' fill='none' opacity='0.5'/>
-  <path d='M16 34 Q14 16 19 0' stroke='#245e34' stroke-width='1.3' fill='none' opacity='0.5'/>
-  <path d='M23 34 Q26 18 21 2' stroke='#357f47' stroke-width='1.3' fill='none' opacity='0.55'/>
-  <path d='M30 34 Q28 16 33 0' stroke='#2f7d40' stroke-width='1.3' fill='none' opacity='0.5'/>
-  <path d='M13 34 Q10 22 15 4' stroke='#357f47' stroke-width='1.1' fill='none' opacity='0.4'/>
-</svg>`;
-// encodeURIComponent (not a hand-rolled `#` -> %23 substitution) so every
-// special character — quotes, `#`, whitespace — is correctly escaped;
-// partial escaping is a common source of a silently-failed data URI.
-const GRASS_BLADE_LAYER_CSS = `url("data:image/svg+xml,${encodeURIComponent(GRASS_BLADE_SVG)}")`;
-// A soft two-tone mowing-stripe base underneath the blades, so the pattern
-// reads as "a mowed pitch surface with grass texture," not blades floating
-// on a flat single color.
-const GRASS_BACKDROP_CSS = `${GRASS_BLADE_LAYER_CSS}, repeating-linear-gradient(100deg, #2f7d40 0px, #2f7d40 70px, #357f47 70px, #357f47 140px)`;
+// A flat, deliberately-darker fill (COLORS.pitchVoid, not COLORS.pitch —
+// 2026-07-22, replaces an earlier grass-blade CSS texture) for the space
+// around the rendered board. Plain and darker on purpose: this is empty
+// space, not more pitch, and keeping it a distinct step below the actual
+// Pitch3D ground mesh's tone avoids the two ever blending into one mass or
+// clashing where the WebGL canvas' lit mesh meets this flat CSS layer.
 
 type Player = TacticalBoard3DData["players"][number];
 type Arrow = NonNullable<TacticalBoard3DData["arrows"]>[number];
@@ -267,21 +249,13 @@ export const TacticalBoard3D: React.FC<{ data: TacticalBoard3DData } & SharedVis
       backgroundImageSide={backgroundImageSide}
       orientation={orientation}
     >
-      {/* CSS grass backdrop, not 3D geometry — fills the space around the
-          rendered pitch (previously this project's default near-black
-          SceneFrame background, reading as an empty void) with a simple
-          mowing-stripe gradient. `gl={{ alpha: true }}` on the ThreeCanvas
-          below lets this show through anywhere the 3D scene itself doesn't
-          draw over it. */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: GRASS_BACKDROP_CSS,
-          backgroundRepeat: "repeat, repeat",
-          backgroundSize: `${GRASS_BLADE_TILE_SIZE}px ${GRASS_BLADE_TILE_SIZE}px, auto`,
-        }}
-      />
+      {/* Flat CSS backdrop, not 3D geometry — fills the space around the
+          rendered pitch with a plain, deliberately-darker-than-the-pitch
+          color (see COLORS.pitchVoid) rather than this project's default
+          near-black SceneFrame background reading as an empty void.
+          `gl={{ alpha: true }}` on the ThreeCanvas below lets this show
+          through anywhere the 3D scene itself doesn't draw over it. */}
+      <div style={{ position: "absolute", inset: 0, backgroundColor: COLORS.pitchVoid }} />
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
         <div style={{ ...TITLE_STYLE, opacity: titleOpacity, marginBottom: 24 }}>{title}</div>
         <div style={{ width: boardWidth, height: boardHeight }}>

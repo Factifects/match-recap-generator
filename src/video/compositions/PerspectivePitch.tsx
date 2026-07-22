@@ -246,14 +246,14 @@ export const PerspectivePitch: React.FC<{ opacity?: number; width?: number; heig
           <path key={i} d={d} fill={COLORS.pitchStripe} />
         ))}
       </g>
-      <path d={outline} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} />
-      <path d={halfwayLine} stroke={COLORS.pitchLines} strokeWidth={2} fill="none" />
-      <path d={centerCircle} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} />
+      <path d={outline} fill="none" stroke={COLORS.pitchLines} strokeWidth={3} />
+      <path d={halfwayLine} stroke={COLORS.pitchLines} strokeWidth={3} fill="none" />
+      <path d={centerCircle} fill="none" stroke={COLORS.pitchLines} strokeWidth={3} />
       <circle cx={centerSpotX} cy={centerSpotY} r={2.5} fill={COLORS.pitchLines} />
-      <path d={nearBox} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} />
-      <path d={farBox} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} />
-      <path d={nearGoalBox} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} />
-      <path d={farGoalBox} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} />
+      <path d={nearBox} fill="none" stroke={COLORS.pitchLines} strokeWidth={3} />
+      <path d={farBox} fill="none" stroke={COLORS.pitchLines} strokeWidth={3} />
+      <path d={nearGoalBox} fill="none" stroke={COLORS.pitchLines} strokeWidth={3} />
+      <path d={farGoalBox} fill="none" stroke={COLORS.pitchLines} strokeWidth={3} />
       <circle cx={nearSpotX} cy={nearSpotY} r={2.5} fill={COLORS.pitchLines} />
       <circle cx={farSpotX} cy={farSpotY} r={2.5} fill={COLORS.pitchLines} />
     </svg>

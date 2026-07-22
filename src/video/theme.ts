@@ -18,9 +18,21 @@ export const COLORS = {
   textDim: "#b0bec5",
   accent: "#4f6bff",
 
-  pitch: "#1b3a2f",
-  pitchStripe: "#20423a",
-  pitchLines: "rgba(255,255,255,0.15)",
+  // Dark-grey pitch, not literal grass green (2026-07-22 request) — a flat
+  // charcoal fill with a barely-there mow-stripe and solid light-grey line
+  // art, reading as a clean tactics-board diagram rather than a broadcast
+  // pitch graphic. pitchLines dropped its rgba alpha (was 0.15, nearly
+  // invisible) for a real opaque grey; callers that want it dimmer (e.g.
+  // ZoneMapCard's dashed thirds dividers) apply their own `opacity` prop.
+  // pitchVoid is a deliberately darker step below `pitch` (not a repeat of
+  // `background`, which is a much bigger jump toward black) — for the space
+  // around a 3D board's canvas (see TacticalBoard3D.tsx's CSS backdrop) so
+  // that surrounding "empty space" reads as a distinct layer behind the
+  // pitch rather than the two blending into one flat mass at the same tone.
+  pitch: "#2f3034",
+  pitchStripe: "#34363b",
+  pitchLines: "#7a8290",
+  pitchVoid: "#202124",
   homeTeam: "#4da3ff",
   awayTeam: "#ff5a5f",
   ball: "#ffffff",

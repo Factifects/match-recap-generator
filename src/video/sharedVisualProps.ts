@@ -35,6 +35,12 @@ export interface SharedVisualProps {
     focusOrder?: number[];
     pulse?: boolean;
   };
+  // True when this segment also has `phases` (PhaseCaptionOverlay renders a
+  // caption pinned to the bottom of the frame, on top of whatever the card
+  // draws) — CodeSnippetCard uses this to reserve bottom clearance so a
+  // tall code/comparison panel doesn't sit under the caption box. Any other
+  // card is free to start reading this the same way; none currently do.
+  hasCaption?: boolean;
 }
 
 /** One data-shape alias per visual kind, each just `Extract<Visual, {kind:

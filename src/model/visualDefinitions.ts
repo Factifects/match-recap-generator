@@ -444,6 +444,21 @@ const gridItemSchema = z.object({
   icon: z.enum(ICON_KEYS).optional(),
 });
 
+// Shared by the Code Snippet visual's primary panel and its optional
+// secondPanel — one line is an ordered list of colored tokens (real
+// per-token syntax highlighting, not one flat color per line).
+const codeLinesSchema = z
+  .array(
+    z.array(
+      z.object({
+        text: z.string(),
+        token: z.enum(["keyword", "string", "function", "variable", "comment", "number", "plain"]).default("plain"),
+      }),
+    ),
+  )
+  .min(1)
+  .max(12);
+
 // Canvas: a generic (non-pitch) 2D scene — "dot" is the generic "thing" in a
 // diagram (a plane, a node, a particle), "circle"/"ellipse"/"rectangle"/
 // "roundedRectangle"/"polygon"/"line" are generic shape primitives, "label"
@@ -1165,7 +1180,7 @@ export const VISUAL_DEFINITIONS = [
     category: "narrative-callouts",
     label: "Code Snippet",
     description:
-      "A code-editor-style window — real monospace font, left-aligned, per-token syntax-highlight coloring (keyword/string/function/variable/comment/number/plain), traffic-light chrome, a filename tab. For narration that references actual code, JSON, or a config/log line — not a generic diagram (use Canvas for that, even if it also contains text).",
+      "A code-editor-style window — real monospace font, left-aligned, per-token syntax-highlight coloring (keyword/string/function/variable/comment/number/plain), traffic-light chrome, a filename tab. For narration that references actual code, JSON, or a config/log line — not a generic diagram (use Canvas for that, even if it also contains text). An optional `secondPanel` adds a second window — give it its own `filename`/`language` for a real second editor (e.g. clean vs dirty code, before vs after), or just a `label` for a plain console/output box — either stacked below the first (revealed after it finishes, 'here's the code, here's what it does') or, in landscape, placed `side-by-side` for a direct visual comparison (both reveal together, since a comparison needs both visible at once, not staggered). Always falls back to stacked in portrait — two columns don't fit a 9:16 frame legibly.",
     sceneTypeKey: "code",
     schema: z.object({
       kind: z.literal("code"),
@@ -1184,17 +1199,26 @@ export const VISUAL_DEFINITIONS = [
       // color per line. An empty array renders as a blank spacer line
       // (still takes up line-height), for grouping related statements the
       // way real code uses blank lines between blocks.
-      lines: z
-        .array(
-          z.array(
-            z.object({
-              text: z.string(),
-              token: z.enum(["keyword", "string", "function", "variable", "comment", "number", "plain"]).default("plain"),
-            }),
-          ),
-        )
-        .min(1)
-        .max(12),
+      lines: codeLinesSchema,
+      // A second window — either a real second file (set `filename` and/or
+      // `language`, renders with the same traffic-light editor chrome as the
+      // primary panel — e.g. a clean-vs-dirty or before-vs-after comparison)
+      // or a plain result box (leave both unset and optionally set `label`,
+      // renders as a small uppercase tab with no traffic lights — an output
+      // console). Which chrome it gets is inferred from which fields are
+      // set, not a separate flag, since a script author already expresses
+      // the intent by whether they're naming a file.
+      secondPanel: z
+        .object({
+          filename: z.string().optional(),
+          language: z.string().optional(),
+          label: z.string().optional(),
+          lines: codeLinesSchema,
+        })
+        .optional(),
+      // "stacked" (default) or "side-by-side" — side-by-side only applies in
+      // landscape (see description); ignored with no `secondPanel`.
+      layout: z.enum(["stacked", "side-by-side"]).optional(),
     }),
   },
   {

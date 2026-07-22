@@ -144,6 +144,7 @@ export const AnalysisVideo: React.FC<{
                     jerseyImages: segment.jerseyImages,
                     boardPosition: segment.boardPosition,
                     animation: segment.animation,
+                    hasCaption: !!(segment.phases && segment.phases.length > 0),
                   };
                   return <Component data={segment.visual} {...shared} />;
                 })()}

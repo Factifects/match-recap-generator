@@ -72,11 +72,11 @@ export const Pitch: React.FC<{ opacity?: number }> = ({ opacity = 1 }) => {
           ) : null,
         )}
       </g>
-      <rect x={1} y={1} width={PITCH_WIDTH - 2} height={PITCH_HEIGHT - 2} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} rx={5} />
-      <line x1={PITCH_WIDTH / 2} y1={0} x2={PITCH_WIDTH / 2} y2={PITCH_HEIGHT} stroke={COLORS.pitchLines} strokeWidth={2} />
-      <circle cx={PITCH_WIDTH / 2} cy={PITCH_HEIGHT / 2} r={72} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} />
-      <rect x={0} y={PITCH_HEIGHT / 2 - 90} width={80} height={180} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} />
-      <rect x={PITCH_WIDTH - 80} y={PITCH_HEIGHT / 2 - 90} width={80} height={180} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} />
+      <rect x={1} y={1} width={PITCH_WIDTH - 2} height={PITCH_HEIGHT - 2} fill="none" stroke={COLORS.pitchLines} strokeWidth={3} rx={5} />
+      <line x1={PITCH_WIDTH / 2} y1={0} x2={PITCH_WIDTH / 2} y2={PITCH_HEIGHT} stroke={COLORS.pitchLines} strokeWidth={3} />
+      <circle cx={PITCH_WIDTH / 2} cy={PITCH_HEIGHT / 2} r={72} fill="none" stroke={COLORS.pitchLines} strokeWidth={3} />
+      <rect x={0} y={PITCH_HEIGHT / 2 - 90} width={80} height={180} fill="none" stroke={COLORS.pitchLines} strokeWidth={3} />
+      <rect x={PITCH_WIDTH - 80} y={PITCH_HEIGHT / 2 - 90} width={80} height={180} fill="none" stroke={COLORS.pitchLines} strokeWidth={3} />
       <text x={16} y={26} style={EDGE_LABEL_STYLE}>Right Side</text>
       <text x={16} y={PITCH_HEIGHT - 14} style={EDGE_LABEL_STYLE}>Left Side</text>
       <text x={6} y={DIRECTION_LABEL_Y} textAnchor="start" style={DIRECTION_LABEL_STYLE}>Home Attacks →</text>

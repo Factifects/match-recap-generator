@@ -55,11 +55,11 @@ export const VerticalPitch: React.FC<{ opacity?: number }> = ({ opacity = 1 }) =
         height={VERTICAL_PITCH_HEIGHT - 2}
         fill="none"
         stroke={COLORS.pitchLines}
-        strokeWidth={2}
+        strokeWidth={3}
         rx={5}
       />
-      <line x1={0} y1={VERTICAL_PITCH_HEIGHT / 2} x2={VERTICAL_PITCH_WIDTH} y2={VERTICAL_PITCH_HEIGHT / 2} stroke={COLORS.pitchLines} strokeWidth={2} />
-      <circle cx={VERTICAL_PITCH_WIDTH / 2} cy={VERTICAL_PITCH_HEIGHT / 2} r={72} fill="none" stroke={COLORS.pitchLines} strokeWidth={2} />
+      <line x1={0} y1={VERTICAL_PITCH_HEIGHT / 2} x2={VERTICAL_PITCH_WIDTH} y2={VERTICAL_PITCH_HEIGHT / 2} stroke={COLORS.pitchLines} strokeWidth={3} />
+      <circle cx={VERTICAL_PITCH_WIDTH / 2} cy={VERTICAL_PITCH_HEIGHT / 2} r={72} fill="none" stroke={COLORS.pitchLines} strokeWidth={3} />
       <rect
         x={VERTICAL_PITCH_WIDTH / 2 - BOX_WIDTH / 2}
         y={0}
@@ -67,7 +67,7 @@ export const VerticalPitch: React.FC<{ opacity?: number }> = ({ opacity = 1 }) =
         height={BOX_HEIGHT}
         fill="none"
         stroke={COLORS.pitchLines}
-        strokeWidth={2}
+        strokeWidth={3}
       />
       <rect
         x={VERTICAL_PITCH_WIDTH / 2 - BOX_WIDTH / 2}
@@ -76,7 +76,7 @@ export const VerticalPitch: React.FC<{ opacity?: number }> = ({ opacity = 1 }) =
         height={BOX_HEIGHT}
         fill="none"
         stroke={COLORS.pitchLines}
-        strokeWidth={2}
+        strokeWidth={3}
       />
     </svg>
   );
