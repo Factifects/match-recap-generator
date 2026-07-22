@@ -57,7 +57,11 @@ export function getOrbitCameraPose(frame: number, durationInFrames: number, opti
   const progress = progressFor(frame, durationInFrames);
   const angleDegrees = baseAngleDegrees - sweepDegrees / 2 + progress * sweepDegrees;
   const angle = (angleDegrees * Math.PI) / 180;
-  const position: [number, number, number] = [Math.cos(angle) * radius, height, Math.sin(angle) * radius];
+  // Orbit around the TARGET's own x/z, not world origin — a target far from
+  // pitch center (a box-crowded scene) previously still circled the origin
+  // and merely pointed at the target from however far away that left the
+  // camera, so `radius` never actually meant "distance to subject."
+  const position: [number, number, number] = [target[0] + Math.cos(angle) * radius, height, target[2] + Math.sin(angle) * radius];
   return { position, target, fov };
 }
 
@@ -69,7 +73,9 @@ export function getSidelinePanPose(frame: number, durationInFrames: number, opti
   const { panRange = 16, sidelineOffset = 20, height = 8, target = [0, 1, 0], fov = 42 } = options;
   const progress = progressFor(frame, durationInFrames);
   const x = -panRange / 2 + progress * panRange;
-  const position: [number, number, number] = [x, height, sidelineOffset];
+  // Pan range/sideline offset are relative to the target, same reasoning as
+  // getOrbitCameraPose's fix above.
+  const position: [number, number, number] = [target[0] + x, height, target[2] + sidelineOffset];
   return { position, target, fov };
 }
 
@@ -81,7 +87,7 @@ export function getDollyInPose(frame: number, durationInFrames: number, options:
   const progress = progressFor(frame, durationInFrames);
   const currentRadius = radius + (endRadius - radius) * progress;
   const angle = (baseAngleDegrees * Math.PI) / 180;
-  const position: [number, number, number] = [Math.cos(angle) * currentRadius, height, Math.sin(angle) * currentRadius];
+  const position: [number, number, number] = [target[0] + Math.cos(angle) * currentRadius, height, target[2] + Math.sin(angle) * currentRadius];
   return { position, target, fov };
 }
 

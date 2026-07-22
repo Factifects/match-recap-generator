@@ -17,6 +17,14 @@ const LINE_HEIGHT = 0.015; // just above the ground plane, avoids z-fighting
 const LINE_WIDTH = 1.6;
 const STRIPE_COUNT = 10;
 
+// Local, brighter grass greens rather than the shared 2D COLORS.pitch/
+// pitchStripe — those are tuned dark on purpose for the 2D board's own
+// overlays; changing them here would ripple into every 2D pitch too. Kept
+// as flat (unlit) colors on purpose, same as before, so brightness is exact
+// and predictable rather than depending on the scene's light angle.
+const GRASS_COLOR = "#2f7d40";
+const GRASS_STRIPE_COLOR = "#357f47";
+
 function circlePoints(radius: number, segments = 64): [number, number, number][] {
   return Array.from({ length: segments + 1 }, (_, i) => {
     const angle = (i / segments) * Math.PI * 2;
@@ -54,7 +62,7 @@ export const Pitch3D: React.FC = () => {
       {/* Ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <planeGeometry args={[PITCH_LENGTH_UNITS, PITCH_WIDTH_UNITS]} />
-        <meshBasicMaterial color={COLORS.pitch} />
+        <meshBasicMaterial color={GRASS_COLOR} />
       </mesh>
 
       {/* Mowing stripes */}
@@ -65,7 +73,7 @@ export const Pitch3D: React.FC = () => {
           position={[-halfLength + stripeLength * (i + 0.5), 0.005, 0]}
         >
           <planeGeometry args={[stripeLength, PITCH_WIDTH_UNITS]} />
-          <meshBasicMaterial color={COLORS.pitchStripe} />
+          <meshBasicMaterial color={GRASS_STRIPE_COLOR} />
         </mesh>
       ))}
 

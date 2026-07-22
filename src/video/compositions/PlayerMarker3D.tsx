@@ -95,7 +95,13 @@ export const PlayerMarker3D: React.FC<{
               whiteSpace: "nowrap",
               textAlign: "center",
               opacity,
-              textShadow: `0 0 6px ${COLORS.background}`,
+              // A solid pill behind the text, not just a soft text-shadow —
+              // a blur-only glow depends on the backdrop staying dark enough
+              // to show through; a real background guarantees contrast no
+              // matter how bright the pitch itself gets.
+              background: "rgba(10, 12, 14, 0.62)",
+              padding: "2px 8px",
+              borderRadius: 5,
             }}
           >
             {label}
