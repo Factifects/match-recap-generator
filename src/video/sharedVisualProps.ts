@@ -75,3 +75,4 @@ export type CodeData = Extract<Visual, { kind: "code" }>;
 export type CareerPathData = Extract<Visual, { kind: "career-path" }>;
 export type IconData = Extract<Visual, { kind: "icon" }>;
 export type CanvasData = Extract<Visual, { kind: "canvas" }>;
+export type Canvas3DData = Extract<Visual, { kind: "canvas-3d" }>;

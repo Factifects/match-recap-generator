@@ -147,13 +147,13 @@ match-recap-generator/
       elevenLabs.ts             # generateSpeech(text) -> {audioFilePath, staticFilePath, durationSeconds}
       resolveAudio.ts            # resolveSegmentAudio — wires real/estimated durations per segment
     model/
-      Segment.ts                 # DONE — Zod schemas. visualSchema: discriminated union of ~24
+      Segment.ts                 # DONE — Zod schemas. visualSchema: discriminated union of ~25
                                   # visual kinds (statburst, sequence, barchart, icon, zone, shape,
                                   # tactical-board, formation, shot-map, player-comparison,
                                   # goal-sequence, momentum-timeline, single-stat, radar,
                                   # vertical-tactical-board, quote, league-table, career-path,
-                                  # pass-network, heat-map, analysis, tactical-board-3d,
-                                  # formation-3d, shot-map-3d). segmentSchema: chapter |
+                                  # pass-network, heat-map, analysis, canvas, tactical-board-3d,
+                                  # formation-3d, shot-map-3d, canvas-3d). segmentSchema: chapter |
                                   # statement. TimedSegment adds durationSeconds, audio/sfx static
                                   # paths, camera stages, transitionOut/transitionStyle,
                                   # backgroundImage mode/side, iconImage, panelColor, jerseyImages.
@@ -176,7 +176,7 @@ match-recap-generator/
       tacticalPatterns.ts        # named-pattern library for TacticalBoard — audited 2026-07-11
                                   # for arrow-direction and opposition-marker correctness, see file
                                   # comments
-      compositions/               # ~27 card components, one per visual kind (StatBurstCard,
+      compositions/               # ~28 card components, one per visual kind (StatBurstCard,
                                    # SequenceCard, BarChartCard, IconInfographicCard, ZoneMapCard,
                                    # TacticalBoard, VerticalTacticalBoard, Formation, ShotMap,
                                    # PlayerComparison, GoalSequence, MomentumTimeline,
@@ -207,6 +207,29 @@ match-recap-generator/
                                    # glide the FROM player's own marker — see visualDefinitions.ts's
                                    # 3D entries for the exact cut. coords3D.ts holds the shared
                                    # pitch-percent -> Three.js world-space mapping (percentToWorld).
+                                   # Canvas3D.tsx (added 2026-07-22) is the same real-3D treatment
+                                   # for the generic (non-football) Canvas diagram builder — same
+                                   # <ThreeCanvas>/camera3D.ts/CameraRig3D.tsx machinery, its own
+                                   # canvasCoords3D.ts (percentToCanvasWorld3D) since Canvas has no
+                                   # pitch aspect ratio to key off. v1 covers 6 of Canvas's 9 object
+                                   # types (dot/circle/roundedRectangle/line/icon/label — ellipse/
+                                   # polygon/sharp-rectangle deferred) and adds an optional
+                                   # per-object `z` (depth, default 50/mid) for genuine parallax as
+                                   # the camera moves — the actual payoff of 3D here, since unlike
+                                   # the pitch family Canvas has no flat "stage" surface. A 5th idle
+                                   # motion (`idle: "orbit"`, 3D-only — not added to 2D Canvas's own
+                                   # idle enum) continuously revolves an object around its own base
+                                   # position (`orbitRadius`/`orbitPeriodFrames`) for genuinely
+                                   # circular motion (a satellite around a planet) that a discrete
+                                   # `phases` re-arrangement would only approximate choppily. Icons/
+                                   # labels render through drei's `<Html>` (a real Heroicon
+                                   # component, tinted via CSS `color` since the solid variant uses
+                                   # `fill="currentColor"`) rather than a baked texture, so this
+                                   # family needs no SuspenseLoader3D. Arrow `flow` (animated dash
+                                   # current-flow), `snap`, and mergeCanvasContinuity.ts's
+                                   # Continue-Canvas cross-scene folding are not wired to
+                                   # `canvas-3d` — see the "Canvas 3D" visual definition in
+                                   # visualDefinitions.ts for the full scope-cut list.
 ```
 
 ## Script format
@@ -299,7 +322,9 @@ Known gaps / next things to look at, not active work:
   support (deferred fast-follows relative to their 2D counterparts, see the composition list
   above), role-pill labels in Formation3D (2D-only via RolePod), and arrows gliding the FROM
   player's own marker in TacticalBoard3D are all the same kind of deliberate v1 scope cut, not
-  oversights.
+  oversights. Same for Canvas3D: ellipse/polygon/sharp-rectangle object types, arrow `flow`,
+  `snap`, and mergeCanvasContinuity.ts's Continue-Canvas cross-scene folding aren't wired to
+  `canvas-3d` — see the "Canvas 3D" visual definition in visualDefinitions.ts.
 
 ## YouTube publishing & engagement guidelines
 
@@ -353,7 +378,13 @@ enough to fit — default to the channel's primary documented style otherwise.
 - **Hook-first, no throat-clearing.** The first 15 seconds decide whether YouTube keeps
   recommending the video — cut straight to the surprising claim before any branding/intro card.
   Matches this project's existing "hook" Story Beat convention; don't let a title card or logo
-  bumper delay it.
+  bumper delay it. Established 2026-07-22 after direct feedback: this means the SCRIPT's own
+  opening scene doesn't have to default to a `Chapter` Scene Type (a big title/annotation card) —
+  a script can and often should open straight on an actual visual/animation (a TacticalBoard,
+  Canvas, StatBurst, etc.) as Scene 1 if that visual itself is the hook, rather than always
+  spending the first few seconds on a title card before the first real visual even appears. Use a
+  `Chapter` opener only when the hook genuinely is a spoken/text line with nothing to visualize yet
+  — don't reach for it by default.
 - **Diagnose retention with real data, not guesses.** YouTube Studio → Analytics → a specific
   video → Audience Retention shows the exact second viewers drop off. Use that to find which scene
   is the problem before changing pacing/structure generally.

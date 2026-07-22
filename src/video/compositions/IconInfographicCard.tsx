@@ -124,6 +124,7 @@ export const IconInfographicCard: React.FC<{ data: IconData } & SharedVisualProp
             fontSize: 144,
             color: COLORS.text,
             lineHeight: 1,
+            textAlign: "center",
           }}
         >
           {headline}

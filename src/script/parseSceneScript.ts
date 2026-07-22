@@ -4,6 +4,7 @@ import { resolvePattern, TACTICAL_PATTERNS, type PatternRole, type PatternRoleTe
 import { findAsset, findPersonArt } from "../video/assets";
 import { PHASE_DURATION_FRAMES } from "../video/compositions/TacticalBoard";
 import { CANVAS_PHASE_DURATION_FRAMES } from "../video/compositions/Canvas";
+import { CANVAS3D_PHASE_DURATION_FRAMES } from "../video/compositions/Canvas3D";
 import { FPS } from "../video/theme";
 
 const SCENE_MARKER = /^### SCENE \d+/;
@@ -54,6 +55,10 @@ export function computeVisualMinDurationSeconds(visual: Visual | undefined): num
   if (visual?.kind === "canvas" && visual.phases && visual.phases.length > 0) {
     const phaseCount = 1 + visual.phases.length;
     return (phaseCount * CANVAS_PHASE_DURATION_FRAMES) / FPS;
+  }
+  if (visual?.kind === "canvas-3d" && visual.phases && visual.phases.length > 0) {
+    const phaseCount = 1 + visual.phases.length;
+    return (phaseCount * CANVAS3D_PHASE_DURATION_FRAMES) / FPS;
   }
   return MIN_REAL_AUDIO_FLOOR_SECONDS;
 }

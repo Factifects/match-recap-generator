@@ -571,6 +571,92 @@ const canvasPhaseSchema = z.object({
   startSeconds: z.number().min(0).optional(),
 });
 
+// canvas-3d's object schema, restricted to the "core 6" v1 types (dot/
+// circle/roundedRectangle/line/icon/label) — ellipse/polygon/sharp
+// rectangle are deferred, see Canvas3D.tsx's docstring for the full scope-cut
+// list. Adds an optional `z` (0-100, default 50 = mid-depth) for real camera
+// parallax — the actual payoff of a 3D canvas over the pitch family's flat
+// billboarded markers, which have no depth axis at all.
+const canvasObject3DSchema = z.object({
+  id: z.string(),
+  type: z.enum(["dot", "circle", "roundedRectangle", "line", "icon", "label"]),
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  z: z.number().min(0).max(100).default(50),
+  label: z.string().optional(),
+  color: z.string().optional(),
+  icon: z.enum(CANVAS_ICON_KEYS).optional(),
+  radius: z.number().min(0).max(100).optional(),
+  width: z.number().min(0).max(100).optional(),
+  height: z.number().min(0).max(100).optional(),
+  rotation: z.number().default(0),
+  scale: z.number().default(1),
+  opacity: z.number().min(0).max(1).default(1),
+  filled: z.boolean().default(true),
+  fillOpacity: z.number().min(0).max(1).optional(),
+  strokeWidth: z.number().optional(),
+  layer: z.number().default(0),
+  enter: z.enum(["none", "fade", "scale", "slide"]).default("fade"),
+  exit: z.enum(["none", "fade", "scale", "slide"]).default("none"),
+  easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut"]).default("easeOut"),
+  trail: z.boolean().default(false),
+  // "orbit" is 3D-only (not added to Canvas's 2D idle enum) — continuously
+  // revolves the object around its OWN authored (x,y) in the camera-facing
+  // plane, radius/period given by `orbitRadius`/`orbitPeriodFrames` below.
+  // The other three idle modes (spin/pulse/glow) animate the object IN
+  // PLACE; this is the one idle mode that moves its position, for genuinely
+  // orbital motion (a satellite around a planet) that a discrete `phases`
+  // re-arrangement would only approximate choppily.
+  idle: z.enum(["none", "spin", "pulse", "glow", "orbit"]).default("none"),
+  // "orbit" idle only — percent-of-canvas radius of the revolution circle.
+  orbitRadius: z.number().min(0).max(100).optional(),
+  // "orbit" idle only — frames per full revolution (30fps: 150 = 5s/orbit).
+  orbitPeriodFrames: z.number().min(1).optional(),
+});
+
+// No `flow` field (see Canvas3D.tsx's docstring — deferred, needs an
+// imperative per-frame material mutation for what's ultimately a cosmetic
+// detail on top of an already-working draw-in + traveling dot).
+const canvasArrow3DSchema = z.object({
+  from: z.string(),
+  to: z.union([
+    z.string(),
+    z.object({
+      x: z.number().min(0).max(100),
+      y: z.number().min(0).max(100),
+      z: z.number().min(0).max(100).default(50),
+    }),
+  ]),
+  style: z.enum(["solid", "dashed", "dotted", "double"]).default("solid"),
+  label: z.string().optional(),
+  color: z.string().optional(),
+  strokeWidth: z.number().optional(),
+});
+
+// Camera TARGET/ZOOM only — WHICH camera3D.ts style (sway/orbit/sideline-pan/
+// dolly-in) drives the scene lives on the top-level `cameraStyle` field
+// instead (same field name/convention as the pitch family's tactical-board-3d
+// etc.), not here: switching styles mid-scene at a phase boundary would
+// produce a discontinuous jump (each style's position formula is unrelated
+// to the others'), so only WHERE a style's ambient motion is centered glides
+// per phase, not the style itself.
+const canvasCamera3DSchema = z.object({
+  target: z
+    .object({
+      x: z.number().min(0).max(100).default(50),
+      y: z.number().min(0).max(100).default(50),
+      z: z.number().min(0).max(100).default(50),
+    })
+    .default({ x: 50, y: 50, z: 50 }),
+  zoom: z.number().min(0.5).max(6).default(1),
+});
+
+const canvasPhase3DSchema = z.object({
+  objects: z.array(canvasObject3DSchema).min(1),
+  arrows: z.array(canvasArrow3DSchema).optional(),
+  camera: canvasCamera3DSchema.optional(),
+});
+
 export interface VisualDefinition<Schema extends z.ZodTypeAny = z.ZodTypeAny> {
   kind: string;
   category: VisualCategory;
@@ -1126,6 +1212,23 @@ export const VISUAL_DEFINITIONS = [
       phases: z.array(canvasPhaseSchema).min(1).optional(),
       snap: z.number().optional(),
       camera: canvasCameraSchema.optional(),
+    }),
+  },
+  {
+    kind: "canvas-3d",
+    category: "generic-diagrams",
+    label: "Canvas 3D",
+    description:
+      "3D counterpart to Canvas — the same generic diagram-building idea (freely positioned objects connected by arrows, optionally rearranging across phases), rendered in a real Three.js scene with an arcing camera instead of a flat pan/zoom plane. v1 covers 6 object types (dot/circle/roundedRectangle/line/icon/label) rather than Canvas's full 9, and adds an optional per-object z (depth) for genuine parallax as the camera moves — Canvas's flat plane has no such axis. See Canvas3D.tsx's docstring for the full list of v1 scope cuts (ellipse/polygon/rectangle, arrow flow, snap, Continue-Canvas folding).",
+    sceneTypeKey: "canvas3d",
+    schema: z.object({
+      kind: z.literal("canvas-3d"),
+      title: z.string().optional(),
+      objects: z.array(canvasObject3DSchema).min(1),
+      arrows: z.array(canvasArrow3DSchema).optional(),
+      phases: z.array(canvasPhase3DSchema).min(1).optional(),
+      camera: canvasCamera3DSchema.optional(),
+      cameraStyle: cameraStyle3DSchema,
     }),
   },
 ] as const satisfies readonly VisualDefinition[];

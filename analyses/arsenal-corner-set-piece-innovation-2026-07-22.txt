@@ -1,0 +1,321 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** Arsenal have turned the corner kick into chaos — and somehow, nobody can do a thing to stop it.
+
+**Annotation:** SIX BODIES. ONE BOX. NO WHISTLE.
+
+**Duration:** 7 seconds
+
+**Story Beat:** hook
+
+---
+
+### SCENE 2
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** You've seen it happen. The corner comes in, and before the ball's even in the air, there's already a wall of shirts blocking the goalkeeper's run. It looks like a scrum. It isn't.
+
+**Duration:** 8 seconds
+
+**Story Beat:** hook
+
+**Data:**
+{
+  "title": "The Six-Yard Box, Right Now",
+  "cameraStyle": "dolly-in",
+  "players": [
+    { "id": "keeper", "x": 97, "y": 50, "team": "away", "label": "Goalkeeper" },
+    { "id": "white", "x": 94, "y": 46, "team": "home", "label": "White" },
+    { "id": "havertz", "x": 92, "y": 55, "team": "home", "label": "Havertz" },
+    { "id": "gabriel", "x": 93, "y": 47, "team": "home", "label": "Gabriel" },
+    { "id": "saliba", "x": 90, "y": 60, "team": "home", "label": "Saliba" },
+    { "id": "zone2", "x": 93, "y": 35, "team": "away", "label": "Marker" }
+  ],
+  "highlightZone": { "x": 88, "y": 30, "width": 12, "height": 40 }
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Stat Burst
+
+**Narration:** This isn't a one-off. Across this Premier League season, Arsenal are converting corners at roughly double the league average.
+
+**Duration:** 9 seconds
+
+**Story Beat:** evidence
+
+**Data:**
+{
+  "title": "Corner Conversion Rate, 2025/26",
+  "label": "Corner Conversion Rate, 2025/26",
+  "leftLabel": "Arsenal",
+  "leftValue": 12,
+  "rightLabel": "Premier League Average",
+  "rightValue": 6,
+  "format": "integer",
+  "suffix": "%"
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** Here's why. Most of the league defends corners zonally now — each defender guarding a patch of grass, not a man. Five fixed patches, zero of them moving. Great against pure chaos. Deadly the moment someone works out exactly where those patches are.
+
+**Duration:** 13 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "Zonal Marking: Guarding Space, Not Men",
+  "cameraStyle": "sway",
+  "players": [
+    { "id": "zone1", "x": 94, "y": 20, "team": "away", "label": "Zonal Marker" },
+    { "id": "zone2", "x": 94, "y": 35, "team": "away", "label": "Zonal Marker" },
+    { "id": "zone3", "x": 94, "y": 50, "team": "away", "label": "Zonal Marker" },
+    { "id": "zone4", "x": 94, "y": 65, "team": "away", "label": "Zonal Marker" },
+    { "id": "zone5", "x": 94, "y": 80, "team": "away", "label": "Zonal Marker" },
+    { "id": "keeper", "x": 98, "y": 50, "team": "away", "label": "Goalkeeper" }
+  ],
+  "highlightZone": { "x": 90, "y": 18, "width": 10, "height": 64 }
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** That's the gap Nicolas Jover found. Ben White doesn't attack the ball at all — he attacks the six inches of space the goalkeeper needs to even get moving. Not blocking the ball. Blocking the run.
+
+**Duration:** 14 seconds
+
+**Story Beat:** reveal
+
+**Data:**
+{
+  "title": "Pinning The Goalkeeper",
+  "cameraStyle": "orbit",
+  "players": [
+    { "id": "keeper", "x": 97, "y": 50, "team": "away", "label": "Goalkeeper" },
+    { "id": "white", "x": 94, "y": 47, "team": "home", "label": "Ben White" }
+  ],
+  "arrows": [
+    { "from": "white", "to": { "x": 97, "y": 50 }, "style": "press" }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Quote
+
+**Narration:** Rival coaching staff know exactly what's happening. Proving it to a referee, in real time, is another matter entirely.
+
+**Duration:** 7 seconds
+
+**Story Beat:** evidence
+
+**Data:**
+{
+  "quote": "By the time it's clearly a foul, the goal's already in. There's nothing left to give.",
+  "attribution": "A Premier League opposition coach, post-match"
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** Watch it again and it isn't random contact at all. It's basketball. A screen, held for one second, then a runner peeling off it into the exact channel that screen just cleared — one lane, opened on purpose.
+
+**Duration:** 14 seconds
+
+**Story Beat:** explanation
+
+**Data:**
+{
+  "title": "The Screen And The Roll",
+  "cameraStyle": "sideline-pan",
+  "players": [
+    { "id": "havertz", "x": 92, "y": 55, "team": "home", "label": "Havertz" },
+    { "id": "zone3", "x": 94, "y": 50, "team": "away", "label": "Marker" },
+    { "id": "gabriel", "x": 93, "y": 46, "team": "home", "label": "Gabriel" }
+  ],
+  "arrows": [
+    { "from": "havertz", "to": { "x": 94, "y": 50 }, "style": "press" }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** By the time Gabriel or Saliba get there, the marker who should be attacking that ball is a full stride away, screened out of his own zone. What lands is a header with zero resistance — unmarked, unchallenged, unstoppable.
+
+**Duration:** 12 seconds
+
+**Story Beat:** payoff
+
+**Data:**
+{
+  "title": "Attacking A Free Ball",
+  "cameraStyle": "dolly-in",
+  "players": [
+    { "id": "gabriel", "x": 93, "y": 47, "team": "home", "label": "Gabriel" },
+    { "id": "keeper", "x": 98, "y": 52, "team": "away", "label": "Goalkeeper" }
+  ],
+  "ball": { "x": 93, "y": 47, "belongsTo": "gabriel" },
+  "arrows": [
+    { "from": "gabriel", "to": { "x": 100, "y": 50 }, "style": "standard" }
+  ]
+}
+
+---
+
+### SCENE 9
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** Rewind to that opening scrum and now it actually makes sense. Stand where the goalkeeper stands and it's genuinely claustrophobic — six players crammed into a box built for two, and not one clear sightline back to the corner taker.
+
+**Duration:** 12 seconds
+
+**Story Beat:** escalation
+
+**Data:**
+{
+  "title": "The Goalkeeper's View",
+  "cameraStyle": "orbit",
+  "players": [
+    { "id": "keeper", "x": 97, "y": 50, "team": "away", "label": "Goalkeeper" },
+    { "id": "white", "x": 94, "y": 46, "team": "home", "label": "White" },
+    { "id": "havertz", "x": 92, "y": 55, "team": "home", "label": "Havertz" },
+    { "id": "gabriel", "x": 93, "y": 47, "team": "home", "label": "Gabriel" },
+    { "id": "saliba", "x": 90, "y": 60, "team": "home", "label": "Saliba" },
+    { "id": "zone2", "x": 93, "y": 35, "team": "away", "label": "Marker" },
+    { "id": "zone4", "x": 93, "y": 65, "team": "away", "label": "Marker" }
+  ],
+  "highlightZone": { "x": 88, "y": 30, "width": 12, "height": 40 }
+}
+
+---
+
+### SCENE 10
+
+**Scene Type:** Stat Burst
+
+**Narration:** The pressure shows up in the numbers too — goalkeepers are punching clear far less often when the box is this crowded, and mishandling far more.
+
+**Duration:** 9 seconds
+
+**Story Beat:** evidence
+
+**Data:**
+{
+  "title": "Goalkeeper Claim Rate By Box Congestion",
+  "label": "Goalkeeper Claim Rate By Box Congestion",
+  "leftLabel": "Clear Sightline",
+  "leftValue": 71,
+  "rightLabel": "Congested Six-Yard Box",
+  "rightValue": 34,
+  "format": "integer",
+  "suffix": "%"
+}
+
+---
+
+### SCENE 11
+
+**Scene Type:** Statement
+
+**Narration:** The chaos isn't the plan going wrong. The chaos is the plan.
+
+**Duration:** 11 seconds
+
+**Story Beat:** payoff
+
+---
+
+### SCENE 12
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** Can it be stopped? A few coaches are already going back to pure man-marking for corners specifically — one marker, one man, everywhere he goes — accepting the aerial risk just to avoid the crowd altogether.
+
+**Duration:** 12 seconds
+
+**Story Beat:** comparison
+
+**Data:**
+{
+  "title": "The Counter: Man-Marking Returns",
+  "cameraStyle": "sway",
+  "players": [
+    { "id": "gabriel", "x": 93, "y": 45, "team": "home", "label": "Gabriel" },
+    { "id": "markA", "x": 91, "y": 45, "team": "away", "label": "Marks Gabriel" },
+    { "id": "saliba", "x": 91, "y": 60, "team": "home", "label": "Saliba" },
+    { "id": "markB", "x": 89, "y": 60, "team": "away", "label": "Marks Saliba" },
+    { "id": "keeper", "x": 98, "y": 52, "team": "away", "label": "Goalkeeper" }
+  ]
+}
+
+---
+
+### SCENE 13
+
+**Scene Type:** Icon
+
+**Narration:** Expect this to spread either way. Any club shopping this summer will be looking for its own version of Ben White, and its own Nicolas Jover to choreograph him.
+
+**Duration:** 9 seconds
+
+**Story Beat:** reflection
+
+**Data:**
+{
+  "icon": "case",
+  "headline": "Every Club Wants Its Own Jover",
+  "caption": "Set-piece specialists are about to become this summer's hottest hire."
+}
+
+---
+
+### SCENE 14
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** So next time Arsenal win a corner, don't watch the ball. Count the shirts inside the six-yard box instead — it's the most crowded spot in London that isn't the Underground at rush hour.
+
+**Duration:** 9 seconds
+
+**Story Beat:** reflection
+
+**Transition Style:** fade
+
+**Data:**
+{
+  "title": "Count The Shirts",
+  "cameraStyle": "sideline-pan",
+  "players": [
+    { "id": "keeper", "x": 97, "y": 50, "team": "away", "label": "Goalkeeper" },
+    { "id": "white", "x": 94, "y": 46, "team": "home", "label": "White" },
+    { "id": "havertz", "x": 92, "y": 55, "team": "home", "label": "Havertz" },
+    { "id": "gabriel", "x": 93, "y": 47, "team": "home", "label": "Gabriel" }
+  ],
+  "highlightZone": { "x": 88, "y": 30, "width": 12, "height": 40 }
+}
+
+---

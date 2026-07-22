@@ -6,7 +6,9 @@ import { fadeIn, drawIn, slideIn, pulse, type EasingName } from "../motion";
 import { CANVAS_ICON_COMPONENTS } from "../canvasIcons";
 import type { SharedVisualProps, CanvasData } from "../sharedVisualProps";
 
-const CANVAS_SIZE = { landscape: { width: 1400, height: 820 }, portrait: { width: 900, height: 1200 } };
+// Exported so Canvas3D.tsx reuses the exact same on-screen footprint instead
+// of duplicating these two numbers.
+export const CANVAS_SIZE = { landscape: { width: 1400, height: 820 }, portrait: { width: 900, height: 1200 } };
 const DOT_RADIUS = 16;
 // Canvas's own dot-label size — deliberately NOT just PLAYER_LABEL_STYLE
 // (that constant is shared with TacticalBoard/Formation, whose pitch discs
