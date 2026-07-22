@@ -147,12 +147,13 @@ match-recap-generator/
       elevenLabs.ts             # generateSpeech(text) -> {audioFilePath, staticFilePath, durationSeconds}
       resolveAudio.ts            # resolveSegmentAudio — wires real/estimated durations per segment
     model/
-      Segment.ts                 # DONE — Zod schemas. visualSchema: discriminated union of ~21
+      Segment.ts                 # DONE — Zod schemas. visualSchema: discriminated union of ~24
                                   # visual kinds (statburst, sequence, barchart, icon, zone, shape,
                                   # tactical-board, formation, shot-map, player-comparison,
                                   # goal-sequence, momentum-timeline, single-stat, radar,
                                   # vertical-tactical-board, quote, league-table, career-path,
-                                  # pass-network, heat-map, analysis). segmentSchema: chapter |
+                                  # pass-network, heat-map, analysis, tactical-board-3d,
+                                  # formation-3d, shot-map-3d). segmentSchema: chapter |
                                   # statement. TimedSegment adds durationSeconds, audio/sfx static
                                   # paths, camera stages, transitionOut/transitionStyle,
                                   # backgroundImage mode/side, iconImage, panelColor, jerseyImages.
@@ -175,7 +176,7 @@ match-recap-generator/
       tacticalPatterns.ts        # named-pattern library for TacticalBoard — audited 2026-07-11
                                   # for arrow-direction and opposition-marker correctness, see file
                                   # comments
-      compositions/               # ~24 card components, one per visual kind (StatBurstCard,
+      compositions/               # ~27 card components, one per visual kind (StatBurstCard,
                                    # SequenceCard, BarChartCard, IconInfographicCard, ZoneMapCard,
                                    # TacticalBoard, VerticalTacticalBoard, Formation, ShotMap,
                                    # PlayerComparison, GoalSequence, MomentumTimeline,
@@ -184,6 +185,28 @@ match-recap-generator/
                                    # ChapterCard, StatementCard, plus shared SceneFrame/
                                    # BackgroundArt/MotionBackdrop/Pitch/VerticalPitch/arrows)
                                    # AnalysisVideo.tsx sequences TimedSegments via <Series>.
+                                   # TacticalBoard3D/Formation3D/ShotMap3D (added 2026-07-22) are a
+                                   # parallel, genuinely-3D family for the same three pitch-tactics
+                                   # concepts, rendered via @remotion/three's <ThreeCanvas> instead
+                                   # of PerspectivePitch's 2D warp — real camera motion (camera3D.ts
+                                   # /CameraRig3D.tsx, 4 selectable styles: sway/orbit/sideline-pan/
+                                   # dolly-in, see `cameraStyle` on each visual's Data) over a real
+                                   # Pitch3D.tsx ground+markings mesh, with every marker (player or
+                                   # shot) as a billboarded, recolored-jersey-textured disc
+                                   # (PlayerMarker3D/JerseyMarkerBase3D — drei Billboard + Html
+                                   # label, same "shirt not a dot" intent as 2D's JerseyDisc.tsx,
+                                   # texture*color tint instead of its mix-blend-mode:color) so
+                                   # labels stay upright at any angle — the direct fix for the
+                                   # readability risk PerspectivePitch.tsx's own docstring flagged
+                                   # when it rejected true 3D rotation. ShotMap3D's goal/saved/
+                                   # blocked/off-target distinction lives on a small corner badge
+                                   # (ResultBadge3D) on top of that same jersey base. New, separate
+                                   # Scene Types (not a mode flag on the 2D ones), and deliberately
+                                   # narrower than their 2D counterparts: no `phases` multi-beat
+                                   # re-arrangement, no evented `timeline` system, arrows don't
+                                   # glide the FROM player's own marker — see visualDefinitions.ts's
+                                   # 3D entries for the exact cut. coords3D.ts holds the shared
+                                   # pitch-percent -> Three.js world-space mapping (percentToWorld).
 ```
 
 ## Script format
@@ -272,7 +295,11 @@ Known gaps / next things to look at, not active work:
   clip-fetching feature (shelved by the user as "too much" for now), multi-match video beyond what
   the news pipeline already enables, further TacticalBoard pattern-library additions beyond what
   `analyses/` scripts have needed so far (ask before adding a new named pattern — see
-  `src/video/tacticalPatterns.ts`).
+  `src/video/tacticalPatterns.ts`). TacticalBoard3D/Formation3D/ShotMap3D's `phases`/`timeline`
+  support (deferred fast-follows relative to their 2D counterparts, see the composition list
+  above), role-pill labels in Formation3D (2D-only via RolePod), and arrows gliding the FROM
+  player's own marker in TacticalBoard3D are all the same kind of deliberate v1 scope cut, not
+  oversights.
 
 ## YouTube publishing & engagement guidelines
 

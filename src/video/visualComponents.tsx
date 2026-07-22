@@ -5,6 +5,9 @@ import { TacticalBoard } from "./compositions/TacticalBoard";
 import { VerticalTacticalBoard } from "./compositions/VerticalTacticalBoard";
 import { Formation } from "./compositions/Formation";
 import { ShotMap } from "./compositions/ShotMap";
+import { TacticalBoard3D } from "./compositions/TacticalBoard3D";
+import { Formation3D } from "./compositions/Formation3D";
+import { ShotMap3D } from "./compositions/ShotMap3D";
 import { PassNetworkCard } from "./compositions/PassNetworkCard";
 import { HeatMapCard } from "./compositions/HeatMapCard";
 import { ZoneMapCard } from "./compositions/ZoneMapCard";
@@ -46,6 +49,9 @@ export const VISUAL_COMPONENTS: { [K in Visual["kind"]]: React.FC<{ data: DataFo
   "vertical-tactical-board": VerticalTacticalBoard,
   formation: Formation,
   "shot-map": ShotMap,
+  "tactical-board-3d": TacticalBoard3D,
+  "formation-3d": Formation3D,
+  "shot-map-3d": ShotMap3D,
   "pass-network": PassNetworkCard,
   "heat-map": HeatMapCard,
   zone: ZoneMapCard,

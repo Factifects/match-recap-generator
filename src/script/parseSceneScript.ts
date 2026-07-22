@@ -591,11 +591,13 @@ function resolvePhases(fields: SceneFields): { caption: string; startSeconds?: n
   }
 }
 
-/** A jersey image per side of a Formation scene, keyed by "home"/"away" —
- * only included when a real asset exists for that team, so a side with no
- * jersey art falls back to Formation's plain colored disc. */
+/** A jersey image per side of a Formation/Formation 3D scene, keyed by
+ * "home"/"away" — only included when a real asset exists for that team.
+ * Formation.tsx falls back to its plain colored disc/RolePod when absent;
+ * Formation3D.tsx falls back to DEFAULT_JERSEY_3D (a jersey either way, just
+ * not this specific team's) since that 3D family always shows a jersey. */
 function resolveJerseyImages(visual: Visual): Partial<Record<"home" | "away", string>> | undefined {
-  if (visual.kind !== "formation") return undefined;
+  if (visual.kind !== "formation" && visual.kind !== "formation-3d") return undefined;
   const images: Partial<Record<"home" | "away", string>> = {};
   for (const side of visual.sides) {
     const jersey = findAsset("jerseys", side.team);

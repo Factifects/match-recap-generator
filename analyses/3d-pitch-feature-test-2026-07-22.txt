@@ -1,0 +1,109 @@
+### SCENE 1
+
+**Scene Type:** Chapter
+
+**Narration:** 3D Pitch Feature Test
+
+**Annotation:** "3D Pitch Feature Test"
+
+**Duration:** 2 seconds
+
+---
+
+### SCENE 2
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** First up, the sway camera, the default style — a gentle side to side arc behind the goal, with jersey textured markers, an arrow, a highlighted zone, and the ball on the pitch.
+
+**Data:** {"title":"Camera Style: Sway","players":[{"id":"p1","x":25,"y":30,"team":"home","label":"CB"},{"id":"p2","x":25,"y":70,"team":"home","label":"CB"},{"id":"p3","x":45,"y":50,"team":"home","label":"DM"},{"id":"p4","x":70,"y":50,"team":"away","label":"ST"}],"arrows":[{"from":"p3","to":{"x":60,"y":35}}],"highlight":["p4"],"highlightZone":{"x":60,"y":15,"width":30,"height":70},"ball":{"x":45,"y":50},"cameraStyle":"sway"}
+
+**Duration:** 6 seconds
+
+**Story Beat:** Explanation
+
+---
+
+### SCENE 3
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** Now the orbit style — a much wider sweep around the pitch, still centered behind the goal, for a more dramatic reveal.
+
+**Data:** {"title":"Camera Style: Orbit","players":[{"id":"p1","x":25,"y":30,"team":"home","label":"CB"},{"id":"p2","x":25,"y":70,"team":"home","label":"CB"},{"id":"p3","x":45,"y":50,"team":"home","label":"DM"},{"id":"p4","x":70,"y":50,"team":"away","label":"ST"}],"arrows":[{"from":"p3","to":{"x":60,"y":35}}],"highlight":["p4"],"cameraStyle":"orbit"}
+
+**Duration:** 6 seconds
+
+**Story Beat:** Explanation
+
+---
+
+### SCENE 4
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** The sideline pan — a broadcast style tactics camera, parked outside the touchline and panning along the length of the pitch.
+
+**Data:** {"title":"Camera Style: Sideline Pan","players":[{"id":"p1","x":25,"y":30,"team":"home","label":"CB"},{"id":"p2","x":25,"y":70,"team":"home","label":"CB"},{"id":"p3","x":45,"y":50,"team":"home","label":"DM"},{"id":"p4","x":70,"y":50,"team":"away","label":"ST"}],"cameraStyle":"sideline-pan"}
+
+**Duration:** 6 seconds
+
+**Story Beat:** Explanation
+
+---
+
+### SCENE 5
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** And finally the dolly in — starting wide, then pushing in tight over the course of the scene.
+
+**Data:** {"title":"Camera Style: Dolly In","players":[{"id":"p1","x":25,"y":30,"team":"home","label":"CB"},{"id":"p2","x":25,"y":70,"team":"home","label":"CB"},{"id":"p3","x":45,"y":50,"team":"home","label":"DM"},{"id":"p4","x":70,"y":50,"team":"away","label":"ST"}],"cameraStyle":"dolly-in"}
+
+**Duration:** 6 seconds
+
+**Story Beat:** Explanation
+
+---
+
+### SCENE 6
+
+**Scene Type:** Formation 3D
+
+**Narration:** A single side in a four three three, gliding into shape from the halfway line, real French jerseys resolved automatically from the team name.
+
+**Data:** {"sides":[{"team":"France","formationName":"4-3-3","side":"home","players":[{"name":"Maignan"},{"name":"Koundé"},{"name":"Saliba"},{"name":"Upamecano"},{"name":"Hernández"},{"name":"Tchouaméni"},{"name":"Camavinga"},{"name":"Rabiot"},{"name":"Dembélé"},{"name":"Mbappé"},{"name":"Barcola"}]}],"cameraStyle":"orbit"}
+
+**Duration:** 6 seconds
+
+**Story Beat:** Explanation
+
+---
+
+### SCENE 7
+
+**Scene Type:** Formation 3D
+
+**Narration:** And two sides at once, France against Morocco, each compressed into their own half, real jerseys on both.
+
+**Data:** {"sides":[{"team":"France","formationName":"4-3-3","side":"home","players":[{"name":"GK"},{"name":"RB"},{"name":"CB"},{"name":"CB"},{"name":"LB"},{"name":"CM"},{"name":"DM"},{"name":"CM"},{"name":"RW"},{"name":"ST"},{"name":"LW"}]},{"team":"Morocco","formationName":"4-2-3-1","side":"away","players":[{"name":"GK"},{"name":"RB"},{"name":"CB"},{"name":"CB"},{"name":"LB"},{"name":"DM"},{"name":"DM"},{"name":"RW"},{"name":"CAM"},{"name":"LW"},{"name":"ST"}]}],"cameraStyle":"sideline-pan"}
+
+**Duration:** 6 seconds
+
+**Story Beat:** Explanation
+
+---
+
+### SCENE 8
+
+**Scene Type:** Shot Map 3D
+
+**Narration:** And every shot from the match as a jersey textured marker, badge coded by result — solid gold for a goal, a white ring for a save, a red cross for blocked, and a faint ring for off target.
+
+**Data:** {"title":"Every Result, One Camera Sweep","shots":[{"x":85,"y":50,"team":"home","result":"goal","xg":0.5},{"x":80,"y":30,"team":"home","result":"saved","xg":0.25},{"x":78,"y":65,"team":"away","result":"blocked"},{"x":90,"y":55,"team":"away","result":"off-target","xg":0.08},{"x":20,"y":45,"team":"away","result":"goal","xg":0.3},{"x":15,"y":60,"team":"home","result":"saved"}],"cameraStyle":"dolly-in"}
+
+**Duration:** 7 seconds
+
+**Story Beat:** Explanation
+
+---

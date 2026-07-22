@@ -389,6 +389,13 @@ const tacticalPhaseSchema = z.object({
   dataPoint: z.string().optional(),
 });
 
+// Shared by every 3D pitch visual (tactical-board-3d/formation-3d/
+// shot-map-3d) — which of camera3D.ts's pure pose functions
+// (resolveCameraPose3D) drives that scene's camera. "sway" (the original v1
+// behavior, a narrow behind-goal arc) stays the default so an existing 3D
+// scene authored before the other three styles existed is unaffected.
+const cameraStyle3DSchema = z.enum(["sway", "orbit", "sideline-pan", "dolly-in"]).default("sway");
+
 const shotSchema = z.object({
   x: z.number().min(0).max(100),
   y: z.number().min(0).max(100),
@@ -645,6 +652,52 @@ export const VISUAL_DEFINITIONS = [
       kind: z.literal("shot-map"),
       title: z.string(),
       shots: z.array(shotSchema).min(1),
+    }),
+  },
+  {
+    kind: "tactical-board-3d",
+    category: "pitch-tactics",
+    label: "Tactical Board 3D",
+    description:
+      "3D counterpart to Tactical Board — a real camera arcs over billboarded player markers (always facing the camera, labels stay upright) on a genuine 3D pitch, instead of Tactical Board's 2D perspective-warp illusion. Same players/arrows/highlightZone/ball authoring shape. v1 deliberately doesn't support Tactical Board's `phases` multi-beat re-arrangement or its evented `timeline` (move/state/possession/camera/freeze) system — use Tactical Board for either of those; this is a single static arrangement with camera motion supplying the reveal.",
+    sceneTypeKey: "tacticalboard3d",
+    schema: z.object({
+      kind: z.literal("tactical-board-3d"),
+      title: z.string(),
+      players: z.array(tacticalPlayerSchema).min(1),
+      arrows: z.array(tacticalArrowSchema).optional(),
+      highlight: z.array(z.string()).optional(),
+      highlightZone: tacticalZoneSchema.optional(),
+      ball: tacticalBallSchema.optional(),
+      cameraStyle: cameraStyle3DSchema,
+    }),
+  },
+  {
+    kind: "formation-3d",
+    category: "pitch-tactics",
+    label: "Formation 3D",
+    description:
+      "3D counterpart to Formation — the same auto-positioned lineup shape (FORMATION_TEMPLATES), rendered with a real arcing camera over billboarded markers instead of the 2D perspective board.",
+    sceneTypeKey: "formation3d",
+    schema: z.object({
+      kind: z.literal("formation-3d"),
+      title: z.string().optional(),
+      sides: z.array(formationSideSchema).min(1).max(2),
+      cameraStyle: cameraStyle3DSchema,
+    }),
+  },
+  {
+    kind: "shot-map-3d",
+    category: "pitch-tactics",
+    label: "Shot Map 3D",
+    description:
+      "3D counterpart to Shot Map — every shot as a billboarded marker on a genuine 3D pitch with a real arcing camera, styled by result and optionally sized by xG.",
+    sceneTypeKey: "shotmap3d",
+    schema: z.object({
+      kind: z.literal("shot-map-3d"),
+      title: z.string(),
+      shots: z.array(shotSchema).min(1),
+      cameraStyle: cameraStyle3DSchema,
     }),
   },
   {
