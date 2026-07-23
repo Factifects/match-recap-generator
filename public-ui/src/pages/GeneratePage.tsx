@@ -534,10 +534,11 @@ export const GeneratePage: React.FC = () => {
               onRemoveClip={removeAudioClip}
             />
             <p className="text-[11px] text-text-dim mt-3">
-              Shortening a scene below its narration's real length will cut that narration off early —
-              narration audio itself isn't re-timed, only the visual's on-screen duration changes. A
-              clip defaults to filling the rest of the video (so it acts like background music
-              out of the box) — drag its edges to shorten it into a short sound effect instead.
+              Shortening a scene below its narration's real length still cuts that narration off early
+              — narration audio itself isn't re-timed, only the visual's on-screen duration changes —
+              but the cut now fades out over the last few frames instead of stopping mid-word. A clip
+              defaults to filling the rest of the video (so it acts like background music out of the
+              box) — drag its edges to shorten it into a short sound effect instead.
             </p>
           </Card>
 

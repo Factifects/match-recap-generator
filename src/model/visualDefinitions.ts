@@ -1180,7 +1180,7 @@ export const VISUAL_DEFINITIONS = [
     category: "narrative-callouts",
     label: "Code Snippet",
     description:
-      "A code-editor-style window — real monospace font, left-aligned, per-token syntax-highlight coloring (keyword/string/function/variable/comment/number/plain), traffic-light chrome, a filename tab. For narration that references actual code, JSON, or a config/log line — not a generic diagram (use Canvas for that, even if it also contains text). An optional `secondPanel` adds a second window — give it its own `filename`/`language` for a real second editor (e.g. clean vs dirty code, before vs after), or just a `label` for a plain console/output box — either stacked below the first (revealed after it finishes, 'here's the code, here's what it does') or, in landscape, placed `side-by-side` for a direct visual comparison (both reveal together, since a comparison needs both visible at once, not staggered). Always falls back to stacked in portrait — two columns don't fit a 9:16 frame legibly.",
+      "A code-editor-style window — real monospace font, left-aligned, per-token syntax-highlight coloring (keyword/string/function/variable/comment/number/plain), traffic-light chrome, a filename tab. For narration that references actual code, JSON, or a config/log line — not a generic diagram (use Canvas for that, even if it also contains text). An optional `secondPanel` adds a second window — give it its own `filename`/`language` for a real second editor (e.g. clean vs dirty code, before vs after), or just a `label` for a plain console/output box — stacked below the first by default, or `side-by-side` in landscape. Either layout HOLDS the second panel back (empty/hidden) until `revealAt` (default 0.6 — 60% through the scene's own on-screen time, whatever that turns out to be with real narration) so a narration line that asks a question or sets up a 'before' can actually land before the answer/'after' appears — never reveal both halves together just because they're a comparison. Always falls back to stacked in portrait — two columns don't fit a 9:16 frame legibly.",
     sceneTypeKey: "code",
     schema: z.object({
       kind: z.literal("code"),
@@ -1219,6 +1219,17 @@ export const VISUAL_DEFINITIONS = [
       // "stacked" (default) or "side-by-side" — side-by-side only applies in
       // landscape (see description); ignored with no `secondPanel`.
       layout: z.enum(["stacked", "side-by-side"]).optional(),
+      // Fraction (0-1) of the scene's own on-screen duration at which
+      // `secondPanel` starts revealing — expressed as a fraction, not
+      // seconds, specifically so it stays in sync automatically whether
+      // this scene ends up using its estimated word-count Duration or a
+      // real (and likely different) narration length: resolveSegmentAudio
+      // only ever rescales a segment's TOTAL duration, it has no notion of
+      // resyncing an absolute in-scene timestamp the way it does for
+      // Canvas/TacticalBoard phase boundaries (see resolveAudio.ts's
+      // `_canvasClipBoundaries` handling) — a fraction sidesteps needing
+      // that entirely. Defaults to 0.6 when unset.
+      revealAt: z.number().min(0).max(1).optional(),
     }),
   },
   {

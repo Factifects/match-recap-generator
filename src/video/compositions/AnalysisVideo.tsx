@@ -15,6 +15,29 @@ import type { Orientation } from "../theme";
 
 export const TRANSITION_FRAMES = 15; // ~0.5s crossfade at 30fps between segments
 export const HARD_CUT_FRAMES = 1; // minimal, non-zero (linearTiming needs a real range)
+// How many frames before a Sequence's own end any audio inside it starts
+// ducking to silence — every Html5Audio below sits inside a fixed-length
+// Sequence/TransitionSeries.Sequence, so whenever the underlying audio file
+// is longer than that Sequence (narration longer than a manually-shortened
+// scene, a trimmed sfx/music clip, a segment whose real narration overran
+// its estimate), Remotion just unmounts it at the boundary — an instant,
+// audible hard stop mid-word/mid-note. Fading the last few frames to 0
+// first means that same cutoff lands on silence instead, at the small cost
+// of trimming a few frames off audio that WAS going to finish naturally
+// anyway (imperceptible either way at this length).
+const AUDIO_FADE_OUT_FRAMES = 8;
+
+/** A VolumeProp that ramps `baseVolume` down to 0 over the last
+ * `AUDIO_FADE_OUT_FRAMES` frames of a `durationInFrames`-long Sequence —
+ * see AUDIO_FADE_OUT_FRAMES above for why every Html5Audio in this file
+ * needs this instead of a flat volume number. */
+function fadeOutVolume(baseVolume: number, durationInFrames: number): (frame: number) => number {
+  return (frame: number) => {
+    const remaining = durationInFrames - frame;
+    const fade = remaining < AUDIO_FADE_OUT_FRAMES ? Math.max(0, remaining / AUDIO_FADE_OUT_FRAMES) : 1;
+    return baseVolume * fade;
+  };
+}
 
 /** How many frames of overlap a segment's outgoing transition consumes —
  * shared, not additive, with the next segment. Root.tsx's duration
@@ -85,19 +108,18 @@ export const AnalysisVideo: React.FC<{
   return (
     <>
       {backgroundMusicPath && <Html5Audio src={staticFile(backgroundMusicPath)} loop volume={0.06} />}
-      {audioClips?.map((clip) => (
-        <Sequence
-          key={clip.id}
-          from={Math.round(clip.startSeconds * fps)}
-          durationInFrames={Math.max(1, Math.round(clip.durationSeconds * fps))}
-        >
-          <Html5Audio
-            src={staticFile(clip.staticPath)}
-            startFrom={Math.round((clip.trimStartSeconds ?? 0) * fps)}
-            volume={clip.volume ?? 1}
-          />
-        </Sequence>
-      ))}
+      {audioClips?.map((clip) => {
+        const clipDurationInFrames = Math.max(1, Math.round(clip.durationSeconds * fps));
+        return (
+          <Sequence key={clip.id} from={Math.round(clip.startSeconds * fps)} durationInFrames={clipDurationInFrames}>
+            <Html5Audio
+              src={staticFile(clip.staticPath)}
+              startFrom={Math.round((clip.trimStartSeconds ?? 0) * fps)}
+              volume={fadeOutVolume(clip.volume ?? 1, clipDurationInFrames)}
+            />
+          </Sequence>
+        );
+      })}
       <TransitionSeries>
       {segments.map((segment, index) => {
         // Pad only by exactly what the outgoing transition consumes (15 frames for a
@@ -152,20 +174,23 @@ export const AnalysisVideo: React.FC<{
                 <PhaseCaptionOverlay phases={segment.phases} durationInFrames={durationInFrames} />
               )}
               {segment.audioStaticPath && (
-                <Html5Audio src={staticFile(segment.audioStaticPath)} volume={segment.narrationVolume ?? 1} />
+                <Html5Audio src={staticFile(segment.audioStaticPath)} volume={fadeOutVolume(segment.narrationVolume ?? 1, durationInFrames)} />
               )}
-              {segment.narrationClips?.map((clip, clipIndex) =>
-                clip.staticPath ? (
-                  <Sequence
-                    key={clipIndex}
-                    from={Math.round((clip.offsetSeconds ?? 0) * fps)}
-                    durationInFrames={Math.max(1, Math.round((clip.durationSeconds ?? 0) * fps))}
-                  >
-                    <Html5Audio src={staticFile(clip.staticPath)} volume={clip.volume ?? segment.narrationVolume ?? 1} />
+              {segment.narrationClips?.map((clip, clipIndex) => {
+                if (!clip.staticPath) return null;
+                const clipDurationInFrames = Math.max(1, Math.round((clip.durationSeconds ?? 0) * fps));
+                return (
+                  <Sequence key={clipIndex} from={Math.round((clip.offsetSeconds ?? 0) * fps)} durationInFrames={clipDurationInFrames}>
+                    <Html5Audio
+                      src={staticFile(clip.staticPath)}
+                      volume={fadeOutVolume(clip.volume ?? segment.narrationVolume ?? 1, clipDurationInFrames)}
+                    />
                   </Sequence>
-                ) : null,
+                );
+              })}
+              {segment.sfxStaticPath && (
+                <Html5Audio src={staticFile(segment.sfxStaticPath)} volume={fadeOutVolume(0.5, durationInFrames)} />
               )}
-              {segment.sfxStaticPath && <Html5Audio src={staticFile(segment.sfxStaticPath)} volume={0.5} />}
             </TransitionSeries.Sequence>
             {index < segments.length - 1 && (
               <TransitionSeries.Transition

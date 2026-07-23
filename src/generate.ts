@@ -98,7 +98,20 @@ function cumulativeStarts(segments: TimedSegment[]): number[] {
  * or shrank. Segment count/order is guaranteed identical before and after
  * (resolveSegmentAudio only ever changes each segment's own duration/audio
  * fields, 1:1 by index — see its own `segments.map`), so aligning by index
- * between the two timelines is safe. */
+ * between the two timelines is safe.
+ *
+ * `durationSeconds` needs the same resync, not just `startSeconds` — a
+ * background-music clip is seeded by "Add background music" to fill the
+ * rest of the (then-estimated) video (see GeneratePage.tsx), so its old end
+ * sits at (or right at) the OLD total duration. Leaving its duration
+ * untouched while only shifting its start meant real narration running
+ * LONGER than the estimate left the music stopping dead at the old
+ * estimated total while narration kept going well past it — exactly the
+ * "background music cuts out partway through" bug this fixes. Any clip
+ * whose old end already reached the old timeline's own end is treated as
+ * "meant to reach the end" and stretched/shrunk to reach the NEW total
+ * instead; anything else (a one-off sfx ending well before the old video's
+ * own end) keeps scaling by the same anchor-segment ratio as its start. */
 function resyncAudioClipsToRealDurations(
   oldSegments: TimedSegment[],
   newSegments: TimedSegment[],
@@ -107,6 +120,7 @@ function resyncAudioClipsToRealDurations(
   if (oldSegments.length === 0 || oldSegments.length !== newSegments.length) return audioClips;
   const oldStarts = cumulativeStarts(oldSegments);
   const newStarts = cumulativeStarts(newSegments);
+  const oldTotal = oldStarts[oldStarts.length - 1] + effectiveDurationOf(oldSegments[oldSegments.length - 1]);
   const newTotal = newStarts[newStarts.length - 1] + effectiveDurationOf(newSegments[newSegments.length - 1]);
 
   return audioClips.map((clip) => {
@@ -124,10 +138,18 @@ function resyncAudioClipsToRealDurations(
     const scale = oldSegDuration > 0 ? newSegDuration / oldSegDuration : 1;
     const resyncedStart = newSegStart + offsetIntoSegment * scale;
 
+    const oldEnd = clip.startSeconds + clip.durationSeconds;
+    const reachedOldEnd = oldTotal - oldEnd < 0.5;
+    const resyncedDuration = reachedOldEnd ? Math.max(0, newTotal - resyncedStart) : clip.durationSeconds * scale;
+
     // Never let the resync push a clip past the real video's own end —
     // same "clip clips itself" floor as everywhere else this is handled.
-    const maxStart = Math.max(0, newTotal - clip.durationSeconds);
-    return { ...clip, startSeconds: Math.min(Math.max(0, resyncedStart), maxStart) };
+    const maxStart = Math.max(0, newTotal - resyncedDuration);
+    return {
+      ...clip,
+      startSeconds: Math.min(Math.max(0, resyncedStart), maxStart),
+      durationSeconds: resyncedDuration,
+    };
   });
 }
 

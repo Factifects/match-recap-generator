@@ -25,10 +25,19 @@ const TOKEN_COLORS: Record<CodeData["lines"][number][number]["token"], string> =
 
 const LINE_STAGGER_FRAMES = 5;
 const LINE_FADE_FRAMES = 10;
-// Stacked layout only — how long after the primary panel's cursor appears
-// the second panel starts revealing ("code runs, then this happens"). A
-// side-by-side comparison reveals both panels together instead (see below).
-const SECOND_PANEL_DELAY_FRAMES = 20;
+// Default `revealAt` (fraction of the scene's own on-screen duration) —
+// late enough that narration has room to ask a question or set up a
+// "before" before the second panel answers it. Only used as a fallback for
+// the frame-offset path below, when no `durationInFrames` is available at
+// all (e.g. an isolated preview render) — the normal path is the schema's
+// own default, applied in generate.ts/parseSceneScript.ts... actually
+// applied right here, see `revealAt ?? DEFAULT_REVEAL_FRACTION` below.
+const DEFAULT_REVEAL_FRACTION = 0.6;
+// Fallback only: used when this card somehow renders with no
+// `durationInFrames` prop at all, so there's no scene length to take a
+// fraction of. AnalysisVideo.tsx always passes one, so real renders never
+// hit this — kept purely so the component still does something sane.
+const FALLBACK_SECOND_PANEL_DELAY_FRAMES = 20;
 // Reserved bottom margin when the segment also has a caption
 // (PhaseCaptionOverlay pins a caption box to the bottom of the frame, on
 // top of whatever the card draws) so a tall panel doesn't sit under it.
@@ -193,14 +202,18 @@ const PanelWindow: React.FC<{
  * it a real second editor (a clean-vs-dirty or before-vs-after
  * comparison); leaving both unset makes it a plain console/output box.
  * `layout: "side-by-side"` (landscape only — see below) places both
- * columns next to each other and reveals them together, since a
- * comparison needs both visible at once; the default "stacked" keeps the
- * original below-the-editor placement with a delayed reveal ("code runs,
- * then this happens"). */
+ * columns next to each other; the default "stacked" keeps the original
+ * below-the-editor placement. Either way, `secondPanel` stays hidden until
+ * `revealAt` (a fraction of the scene's own on-screen time, default 0.6) —
+ * a comparison needs its "before" to actually land with the narration
+ * before the "after" shows up, same as a question needs room to be asked
+ * before the answer appears; the two panels are never simultaneous just
+ * because the layout is side-by-side. */
 export const CodeSnippetCard: React.FC<{ data: CodeData } & SharedVisualProps> = ({
-  data: { filename, language, lines, secondPanel, layout },
+  data: { filename, language, lines, secondPanel, layout, revealAt },
   backgroundColor,
   orientation,
+  durationInFrames,
   hasCaption,
 }) => {
   const frame = useCurrentFrame();
@@ -217,8 +230,10 @@ export const CodeSnippetCard: React.FC<{ data: CodeData } & SharedVisualProps> =
   const codeLastNonEmptyIndex = [...lines].map((l) => l.length > 0).lastIndexOf(true);
   const codeCursorRevealFrame =
     codeLastNonEmptyIndex >= 0 ? codeLastNonEmptyIndex * LINE_STAGGER_FRAMES + LINE_FADE_FRAMES : 0;
-  const secondStartFrame = isSideBySide ? 0 : codeCursorRevealFrame + SECOND_PANEL_DELAY_FRAMES;
-  const secondOpacity = !secondPanel ? 0 : isSideBySide ? 1 : fadeIn(frame, secondStartFrame, LINE_FADE_FRAMES);
+  const secondStartFrame = durationInFrames
+    ? Math.round(durationInFrames * (revealAt ?? DEFAULT_REVEAL_FRACTION))
+    : codeCursorRevealFrame + FALLBACK_SECOND_PANEL_DELAY_FRAMES;
+  const secondOpacity = !secondPanel ? 0 : fadeIn(frame, secondStartFrame, LINE_FADE_FRAMES);
 
   return (
     <SceneFrame backgroundColor={backgroundColor} orientation={orientation}>
@@ -241,7 +256,7 @@ export const CodeSnippetCard: React.FC<{ data: CodeData } & SharedVisualProps> =
           fontSize={fontSize}
           startFrame={0}
           frame={frame}
-          showCursor={!secondPanel || isSideBySide}
+          showCursor={!secondPanel || frame < secondStartFrame}
           flex={isSideBySide}
         />
         {secondPanel && (
