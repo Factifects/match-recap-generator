@@ -67,7 +67,21 @@ export const Formation3D: React.FC<{ data: Formation3DData } & SharedVisualProps
   const singleSide = sides.length < 2;
   const isSideLayout = orientation !== "portrait" && (boardPosition === "left" || boardPosition === "right");
   const resolvedTitle = title ?? defaultTitle(sides);
-  const pose = resolveCameraPose3D(cameraStyle, frame, durationInFrames, { radius: 30, height: 17 });
+  // "two-team-reveal" needs each side's own cluster center to hold on — the
+  // same HALF_MARGIN/HALF_SPAN halves positionX() lays players out into, not
+  // the players' own (still-animating) positions, so the target is stable
+  // from frame 0 rather than chasing a still-entering marker. It also wants
+  // its own (tighter) default radius/height, NOT the wide radius:30 the
+  // other styles use — that wide shot fitting both full XIs at once is
+  // exactly the unreadable framing this style exists to avoid, so those two
+  // options are only passed to every OTHER style here, not this one.
+  const pose =
+    cameraStyle === "two-team-reveal" && !singleSide
+      ? resolveCameraPose3D(cameraStyle, frame, durationInFrames, {
+          target: percentToWorld(25, 50, 1.2),
+          targetB: percentToWorld(75, 50, 1.2),
+        })
+      : resolveCameraPose3D(cameraStyle, frame, durationInFrames, { radius: 30, height: 17 });
 
   const boardBlock = (
     <div style={{ width: boardWidth, height: boardHeight }}>

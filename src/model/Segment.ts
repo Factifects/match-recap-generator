@@ -86,6 +86,20 @@ export interface AudioClipPlacement {
    * *before* dragging it into an overlap, e.g. layering a whoosh under a
    * click at the same timestamp. Defaults to 0 when unset. */
   lane?: number;
+  /** Fade-in ramp length in seconds, from silent up to full volume at the
+   * clip's own start — dragged via the timeline editor's fade handle (see
+   * Timeline.tsx's handleFadeInDragStart). Unset/0 means no fade-in, the
+   * only behavior that existed before manual fade control. */
+  fadeInSeconds?: number;
+  /** Fade-out ramp length in seconds, down to silent by the clip's own end —
+   * dragged via the timeline editor's fade handle. Unset (as opposed to an
+   * explicit 0) leaves AnalysisVideo.tsx's own smart default in charge: a
+   * short automatic fade UNLESS another clip is glued flush against this
+   * one's tail (see hasGluedSuccessor), in which case it skips the fade so a
+   * duplicated/tiled clip doesn't dip right at the seam. Setting this field
+   * at all — including to 0 — is a deliberate manual override of that
+   * default, e.g. dragging a real crossfade even across a glued boundary. */
+  fadeOutSeconds?: number;
 }
 
 // Camera framing for pitch-based visuals (TacticalBoard/Formation/ShotMap/

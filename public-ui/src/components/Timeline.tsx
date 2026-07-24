@@ -197,6 +197,53 @@ function ClipWaveform({ clip }: { clip: AudioClipPlacement }) {
   );
 }
 
+/** CapCut-style fade wedges + drag handles: a translucent triangular wedge
+ * shades each ramp region (a wider wedge reads as a longer fade), with a
+ * small round handle at its outer point that the caller's drag handlers
+ * (handleFadeInDragStart/handleFadeOutDragStart) turn into real seconds.
+ * Pixel-based (not percent-of-viewBox like ClipWaveform) since the wedge
+ * needs to line up exactly with `pixelsPerSecond`-derived handle positions,
+ * not just look proportionally right. Handles are always rendered — even at
+ * 0 fade a corner handle sits flush at the edge, ready to be dragged out,
+ * matching CapCut's own always-visible corner handles rather than only
+ * appearing once a fade already exists. */
+function FadeHandles({
+  clip,
+  widthPx,
+  pixelsPerSecond,
+  onFadeInDragStart,
+  onFadeOutDragStart,
+}: {
+  clip: AudioClipPlacement;
+  widthPx: number;
+  pixelsPerSecond: number;
+  onFadeInDragStart: (e: React.MouseEvent) => void;
+  onFadeOutDragStart: (e: React.MouseEvent) => void;
+}) {
+  const fadeInPx = Math.max(0, Math.min(widthPx, (clip.fadeInSeconds ?? 0) * pixelsPerSecond));
+  const fadeOutPx = Math.max(0, Math.min(widthPx, (clip.fadeOutSeconds ?? 0) * pixelsPerSecond));
+  return (
+    <>
+      <svg width={widthPx} height="100%" viewBox={`0 0 ${widthPx} 100`} preserveAspectRatio="none" className="absolute inset-0 pointer-events-none">
+        {fadeInPx > 0 && <polygon points={`0,0 ${fadeInPx},0 0,100`} fill="rgba(0,0,0,0.35)" />}
+        {fadeOutPx > 0 && <polygon points={`${widthPx},0 ${widthPx - fadeOutPx},0 ${widthPx},100`} fill="rgba(0,0,0,0.35)" />}
+      </svg>
+      <div
+        onMouseDown={onFadeInDragStart}
+        title="Drag to set fade-in length"
+        className="absolute top-0 w-2.5 h-2.5 rounded-full bg-white border border-accent-ink cursor-col-resize z-30 shadow"
+        style={{ left: fadeInPx - 5 }}
+      />
+      <div
+        onMouseDown={onFadeOutDragStart}
+        title="Drag to set fade-out length"
+        className="absolute top-0 w-2.5 h-2.5 rounded-full bg-white border border-accent-ink cursor-col-resize z-30 shadow"
+        style={{ left: widthPx - fadeOutPx - 5 }}
+      />
+    </>
+  );
+}
+
 /** Tracks a mouse-drag session from a fixed start point (not incremental
  * per-frame deltas, to avoid drift) — attaches window-level listeners for
  * the duration of the drag and cleans them up on mouseup. No drag-and-drop
@@ -492,6 +539,42 @@ export const Timeline: React.FC<TimelineProps> = ({
     window.addEventListener("mouseup", stopWatch);
   }
 
+  /** Dragging the fade-in handle (top-left corner) right lengthens the
+   * fade-in ramp; left shortens it. Clamped so it can never eat into
+   * whatever the fade-out side already claims — captured once at drag
+   * start, same convention as the trim handles above, so the two handles
+   * can't fight each other mid-drag. */
+  function handleFadeInDragStart(e: React.MouseEvent, clip: AudioClipPlacement) {
+    const startFade = clip.fadeInSeconds ?? 0;
+    const maxFade = Math.max(0, clip.durationSeconds - (clip.fadeOutSeconds ?? 0));
+    startDrag(e, pixelsPerSecond, (deltaSeconds) => {
+      onUpdateClip(clip.id, { fadeInSeconds: Math.max(0, Math.min(maxFade, startFade + deltaSeconds)) });
+    });
+    const stopWatch = () => {
+      endDrag(() => {});
+      window.removeEventListener("mouseup", stopWatch);
+    };
+    window.addEventListener("mouseup", stopWatch);
+  }
+
+  /** Mirror of handleFadeInDragStart for the top-right corner — measured
+   * from the clip's tail inward, so dragging LEFT (a negative delta)
+   * lengthens it. Setting `fadeOutSeconds` at all (even back to 0) is a
+   * deliberate manual override of AnalysisVideo.tsx's own glued-aware
+   * default fade — see AudioClipPlacement's docstring in model/Segment.ts. */
+  function handleFadeOutDragStart(e: React.MouseEvent, clip: AudioClipPlacement) {
+    const startFade = clip.fadeOutSeconds ?? 0;
+    const maxFade = Math.max(0, clip.durationSeconds - (clip.fadeInSeconds ?? 0));
+    startDrag(e, pixelsPerSecond, (deltaSeconds) => {
+      onUpdateClip(clip.id, { fadeOutSeconds: Math.max(0, Math.min(maxFade, startFade - deltaSeconds)) });
+    });
+    const stopWatch = () => {
+      endDrag(() => {});
+      window.removeEventListener("mouseup", stopWatch);
+    };
+    window.addEventListener("mouseup", stopWatch);
+  }
+
   function handleDrop(targetIndex: number) {
     const sourceIndex = dragSourceIndex.current;
     dragSourceIndex.current = null;
@@ -543,6 +626,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           ))}
           {clips.map((clip) => {
             const row = clip.lane ?? 0;
+            const widthPx = Math.max(30, clip.durationSeconds * pixelsPerSecond);
             return (
               <div
                 key={clip.id}
@@ -551,7 +635,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 }`}
                 style={{
                   left: clip.startSeconds * pixelsPerSecond,
-                  width: Math.max(30, clip.durationSeconds * pixelsPerSecond),
+                  width: widthPx,
                   top: ROW_INSET_PX + row * ROW_HEIGHT_PX,
                   height: ROW_HEIGHT_PX - ROW_INSET_PX * 2,
                 }}
@@ -572,6 +656,13 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div
                   onMouseDown={(e) => handleClipRightTrimStart(e, clip)}
                   className="absolute top-0 right-0 h-full w-2.5 cursor-col-resize hover:bg-accent-ink/40 z-10"
+                />
+                <FadeHandles
+                  clip={clip}
+                  widthPx={widthPx}
+                  pixelsPerSecond={pixelsPerSecond}
+                  onFadeInDragStart={(e) => handleFadeInDragStart(e, clip)}
+                  onFadeOutDragStart={(e) => handleFadeOutDragStart(e, clip)}
                 />
                 <div className="relative flex items-center justify-between gap-1 pointer-events-none">
                   <span className="text-[10px] truncate">{clipDisplayName(clip)}</span>

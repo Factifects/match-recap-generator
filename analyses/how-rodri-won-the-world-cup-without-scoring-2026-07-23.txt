@@ -1,0 +1,239 @@
+### SCENE 1
+
+**Scene Type:** Stat Burst
+
+**Narration:** Lionel Messi's last World Cup final. Thirty-nine years old, one last chance, the whole tournament watching. He finished it with exactly one shot in the entire game — and it was blocked before it even threatened the goal.
+
+**Data:**
+{
+  "title": "Messi, World Cup Final",
+  "label": "Messi, World Cup Final",
+  "leftLabel": "Total Shots",
+  "leftValue": 1,
+  "rightLabel": "Shots On Target",
+  "rightValue": 0,
+  "format": "integer"
+}
+
+**Duration:** 9 seconds
+
+**Story Beat:** question
+
+---
+
+### SCENE 2
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** It wasn't bad luck. Spain built their entire midfield around one job: make sure the ball never comfortably reached him. Rodri sat just in front of the back four, blocking the central lane Argentina needed to even get their captain on the ball.
+
+**Data:**
+{
+  "title": "Blocking The Only Way In",
+  "cameraStyle": "orbit",
+  "players": [
+    { "id": "rodri", "x": 50, "y": 50, "team": "home", "label": "Rodri" },
+    { "id": "messi", "x": 38, "y": 40, "team": "away", "label": "Messi" },
+    { "id": "feeder", "x": 28, "y": 60, "team": "away", "label": "Argentina Midfield" }
+  ],
+  "arrows": [
+    { "from": "rodri", "to": { "x": 42, "y": 48 }, "kind": "run", "style": "press" }
+  ],
+  "highlightZone": { "x": 35, "y": 30, "width": 20, "height": 40 }
+}
+
+**Duration:** 11 seconds
+
+**Story Beat:** explanation
+
+---
+
+### SCENE 3
+
+**Scene Type:** Stat Burst
+
+**Narration:** The numbers back it up brutally. Argentina didn't manage a single shot in ninety minutes of a World Cup final. Across the full hundred and twenty, they got off exactly two.
+
+**Data:**
+{
+  "title": "Argentina's Shots, World Cup Final",
+  "label": "Argentina's Shots, World Cup Final",
+  "leftLabel": "In 90 Minutes",
+  "leftValue": 0,
+  "rightLabel": "Across Full 120",
+  "rightValue": 2,
+  "format": "integer"
+}
+
+**Duration:** 8 seconds
+
+**Story Beat:** evidence
+
+---
+
+### SCENE 4
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** Watch where Messi ends up as the game wears on. He starts dropping deeper and deeper, further from goal, just trying to touch the ball at all. Even there, Rodri or a covering midfielder is already waiting.
+
+**Data:**
+{
+  "title": "Chasing The Game Deeper And Deeper",
+  "cameraStyle": "sideline-pan",
+  "players": [
+    { "id": "messi1", "x": 55, "y": 45, "team": "away", "label": "Messi, 30'" },
+    { "id": "messi2", "x": 40, "y": 45, "team": "away", "label": "Messi, 70'" },
+    { "id": "rodri", "x": 42, "y": 48, "team": "home", "label": "Rodri" }
+  ]
+}
+
+**Duration:** 9 seconds
+
+**Story Beat:** escalation
+
+---
+
+### SCENE 5
+
+**Scene Type:** Quote
+
+**Narration:** Even Argentina's own supporters clocked it in real time.
+
+**Data:**
+{
+  "quote": "Argentina fans singing \"Messi\" as Rodri, who shackled their star, went up to collect player of the match award",
+  "attribution": "Adam Crafton, journalist, on X"
+}
+
+**Duration:** 8 seconds
+
+**Story Beat:** evidence
+
+---
+
+### SCENE 6
+
+**Scene Type:** Stat Burst
+
+**Narration:** So here's the part that should sound impossible. The World Cup's official Golden Ball — the award for the tournament's single best player — didn't go to Messi. It didn't go to Mbappe, the top scorer. It went to Rodri. Zero goals. Zero assists.
+
+**Data:**
+{
+  "title": "Golden Ball Winner vs. Golden Boot Winner",
+  "label": "Golden Ball Winner vs. Golden Boot Winner",
+  "leftLabel": "Rodri (Golden Ball) — Goals + Assists",
+  "leftValue": 0,
+  "rightLabel": "Mbappe (Golden Boot) — Goals + Assists",
+  "rightValue": 14,
+  "format": "integer"
+}
+
+**Duration:** 11 seconds
+
+**Story Beat:** reveal
+
+---
+
+### SCENE 7
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** Zoom out and it's the whole team, not just one man. By the end of ninety minutes, Spain had sixty-six percent of the ball and fifteen shots. Argentina had zero.
+
+**Data:**
+{
+  "title": "Spain's Control, 90 Minutes",
+  "cameraStyle": "sway",
+  "players": [
+    { "id": "s1", "x": 60, "y": 30, "team": "home", "label": "Spain" },
+    { "id": "s2", "x": 62, "y": 50, "team": "home", "label": "Spain" },
+    { "id": "s3", "x": 60, "y": 70, "team": "home", "label": "Spain" },
+    { "id": "s4", "x": 50, "y": 50, "team": "home", "label": "Rodri" },
+    { "id": "a1", "x": 45, "y": 40, "team": "away", "label": "Argentina" },
+    { "id": "a2", "x": 44, "y": 60, "team": "away", "label": "Argentina" }
+  ],
+  "highlightZone": { "x": 45, "y": 15, "width": 40, "height": 70 }
+}
+
+**Duration:** 8 seconds
+
+**Story Beat:** evidence
+
+---
+
+### SCENE 8
+
+**Scene Type:** Quote
+
+**Narration:** Their manager had said it out loud before a ball was even kicked.
+
+**Data:**
+{
+  "quote": "In my opinion, and I say this with the greatest of respect to everyone, we have the best midfield in the world. We have two players per position who are the best players.",
+  "attribution": "Luis de la Fuente, Spain head coach, to The Guardian"
+}
+
+**Duration:** 9 seconds
+
+**Story Beat:** explanation
+
+---
+
+### SCENE 9
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** Even the winning goal, deep into extra time, wasn't a moment of magic. It was Porro's cross, Nico Williams heading it back across goal instead of at it, and substitute Ferran Torres arriving to finish first time.
+
+**Data:**
+{
+  "title": "The Winning Goal — Extra Time",
+  "cameraStyle": "dolly-in",
+  "players": [
+    { "id": "porro", "x": 85, "y": 85, "team": "home", "label": "Porro" },
+    { "id": "williams", "x": 90, "y": 50, "team": "home", "label": "Nico Williams" },
+    { "id": "torres", "x": 92, "y": 45, "team": "home", "label": "Torres" },
+    { "id": "keeper", "x": 98, "y": 50, "team": "away", "label": "Goalkeeper" }
+  ],
+  "arrows": [
+    { "from": "porro", "to": { "x": 90, "y": 50 }, "kind": "pass" },
+    { "from": "williams", "to": { "x": 92, "y": 45 }, "kind": "pass" }
+  ],
+  "ball": { "x": 92, "y": 45, "belongsTo": "torres" }
+}
+
+**Duration:** 9 seconds
+
+**Story Beat:** payoff
+
+---
+
+### SCENE 10
+
+**Scene Type:** Icon
+
+**Narration:** Two years ago, Rodri ruptured his ACL and barely played for over a year. This summer, the World Cup's best player, by the tournament's own vote, was the guy nobody was arguing about at half-time.
+
+**Data:**
+{
+  "icon": "trophy",
+  "headline": "The Comeback Nobody Was Watching For",
+  "caption": "One year removed from a ruptured ACL, Rodri won the World Cup's best-player award without scoring or assisting once."
+}
+
+**Duration:** 9 seconds
+
+**Story Beat:** reflection
+
+---
+
+### SCENE 11
+
+**Scene Type:** Statement
+
+**Narration:** Messi will get the montage. Rodri got the trophy. Football is still deciding which one it actually rewards.
+
+**Duration:** 8 seconds
+
+**Story Beat:** reflection

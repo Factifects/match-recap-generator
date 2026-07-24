@@ -116,7 +116,21 @@ export const ShotMap3D: React.FC<{ data: ShotMap3DData } & SharedVisualProps> = 
   const boardWidth = orientation === "portrait" ? PERSPECTIVE_PITCH_WIDTH : PERSPECTIVE_PITCH_WIDTH_LANDSCAPE;
   const boardHeight = orientation === "portrait" ? PERSPECTIVE_PITCH_HEIGHT : PERSPECTIVE_PITCH_HEIGHT_LANDSCAPE;
   const titleOpacity = fadeIn(frame, 0, 14);
-  const pose = resolveCameraPose3D(cameraStyle, frame, durationInFrames, { radius: 28, height: 15 });
+  // Shots cluster near ONE goal, not pitch center — a fixed radius-28 camera
+  // aimed at world origin (this scene's previous behavior) left every marker
+  // bunched in a small corner of the frame whenever that cluster sat well
+  // away from center, exactly like Formation 3D's own too-wide default (see
+  // feedback_formation3d_camera_too_wide memory). Targeting the shots' own
+  // centroid, with a tighter radius since a shot cluster spans far less of
+  // the pitch than a full lineup, keeps them centered and legible regardless
+  // of which end of the pitch they're actually on.
+  const centroidX = shots.length > 0 ? shots.reduce((sum, s) => sum + s.x, 0) / shots.length : 50;
+  const centroidY = shots.length > 0 ? shots.reduce((sum, s) => sum + s.y, 0) / shots.length : 50;
+  const pose = resolveCameraPose3D(cameraStyle, frame, durationInFrames, {
+    radius: 13,
+    height: 9,
+    target: percentToWorld(centroidX, centroidY, 1.2),
+  });
 
   return (
     <SceneFrame backgroundColor={backgroundColor} orientation={orientation}>

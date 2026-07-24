@@ -394,7 +394,12 @@ const tacticalPhaseSchema = z.object({
 // (resolveCameraPose3D) drives that scene's camera. "sway" (the original v1
 // behavior, a narrow behind-goal arc) stays the default so an existing 3D
 // scene authored before the other three styles existed is unaffected.
-const cameraStyle3DSchema = z.enum(["sway", "orbit", "sideline-pan", "dolly-in"]).default("sway");
+// "two-team-reveal" (Formation 3D only — see Formation3D.tsx) holds tight on
+// one side's cluster, glides across, then holds tight on the other's, so
+// labels stay legible instead of a single wide shot trying to fit all 22
+// players (see feedback_formation3d_camera_too_wide memory for why that
+// wide shot doesn't work).
+const cameraStyle3DSchema = z.enum(["sway", "orbit", "sideline-pan", "dolly-in", "two-team-reveal"]).default("sway");
 
 const shotSchema = z.object({
   x: z.number().min(0).max(100),

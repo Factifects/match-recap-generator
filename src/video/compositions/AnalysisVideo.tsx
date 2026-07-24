@@ -27,16 +27,51 @@ export const HARD_CUT_FRAMES = 1; // minimal, non-zero (linearTiming needs a rea
 // anyway (imperceptible either way at this length).
 const AUDIO_FADE_OUT_FRAMES = 8;
 
-/** A VolumeProp that ramps `baseVolume` down to 0 over the last
- * `AUDIO_FADE_OUT_FRAMES` frames of a `durationInFrames`-long Sequence —
- * see AUDIO_FADE_OUT_FRAMES above for why every Html5Audio in this file
- * needs this instead of a flat volume number. */
-function fadeOutVolume(baseVolume: number, durationInFrames: number): (frame: number) => number {
+/** A VolumeProp combining an optional fade-in ramp (silent -> full over the
+ * clip's first `fadeInFrames`) with a fade-out ramp (full -> silent over the
+ * last `fadeOutFrames`) of a `durationInFrames`-long Sequence — either can be
+ * 0 (no ramp on that side). When both are non-zero and would overlap (their
+ * combined length exceeds the clip's own duration), `Math.min` below just
+ * means volume never reaches full baseVolume anywhere, a deliberate "duck"
+ * rather than a clamp — callers (Timeline.tsx's drag handles) are expected
+ * to keep the two from overlapping in the first place, but this can't crash
+ * or invert even if one somehow does. */
+function fadeVolume(baseVolume: number, durationInFrames: number, fadeInFrames: number, fadeOutFrames: number): (frame: number) => number {
   return (frame: number) => {
+    const inRamp = fadeInFrames > 0 ? Math.max(0, Math.min(1, frame / fadeInFrames)) : 1;
     const remaining = durationInFrames - frame;
-    const fade = remaining < AUDIO_FADE_OUT_FRAMES ? Math.max(0, remaining / AUDIO_FADE_OUT_FRAMES) : 1;
-    return baseVolume * fade;
+    const outRamp = fadeOutFrames > 0 ? Math.max(0, Math.min(1, remaining / fadeOutFrames)) : 1;
+    return baseVolume * Math.min(inRamp, outRamp);
   };
+}
+
+/** Narration and per-segment sfx (below) have no fade-in/fade-out authoring
+ * of their own — just the same flat AUDIO_FADE_OUT_FRAMES safety fade every
+ * Html5Audio in this file always had, unaffected by user-placed audioClips'
+ * new manual fade controls. */
+function fadeOutVolume(baseVolume: number, durationInFrames: number): (frame: number) => number {
+  return fadeVolume(baseVolume, durationInFrames, 0, AUDIO_FADE_OUT_FRAMES);
+}
+
+// How close (in seconds) another clip's start has to sit to THIS clip's own
+// end to count as "glued" — a duplicated clip appended right after its
+// source, or a hand-dragged snap to another clip's tail (see Timeline.tsx's
+// own GLUE_EPSILON_SECONDS, same convention, separate constant since that
+// file is frontend-only and this one is the renderer). Large enough to
+// absorb float rounding from a prior snap, small enough to never mistake a
+// genuinely separate, deliberately-gapped clip for a glued one.
+const GLUE_EPSILON_SECONDS = 0.05;
+
+/** A clip fading to silence over its own last AUDIO_FADE_OUT_FRAMES makes
+ * sense when nothing else picks up right after it — but when another clip is
+ * glued flush against its tail (the common "duplicate, place beside" way of
+ * tiling background music), that fade creates an audible dip-then-jump
+ * exactly at the seam the user placed to sound continuous, even though
+ * there's no real silence there. Skip the fade whenever a successor already
+ * covers the boundary. */
+function hasGluedSuccessor(clip: AudioClipPlacement, allClips: AudioClipPlacement[]): boolean {
+  const end = clip.startSeconds + clip.durationSeconds;
+  return allClips.some((c) => c.id !== clip.id && Math.abs(c.startSeconds - end) < GLUE_EPSILON_SECONDS);
 }
 
 /** How many frames of overlap a segment's outgoing transition consumes —
@@ -109,13 +144,34 @@ export const AnalysisVideo: React.FC<{
     <>
       {backgroundMusicPath && <Html5Audio src={staticFile(backgroundMusicPath)} loop volume={0.06} />}
       {audioClips?.map((clip) => {
-        const clipDurationInFrames = Math.max(1, Math.round(clip.durationSeconds * fps));
+        // Deriving durationInFrames from the clip's own end timestamp (not
+        // straight from durationSeconds) means two clips placed exactly
+        // flush — B.startSeconds === A.startSeconds + A.durationSeconds,
+        // e.g. a duplicated clip appended right after its source — round to
+        // the SAME boundary frame on both sides. Rounding each clip's
+        // duration independently could land A's end and B's start a frame
+        // apart (round(x) + round(y) isn't always round(x + y)), which is
+        // exactly the "flush in the editor, a gap in the render" bug this
+        // fixes: a genuinely silent frame at a seam the user placed to sound
+        // continuous.
+        const fromFrame = Math.round(clip.startSeconds * fps);
+        const clipDurationInFrames = Math.max(1, Math.round((clip.startSeconds + clip.durationSeconds) * fps) - fromFrame);
+        const baseVolume = clip.volume ?? 1;
+        const fadeInFrames = Math.max(0, Math.round((clip.fadeInSeconds ?? 0) * fps));
+        // fadeOutSeconds unset -> the smart default (glued-aware); an
+        // EXPLICIT value (including 0, hence the `!== undefined` rather than
+        // `??`) always wins, since setting it at all is the user manually
+        // taking over via the timeline editor's drag handle.
+        const autoFadeOutFrames = hasGluedSuccessor(clip, audioClips) ? 0 : AUDIO_FADE_OUT_FRAMES;
+        const fadeOutFrames =
+          clip.fadeOutSeconds !== undefined ? Math.max(0, Math.round(clip.fadeOutSeconds * fps)) : autoFadeOutFrames;
+        const volume = fadeVolume(baseVolume, clipDurationInFrames, fadeInFrames, fadeOutFrames);
         return (
-          <Sequence key={clip.id} from={Math.round(clip.startSeconds * fps)} durationInFrames={clipDurationInFrames}>
+          <Sequence key={clip.id} from={fromFrame} durationInFrames={clipDurationInFrames}>
             <Html5Audio
               src={staticFile(clip.staticPath)}
               startFrom={Math.round((clip.trimStartSeconds ?? 0) * fps)}
-              volume={fadeOutVolume(clip.volume ?? 1, clipDurationInFrames)}
+              volume={volume}
             />
           </Sequence>
         );

@@ -1,0 +1,331 @@
+### SCENE 1
+
+**Scene Type:** Formation 3D
+
+**Narration:** I'll bet a lot of you expected France to tear this Spain team apart. Mbappe, Olise, Dembele, Doue — on paper, the most dangerous front four left in the tournament. Here's why it never actually happened.
+
+**Data:**
+{
+  "title": "Kickoff: Two Very Different Threats",
+  "cameraStyle": "two-team-reveal",
+  "sides": [
+    {
+      "team": "Spain",
+      "formationName": "4-3-3",
+      "side": "home",
+      "players": [
+        { "name": "Unai Simon", "role": "GK" },
+        { "name": "Cucurella" },
+        { "name": "Laporte" },
+        { "name": "Cubarsi" },
+        { "name": "Porro" },
+        { "name": "Rodri" },
+        { "name": "Fabian Ruiz" },
+        { "name": "Baena" },
+        { "name": "Yamal" },
+        { "name": "Oyarzabal" },
+        { "name": "Olmo" }
+      ]
+    },
+    {
+      "team": "France",
+      "formationName": "4-2-3-1",
+      "side": "away",
+      "players": [
+        { "name": "Maignan", "role": "GK" },
+        { "name": "Digne" },
+        { "name": "Centre-Back" },
+        { "name": "Centre-Back" },
+        { "name": "Right-Back" },
+        { "name": "Holding Midfielder" },
+        { "name": "Midfielder" },
+        { "name": "Dembele" },
+        { "name": "Olise" },
+        { "name": "Doue" },
+        { "name": "Mbappe" }
+      ]
+    }
+  ]
+}
+
+**Duration:** 9 seconds
+
+**Story Beat:** question
+
+---
+
+### SCENE 2
+
+**Scene Type:** Tactical Board
+
+**Narration:** Spain's back line played high enough to invite exactly this — Mbappe timing a run in behind it. That only works with perfect discipline. Watch: the linesman's flag is up before the ball is even played.
+
+**Data:**
+{
+  "title": "The High Line — A Calculated Risk",
+  "players": [
+    { "id": "laporte", "x": 38, "y": 42, "team": "home", "label": "Laporte" },
+    { "id": "cubarsi", "x": 38, "y": 58, "team": "home", "label": "Cubarsi" },
+    { "id": "mbappe", "x": 46, "y": 50, "team": "away", "label": "Mbappe" }
+  ],
+  "tacticalObjects": [
+    { "shape": "line", "x": 38, "label": "Spain's Line", "appearSeconds": 0 }
+  ],
+  "timeline": [
+    { "type": "move", "actorId": "mbappe", "startSeconds": 1.5, "durationSeconds": 1.2, "to": { "x": 20, "y": 50 }, "runType": "standard" },
+    { "type": "freeze", "startSeconds": 2.7, "durationSeconds": 2.5, "circles": [ { "x": 20, "y": 50, "radius": 30 } ], "annotations": [ { "text": "OFFSIDE", "x": 20, "y": 38 } ] }
+  ]
+}
+
+**Duration:** 9 seconds
+
+**Story Beat:** explanation
+
+---
+
+### SCENE 3
+
+**Scene Type:** Tactical Board
+
+**Narration:** But look at how France actually tried to use that pace. Over and over, it was Dembele or Doue in a straight foot race, one on one, out wide — exactly the shape Spain's back line is built to shepherd away from goal.
+
+**Data:**
+{
+  "title": "France's Actual Pattern — Isolated 1v1s",
+  "players": [
+    { "id": "dembele", "x": 60, "y": 15, "team": "away", "label": "Dembele" },
+    { "id": "cucurella", "x": 58, "y": 18, "team": "home", "label": "Cucurella" }
+  ],
+  "timeline": [
+    { "type": "move", "actorId": "dembele", "startSeconds": 0.6, "durationSeconds": 1.6, "to": { "x": 78, "y": 10 }, "runType": "standard" },
+    { "type": "move", "actorId": "cucurella", "startSeconds": 0.6, "durationSeconds": 1.6, "to": { "x": 76, "y": 14 }, "runType": "recoveryRun" },
+    { "type": "freeze", "startSeconds": 2.2, "durationSeconds": 2, "annotations": [ { "text": "Shepherded Away From Goal", "x": 78, "y": 6 } ] }
+  ]
+}
+
+**Duration:** 11 seconds
+
+**Story Beat:** escalation
+
+---
+
+### SCENE 4
+
+**Scene Type:** Tactical Board
+
+**Narration:** Here's what actually breaks a back line like Spain's — not a foot race, an overload. A late underlapping run turns that same one-on-one into a genuine two-on-one, and suddenly there's a real passing option nobody's shepherding anywhere.
+
+**Data:**
+{
+  "title": "The Missing Piece — An Overload",
+  "players": [
+    { "id": "dembele", "x": 60, "y": 15, "team": "away", "label": "Dembele" },
+    { "id": "cucurella", "x": 58, "y": 18, "team": "home", "label": "Cucurella" },
+    { "id": "support", "x": 45, "y": 25, "team": "away", "label": "France Midfielder" }
+  ],
+  "ball": { "x": 60, "y": 15, "belongsTo": "dembele" },
+  "timeline": [
+    { "type": "move", "actorId": "support", "startSeconds": 0.5, "durationSeconds": 1.6, "to": { "x": 72, "y": 26 }, "runType": "underlap" },
+    { "type": "possession", "fromId": "dembele", "toId": "support", "startSeconds": 2.2, "durationSeconds": 0.7, "action": "pass" },
+    { "type": "freeze", "startSeconds": 3, "durationSeconds": 2, "annotations": [ { "text": "A Real 2v1 — Nobody's Covering This", "x": 72, "y": 30 } ] }
+  ]
+}
+
+**Duration:** 9 seconds
+
+**Story Beat:** reveal
+
+---
+
+### SCENE 5
+
+**Scene Type:** Tactical Board
+
+**Narration:** Centrally, Spain never needed to scramble. Watch Rodri — the instant a passing lane into the pocket opens, he's already gliding across to close it before the pass is even attempted.
+
+**Data:**
+{
+  "title": "Rodri Closes The Lane First",
+  "players": [
+    { "id": "rodri", "x": 45, "y": 30, "team": "home", "label": "Rodri" },
+    { "id": "target", "x": 55, "y": 50, "team": "away", "label": "France Attacker" }
+  ],
+  "highlightZone": { "x": 40, "y": 40, "width": 20, "height": 25 },
+  "timeline": [
+    { "type": "move", "actorId": "rodri", "startSeconds": 0.6, "durationSeconds": 1.4, "to": { "x": 48, "y": 48 }, "runType": "standard" },
+    { "type": "freeze", "startSeconds": 2, "durationSeconds": 2, "annotations": [ { "text": "Lane Closed", "x": 48, "y": 38 } ] }
+  ]
+}
+
+**Duration:** 8 seconds
+
+**Story Beat:** explanation
+
+---
+
+### SCENE 6
+
+**Scene Type:** Stat Burst
+
+**Narration:** By full time, the World Cup's own top scorer had thirty-four touches and three shots — and not one of them was on target.
+
+**Data:**
+{
+  "title": "Mbappe, Spain vs. France",
+  "label": "Mbappe, Spain vs. France",
+  "leftLabel": "Shots Taken",
+  "leftValue": 3,
+  "rightLabel": "Shots On Target",
+  "rightValue": 0,
+  "format": "integer"
+}
+
+**Duration:** 6 seconds
+
+**Story Beat:** evidence
+
+---
+
+### SCENE 7
+
+**Scene Type:** Tactical Board
+
+**Narration:** But don't mistake control for chance creation. From open play, Spain never actually carved this defense open — patient possession, side to side, without a single clean look at goal.
+
+**Data:**
+{
+  "title": "Control Without A Chance",
+  "players": [
+    { "id": "ruiz", "x": 65, "y": 30, "team": "home", "label": "Fabian Ruiz" },
+    { "id": "olmo", "x": 65, "y": 70, "team": "home", "label": "Olmo" },
+    { "id": "block1", "x": 80, "y": 35, "team": "away", "label": "France" },
+    { "id": "block2", "x": 80, "y": 50, "team": "away", "label": "France" },
+    { "id": "block3", "x": 80, "y": 65, "team": "away", "label": "France" }
+  ],
+  "ball": { "x": 65, "y": 30, "belongsTo": "ruiz" },
+  "timeline": [
+    { "type": "possession", "fromId": "ruiz", "toId": "olmo", "startSeconds": 0.5, "durationSeconds": 1, "action": "pass" },
+    { "type": "possession", "fromId": "olmo", "toId": "ruiz", "startSeconds": 1.8, "durationSeconds": 1, "action": "pass" },
+    { "type": "freeze", "startSeconds": 3, "durationSeconds": 1.8, "annotations": [ { "text": "No Way Through — Yet", "x": 72, "y": 20 } ] }
+  ]
+}
+
+**Duration:** 7 seconds
+
+**Story Beat:** explanation
+
+---
+
+### SCENE 8
+
+**Scene Type:** Tactical Board
+
+**Narration:** The breakthrough Spain actually needed came from a mistake, not a design. Yamal drove at Lucas Digne in the box — and Digne's challenge was reckless enough to leave the referee no choice.
+
+**Data:**
+{
+  "title": "Yamal Draws The Penalty — 22'",
+  "players": [
+    { "id": "yamal", "x": 75, "y": 30, "team": "home", "label": "Yamal" },
+    { "id": "digne", "x": 85, "y": 24, "team": "away", "label": "Digne" }
+  ],
+  "ball": { "x": 75, "y": 30, "belongsTo": "yamal" },
+  "timeline": [
+    { "type": "move", "actorId": "yamal", "startSeconds": 0.5, "durationSeconds": 1.4, "to": { "x": 90, "y": 20 }, "runType": "diagonalRun" },
+    { "type": "freeze", "startSeconds": 1.9, "durationSeconds": 2.2, "circles": [ { "x": 90, "y": 20, "radius": 30 } ], "annotations": [ { "text": "PENALTY", "x": 90, "y": 8 } ] }
+  ]
+}
+
+**Duration:** 8 seconds
+
+**Story Beat:** escalation
+
+---
+
+### SCENE 9
+
+**Scene Type:** Tactical Board
+
+**Narration:** Fifty-eight minutes in, that's the pattern that finally broke them — for real. Porro slides it into Olmo, keeps running into the space he just created, gets it straight back, and finishes first time.
+
+**Data:**
+{
+  "title": "Porro's One-Two — 58'",
+  "players": [
+    { "id": "porro", "x": 78, "y": 62, "team": "home", "label": "Porro" },
+    { "id": "olmo", "x": 82, "y": 50, "team": "home", "label": "Olmo" },
+    { "id": "maignan", "x": 97, "y": 50, "team": "away", "label": "Maignan" }
+  ],
+  "ball": { "x": 78, "y": 62, "belongsTo": "porro" },
+  "timeline": [
+    { "type": "possession", "fromId": "porro", "toId": "olmo", "startSeconds": 0.4, "durationSeconds": 0.8, "action": "pass" },
+    { "type": "move", "actorId": "porro", "startSeconds": 0.4, "durationSeconds": 1.6, "to": { "x": 88, "y": 55 }, "runType": "overlap" },
+    { "type": "possession", "fromId": "olmo", "toId": "porro", "startSeconds": 1.5, "durationSeconds": 0.7, "action": "pass" },
+    { "type": "possession", "fromId": "porro", "toPoint": { "x": 97, "y": 50 }, "startSeconds": 2.3, "durationSeconds": 0.6, "action": "shot" },
+    { "type": "freeze", "startSeconds": 2.9, "durationSeconds": 2, "annotations": [ { "text": "GOAL", "x": 92, "y": 50 } ] }
+  ]
+}
+
+**Duration:** 8 seconds
+
+**Story Beat:** payoff
+
+---
+
+### SCENE 10
+
+**Scene Type:** Shot Map 3D
+
+**Narration:** Zoom out to the full match and the picture is brutal. Ten shots from a France front line built to terrify defenses — three on target, an expected-goals total of just zero-point-three.
+
+**Data:**
+{
+  "title": "France's Shots, Full Match",
+  "shots": [
+    { "x": 15, "y": 45, "team": "away", "result": "saved", "xg": 0.06 },
+    { "x": 18, "y": 55, "team": "away", "result": "saved", "xg": 0.05 },
+    { "x": 12, "y": 50, "team": "away", "result": "saved", "xg": 0.04 },
+    { "x": 22, "y": 40, "team": "away", "result": "off-target", "xg": 0.03 },
+    { "x": 20, "y": 60, "team": "away", "result": "off-target", "xg": 0.02 },
+    { "x": 16, "y": 35, "team": "away", "result": "off-target", "xg": 0.02 },
+    { "x": 24, "y": 65, "team": "away", "result": "off-target", "xg": 0.02 },
+    { "x": 10, "y": 50, "team": "away", "result": "off-target", "xg": 0.02 },
+    { "x": 17, "y": 48, "team": "away", "result": "blocked", "xg": 0.02 },
+    { "x": 14, "y": 52, "team": "away", "result": "blocked", "xg": 0.02 }
+  ]
+}
+
+**Duration:** 8 seconds
+
+**Story Beat:** evidence
+
+---
+
+### SCENE 11
+
+**Scene Type:** Split Cards
+
+**Narration:** So here's the honest verdict on both sides. Spain won by managing a real risk better than France ever punished it. France lost by trusting individual quality to do what only real combination play was ever going to do.
+
+**Data:**
+{
+  "title": "The Honest Verdict",
+  "left": { "label": "Spain", "value": "Managed The Risk", "caption": "A high line and patient control — but no clean chance until a penalty bailed them out." },
+  "right": { "label": "France", "value": "Never Adapted", "caption": "Individual duels all night, when a real overload was the only thing that ever cracked it." }
+}
+
+**Duration:** 10 seconds
+
+**Story Beat:** reveal
+
+---
+
+### SCENE 12
+
+**Scene Type:** Statement
+
+**Narration:** Mbappe finishes this tournament as its record scorer. Against the one team that actually planned for him, he still didn't get a shot on target.
+
+**Duration:** 8 seconds
+
+**Story Beat:** reflection

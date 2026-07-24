@@ -10,7 +10,7 @@ export interface CameraPose3D {
 // formation-3d/shot-map-3d Data schemas) — "sway" is the original v1 behavior
 // (a narrow behind-goal arc), the other three were added directly off
 // real feedback that a single fixed move wasn't enough variety.
-export type CameraStyle3D = "sway" | "orbit" | "sideline-pan" | "dolly-in";
+export type CameraStyle3D = "sway" | "orbit" | "sideline-pan" | "dolly-in" | "two-team-reveal";
 
 export interface CameraOptions3D {
   /** sway/orbit: orbit radius. dolly-in: starting radius. */
@@ -28,6 +28,9 @@ export interface CameraOptions3D {
   sidelineOffset?: number;
   /** dolly-in only: ending (tight) radius. */
   endRadius?: number;
+  /** two-team-reveal only: the second target to hold on (see `target` above
+   * for the first) — typically one team's cluster center, then the other's. */
+  targetB?: [number, number, number];
 }
 
 function progressFor(frame: number, durationInFrames: number): number {
@@ -91,6 +94,43 @@ export function getDollyInPose(frame: number, durationInFrames: number, options:
   return { position, target, fov };
 }
 
+/** A close, legible hold on `target` (e.g. one team's cluster center),
+ * gliding across to hold equally close on `targetB` (the other team's) —
+ * built specifically for Formation 3D, where a single wide shot trying to
+ * fit two full XIs at once (the original "sway"/"orbit" behavior, radius
+ * ~30) left every player marker and name label too small and far away to
+ * read (confirmed via a real render, not just reasoned about — see
+ * feedback_formation3d_camera_too_wide memory). Spends the first 40% of the
+ * scene held on `target`, the middle 20% gliding, the last 40% held on
+ * `targetB` — a "look at this side, now look at that side" reveal rather
+ * than a single shot compromising on both. Falls back to a plain hold on
+ * `target` alone if `targetB` isn't supplied (e.g. a single-side Formation
+ * scene, which has nothing to reveal a second half of). */
+export function getTwoTeamRevealPose(frame: number, durationInFrames: number, options: CameraOptions3D = {}): CameraPose3D {
+  const { radius = 13, height = 9, baseAngleDegrees = 180, target = [0, 1.2, 0], targetB, fov = 42 } = options;
+  const duration = Math.max(durationInFrames, 1);
+  const t = targetB
+    ? interpolate(frame, [0, duration * 0.4, duration * 0.6, duration], [0, 0, 1, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+        easing: Easing.inOut(Easing.cubic),
+      })
+    : 0;
+  const end = targetB ?? target;
+  const currentTarget: [number, number, number] = [
+    target[0] + (end[0] - target[0]) * t,
+    target[1] + (end[1] - target[1]) * t,
+    target[2] + (end[2] - target[2]) * t,
+  ];
+  const angle = (baseAngleDegrees * Math.PI) / 180;
+  const position: [number, number, number] = [
+    currentTarget[0] + Math.cos(angle) * radius,
+    height,
+    currentTarget[2] + Math.sin(angle) * radius,
+  ];
+  return { position, target: currentTarget, fov };
+}
+
 /** Single entry point every 3D card calls instead of picking a pose function
  * directly — keeps `cameraStyle` -> implementation a one-place mapping, same
  * role resolveVisual plays for Scene Type -> visual kind. "orbit" is
@@ -109,6 +149,8 @@ export function resolveCameraPose3D(
       return getSidelinePanPose(frame, durationInFrames, options);
     case "dolly-in":
       return getDollyInPose(frame, durationInFrames, options);
+    case "two-team-reveal":
+      return getTwoTeamRevealPose(frame, durationInFrames, options);
     case "sway":
     default:
       return getOrbitCameraPose(frame, durationInFrames, options);
