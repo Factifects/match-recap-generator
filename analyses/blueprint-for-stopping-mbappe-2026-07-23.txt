@@ -56,13 +56,14 @@
 
 ### SCENE 2
 
-**Scene Type:** Tactical Board
+**Scene Type:** Tactical Board 3D
 
-**Narration:** Spain's back line played high enough to invite exactly this — Mbappe timing a run in behind it. That only works with perfect discipline. Watch: the linesman's flag is up before the ball is even played.
+**Narration:** Spain didn't defend with one trick — they had four, stacked on top of each other. Start with the riskiest: the back line played high enough to invite exactly this, Mbappe timing a run in behind it. The flag's up before the ball's even played. And it only works because the whole line steps up together, never one player alone.
 
 **Data:**
 {
-  "title": "The High Line — A Calculated Risk",
+  "title": "Tool One: The High Line",
+  "cameraStyle": "sway",
   "players": [
     { "id": "laporte", "x": 38, "y": 42, "team": "home", "label": "Laporte" },
     { "id": "cubarsi", "x": 38, "y": 58, "team": "home", "label": "Cubarsi" },
@@ -72,12 +73,15 @@
     { "shape": "line", "x": 38, "label": "Spain's Line", "appearSeconds": 0 }
   ],
   "timeline": [
-    { "type": "move", "actorId": "mbappe", "startSeconds": 1.5, "durationSeconds": 1.2, "to": { "x": 20, "y": 50 }, "runType": "standard" },
-    { "type": "freeze", "startSeconds": 2.7, "durationSeconds": 2.5, "circles": [ { "x": 20, "y": 50, "radius": 30 } ], "annotations": [ { "text": "OFFSIDE", "x": 20, "y": 38 } ] }
+    { "type": "move", "actorId": "mbappe", "startSeconds": 1.0, "durationSeconds": 1.2, "to": { "x": 20, "y": 50 }, "runType": "standard" },
+    { "type": "freeze", "startSeconds": 2.4, "durationSeconds": 2.2, "circles": [ { "x": 20, "y": 50, "radius": 30 } ], "annotations": [ { "text": "OFFSIDE", "x": 20, "y": 50 } ] },
+    { "type": "move", "actorId": "laporte", "startSeconds": 2.6, "durationSeconds": 1.0, "to": { "x": 44, "y": 42 }, "runType": "standard" },
+    { "type": "move", "actorId": "cubarsi", "startSeconds": 2.6, "durationSeconds": 1.0, "to": { "x": 44, "y": 58 }, "runType": "standard" },
+    { "type": "freeze", "startSeconds": 3.8, "durationSeconds": 2.0, "annotations": [ { "text": "Moves As One Unit", "x": 44, "y": 50 } ] }
   ]
 }
 
-**Duration:** 9 seconds
+**Duration:** 15 seconds
 
 **Story Beat:** explanation
 
@@ -85,25 +89,30 @@
 
 ### SCENE 3
 
-**Scene Type:** Tactical Board
+**Scene Type:** Tactical Board 3D
 
-**Narration:** But look at how France actually tried to use that pace. Over and over, it was Dembele or Doue in a straight foot race, one on one, out wide — exactly the shape Spain's back line is built to shepherd away from goal.
+**Narration:** Tool two: the press. It wasn't chaos, either — it had a trigger. The instant a France defender took a heavy touch, two players closed the gap together at once. Nowhere to go but long, straight back out of Spain's own half.
 
 **Data:**
 {
-  "title": "France's Actual Pattern — Isolated 1v1s",
+  "title": "Tool Two: The Press",
+  "cameraStyle": "dolly-in",
   "players": [
-    { "id": "dembele", "x": 60, "y": 15, "team": "away", "label": "Dembele" },
-    { "id": "cucurella", "x": 58, "y": 18, "team": "home", "label": "Cucurella" }
+    { "id": "defender", "x": 25, "y": 50, "team": "away", "label": "France Defender" },
+    { "id": "oyarzabal", "x": 42, "y": 36, "team": "home", "label": "Oyarzabal" },
+    { "id": "baena", "x": 42, "y": 64, "team": "home", "label": "Baena" }
   ],
+  "ball": { "x": 25, "y": 50, "belongsTo": "defender" },
   "timeline": [
-    { "type": "move", "actorId": "dembele", "startSeconds": 0.6, "durationSeconds": 1.6, "to": { "x": 78, "y": 10 }, "runType": "standard" },
-    { "type": "move", "actorId": "cucurella", "startSeconds": 0.6, "durationSeconds": 1.6, "to": { "x": 76, "y": 14 }, "runType": "recoveryRun" },
-    { "type": "freeze", "startSeconds": 2.2, "durationSeconds": 2, "annotations": [ { "text": "Shepherded Away From Goal", "x": 78, "y": 6 } ] }
+    { "type": "move", "actorId": "oyarzabal", "startSeconds": 0.6, "durationSeconds": 1.2, "to": { "x": 31, "y": 41 }, "runType": "standard" },
+    { "type": "move", "actorId": "baena", "startSeconds": 0.6, "durationSeconds": 1.2, "to": { "x": 31, "y": 59 }, "runType": "standard" },
+    { "type": "freeze", "startSeconds": 1.8, "durationSeconds": 2.0, "annotations": [ { "text": "Trapped", "x": 31, "y": 50 } ] },
+    { "type": "possession", "fromId": "defender", "toPoint": { "x": 45, "y": 30 }, "startSeconds": 2.0, "durationSeconds": 1.0, "action": "clearance" },
+    { "type": "freeze", "startSeconds": 3.0, "durationSeconds": 1.8, "annotations": [ { "text": "Forced Long", "x": 45, "y": 30 } ] }
   ]
 }
 
-**Duration:** 11 seconds
+**Duration:** 10 seconds
 
 **Story Beat:** escalation
 
@@ -111,13 +120,76 @@
 
 ### SCENE 4
 
-**Scene Type:** Tactical Board
+**Scene Type:** Tactical Board 3D
 
-**Narration:** Here's what actually breaks a back line like Spain's — not a foot race, an overload. A late underlapping run turns that same one-on-one into a genuine two-on-one, and suddenly there's a real passing option nobody's shepherding anywhere.
+**Narration:** Tool three: man marking, out on the wing. Over and over, it was Dembele or Doue in a straight foot race — Cucurella tracking him stride for stride. Cut inside instead, and the same shadow follows. There's no losing him.
 
 **Data:**
 {
-  "title": "The Missing Piece — An Overload",
+  "title": "Tool Three: Man Marking",
+  "cameraStyle": "orbit",
+  "players": [
+    { "id": "dembele", "x": 60, "y": 15, "team": "away", "label": "Dembele" },
+    { "id": "cucurella", "x": 58, "y": 18, "team": "home", "label": "Cucurella" }
+  ],
+  "timeline": [
+    { "type": "move", "actorId": "dembele", "startSeconds": 0.6, "durationSeconds": 1.6, "to": { "x": 78, "y": 10 }, "runType": "standard" },
+    { "type": "move", "actorId": "cucurella", "startSeconds": 0.6, "durationSeconds": 1.6, "to": { "x": 76, "y": 14 }, "runType": "recoveryRun" },
+    { "type": "freeze", "startSeconds": 2.2, "durationSeconds": 1.8, "annotations": [ { "text": "Man-Marked", "x": 77, "y": 12 } ] },
+    { "type": "move", "actorId": "dembele", "startSeconds": 2.4, "durationSeconds": 1.2, "to": { "x": 68, "y": 22 }, "runType": "diagonalRun" },
+    { "type": "move", "actorId": "cucurella", "startSeconds": 2.4, "durationSeconds": 1.2, "to": { "x": 66, "y": 24 }, "runType": "recoveryRun" },
+    { "type": "freeze", "startSeconds": 3.6, "durationSeconds": 1.8, "annotations": [ { "text": "Mirrors Every Step", "x": 67, "y": 23 } ] }
+  ]
+}
+
+**Duration:** 10 seconds
+
+**Story Beat:** escalation
+
+---
+
+### SCENE 5
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** Tool four: zonal marking, centrally. Watch Olise drift into a new patch of grass — the defender who was near him doesn't follow a step. A completely different player picks him up. Drift again, and it happens again. Every blade of grass has an owner.
+
+**Data:**
+{
+  "title": "Tool Four: Zonal Marking",
+  "cameraStyle": "sway",
+  "players": [
+    { "id": "olise", "x": 48, "y": 68, "team": "away", "label": "Olise" },
+    { "id": "zone1", "x": 44, "y": 58, "team": "home", "label": "Zone 1" },
+    { "id": "zone2", "x": 44, "y": 26, "team": "home", "label": "Zone 2" },
+    { "id": "zone3", "x": 50, "y": 10, "team": "home", "label": "Zone 3" }
+  ],
+  "timeline": [
+    { "type": "move", "actorId": "olise", "startSeconds": 0.6, "durationSeconds": 1.8, "to": { "x": 48, "y": 30 }, "runType": "diagonalRun" },
+    { "type": "move", "actorId": "zone2", "startSeconds": 1.8, "durationSeconds": 0.8, "to": { "x": 40, "y": 33 }, "runType": "standard" },
+    { "type": "freeze", "startSeconds": 2.6, "durationSeconds": 1.8, "circles": [ { "x": 48, "y": 30, "radius": 30 } ], "annotations": [ { "text": "Passed Between Zones", "x": 44, "y": 50 } ] },
+    { "type": "move", "actorId": "olise", "startSeconds": 2.8, "durationSeconds": 1.4, "to": { "x": 55, "y": 15 }, "runType": "diagonalRun" },
+    { "type": "move", "actorId": "zone3", "startSeconds": 4.2, "durationSeconds": 0.8, "to": { "x": 52, "y": 13 }, "runType": "standard" },
+    { "type": "freeze", "startSeconds": 5.0, "durationSeconds": 1.8, "circles": [ { "x": 55, "y": 15, "radius": 30 } ], "annotations": [ { "text": "Every Zone Covered", "x": 52, "y": 15 } ] }
+  ]
+}
+
+**Duration:** 13 seconds
+
+**Story Beat:** explanation
+
+---
+
+### SCENE 6
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** Here's what actually breaks man marking like that — not a foot race, an overload. A late underlapping run turns that one-on-one into a genuine two-on-one. Suddenly there's a real ball into the box, and nobody tracking the runner who delivered it.
+
+**Data:**
+{
+  "title": "Breaking Man Marking — An Overload",
+  "cameraStyle": "dolly-in",
   "players": [
     { "id": "dembele", "x": 60, "y": 15, "team": "away", "label": "Dembele" },
     { "id": "cucurella", "x": 58, "y": 18, "team": "home", "label": "Cucurella" },
@@ -127,43 +199,49 @@
   "timeline": [
     { "type": "move", "actorId": "support", "startSeconds": 0.5, "durationSeconds": 1.6, "to": { "x": 72, "y": 26 }, "runType": "underlap" },
     { "type": "possession", "fromId": "dembele", "toId": "support", "startSeconds": 2.2, "durationSeconds": 0.7, "action": "pass" },
-    { "type": "freeze", "startSeconds": 3, "durationSeconds": 2, "annotations": [ { "text": "A Real 2v1 — Nobody's Covering This", "x": 72, "y": 30 } ] }
+    { "type": "freeze", "startSeconds": 3.0, "durationSeconds": 1.8, "annotations": [ { "text": "Now It's A 2v1", "x": 70, "y": 30 } ] },
+    { "type": "possession", "fromId": "support", "toPoint": { "x": 88, "y": 50 }, "startSeconds": 3.2, "durationSeconds": 0.9, "action": "pass" },
+    { "type": "freeze", "startSeconds": 4.1, "durationSeconds": 1.8, "annotations": [ { "text": "A Real Chance", "x": 85, "y": 45 } ] }
   ]
 }
 
-**Duration:** 9 seconds
+**Duration:** 10 seconds
 
 **Story Beat:** reveal
 
 ---
 
-### SCENE 5
+### SCENE 7
 
-**Scene Type:** Tactical Board
+**Scene Type:** Tactical Board 3D
 
-**Narration:** Centrally, Spain never needed to scramble. Watch Rodri — the instant a passing lane into the pocket opens, he's already gliding across to close it before the pass is even attempted.
+**Narration:** There's a fifth layer too, purely positional. The instant a passing lane into the pocket opens, Rodri glides across to screen it. Shift the ball the other way, and Fabian Ruiz does exactly the same on that side. There's never a gap in the middle at all.
 
 **Data:**
 {
-  "title": "Rodri Closes The Lane First",
+  "title": "The Fifth Layer — Screening The Pivot",
+  "cameraStyle": "orbit",
   "players": [
-    { "id": "rodri", "x": 45, "y": 30, "team": "home", "label": "Rodri" },
-    { "id": "target", "x": 55, "y": 50, "team": "away", "label": "France Attacker" }
+    { "id": "rodri", "x": 45, "y": 35, "team": "home", "label": "Rodri" },
+    { "id": "ruiz", "x": 45, "y": 65, "team": "home", "label": "Fabian Ruiz" },
+    { "id": "target", "x": 58, "y": 50, "team": "away", "label": "France Attacker" }
   ],
-  "highlightZone": { "x": 40, "y": 40, "width": 20, "height": 25 },
   "timeline": [
-    { "type": "move", "actorId": "rodri", "startSeconds": 0.6, "durationSeconds": 1.4, "to": { "x": 48, "y": 48 }, "runType": "standard" },
-    { "type": "freeze", "startSeconds": 2, "durationSeconds": 2, "annotations": [ { "text": "Lane Closed", "x": 48, "y": 38 } ] }
+    { "type": "move", "actorId": "rodri", "startSeconds": 0.6, "durationSeconds": 1.2, "to": { "x": 50, "y": 45 }, "runType": "standard" },
+    { "type": "freeze", "startSeconds": 1.8, "durationSeconds": 1.6, "annotations": [ { "text": "Lane Closed", "x": 50, "y": 40 } ] },
+    { "type": "move", "actorId": "target", "startSeconds": 2.0, "durationSeconds": 1.0, "to": { "x": 58, "y": 60 }, "runType": "standard" },
+    { "type": "move", "actorId": "ruiz", "startSeconds": 2.0, "durationSeconds": 1.2, "to": { "x": 50, "y": 58 }, "runType": "standard" },
+    { "type": "freeze", "startSeconds": 3.2, "durationSeconds": 1.8, "annotations": [ { "text": "Both Lanes Shut", "x": 52, "y": 55 } ] }
   ]
 }
 
-**Duration:** 8 seconds
+**Duration:** 11 seconds
 
 **Story Beat:** explanation
 
 ---
 
-### SCENE 6
+### SCENE 8
 
 **Scene Type:** Stat Burst
 
@@ -186,15 +264,16 @@
 
 ---
 
-### SCENE 7
+### SCENE 9
 
-**Scene Type:** Tactical Board
+**Scene Type:** Tactical Board 3D
 
-**Narration:** But don't mistake control for chance creation. From open play, Spain never actually carved this defense open — patient possession, side to side, without a single clean look at goal.
+**Narration:** But don't mistake control for chance creation. From open play, Spain never actually carved this defense open — patient possession, side to side, hunting for a gap that never opened. Passive, compact, unmoved.
 
 **Data:**
 {
   "title": "Control Without A Chance",
+  "cameraStyle": "sway",
   "players": [
     { "id": "ruiz", "x": 65, "y": 30, "team": "home", "label": "Fabian Ruiz" },
     { "id": "olmo", "x": 65, "y": 70, "team": "home", "label": "Olmo" },
@@ -204,53 +283,60 @@
   ],
   "ball": { "x": 65, "y": 30, "belongsTo": "ruiz" },
   "timeline": [
-    { "type": "possession", "fromId": "ruiz", "toId": "olmo", "startSeconds": 0.5, "durationSeconds": 1, "action": "pass" },
-    { "type": "possession", "fromId": "olmo", "toId": "ruiz", "startSeconds": 1.8, "durationSeconds": 1, "action": "pass" },
-    { "type": "freeze", "startSeconds": 3, "durationSeconds": 1.8, "annotations": [ { "text": "No Way Through — Yet", "x": 72, "y": 20 } ] }
-  ]
-}
-
-**Duration:** 7 seconds
-
-**Story Beat:** explanation
-
----
-
-### SCENE 8
-
-**Scene Type:** Tactical Board
-
-**Narration:** The breakthrough Spain actually needed came from a mistake, not a design. Yamal drove at Lucas Digne in the box — and Digne's challenge was reckless enough to leave the referee no choice.
-
-**Data:**
-{
-  "title": "Yamal Draws The Penalty — 22'",
-  "players": [
-    { "id": "yamal", "x": 75, "y": 30, "team": "home", "label": "Yamal" },
-    { "id": "digne", "x": 85, "y": 24, "team": "away", "label": "Digne" }
-  ],
-  "ball": { "x": 75, "y": 30, "belongsTo": "yamal" },
-  "timeline": [
-    { "type": "move", "actorId": "yamal", "startSeconds": 0.5, "durationSeconds": 1.4, "to": { "x": 90, "y": 20 }, "runType": "diagonalRun" },
-    { "type": "freeze", "startSeconds": 1.9, "durationSeconds": 2.2, "circles": [ { "x": 90, "y": 20, "radius": 30 } ], "annotations": [ { "text": "PENALTY", "x": 90, "y": 8 } ] }
+    { "type": "possession", "fromId": "ruiz", "toId": "olmo", "startSeconds": 0.5, "durationSeconds": 1.0, "action": "pass" },
+    { "type": "possession", "fromId": "olmo", "toId": "ruiz", "startSeconds": 1.8, "durationSeconds": 1.0, "action": "pass" },
+    { "type": "move", "actorId": "ruiz", "startSeconds": 3.0, "durationSeconds": 1.0, "to": { "x": 70, "y": 20 }, "runType": "standard" },
+    { "type": "freeze", "startSeconds": 4.2, "durationSeconds": 1.8, "annotations": [ { "text": "No Way Through", "x": 75, "y": 25 } ] }
   ]
 }
 
 **Duration:** 8 seconds
 
-**Story Beat:** escalation
+**Story Beat:** explanation
 
 ---
 
-### SCENE 9
+### SCENE 10
 
-**Scene Type:** Tactical Board
+**Scene Type:** Tactical Board 3D
+
+**Narration:** The breakthrough Spain actually needed came from a mistake, not a design. Yamal drove at Lucas Digne in the box, and the challenge was reckless enough to leave the referee no choice. Oyarzabal stepped up and finished it calmly. One-nil, and Spain hadn't needed a single moment of individual magic to get there.
+
+**Data:**
+{
+  "title": "Yamal Draws The Penalty, Oyarzabal Scores It — 22'",
+  "cameraStyle": "dolly-in",
+  "players": [
+    { "id": "yamal", "x": 75, "y": 30, "team": "home", "label": "Yamal" },
+    { "id": "digne", "x": 85, "y": 24, "team": "away", "label": "Digne" },
+    { "id": "oyarzabal", "x": 89, "y": 50, "team": "home", "label": "Oyarzabal" },
+    { "id": "maignan", "x": 97, "y": 50, "team": "away", "label": "Maignan" }
+  ],
+  "ball": { "x": 75, "y": 30, "belongsTo": "yamal" },
+  "timeline": [
+    { "type": "move", "actorId": "yamal", "startSeconds": 0.5, "durationSeconds": 1.4, "to": { "x": 90, "y": 20 }, "runType": "diagonalRun" },
+    { "type": "freeze", "startSeconds": 1.9, "durationSeconds": 1.8, "circles": [ { "x": 90, "y": 20, "radius": 30 } ], "annotations": [ { "text": "PENALTY", "x": 90, "y": 20 } ] },
+    { "type": "possession", "fromId": "oyarzabal", "toPoint": { "x": 97, "y": 47 }, "startSeconds": 2.1, "durationSeconds": 0.7, "action": "shot" },
+    { "type": "freeze", "startSeconds": 2.8, "durationSeconds": 1.8, "annotations": [ { "text": "GOAL — 22'", "x": 94, "y": 48 } ] }
+  ]
+}
+
+**Duration:** 13 seconds
+
+**Story Beat:** payoff
+
+---
+
+### SCENE 11
+
+**Scene Type:** Tactical Board 3D
 
 **Narration:** Fifty-eight minutes in, that's the pattern that finally broke them — for real. Porro slides it into Olmo, keeps running into the space he just created, gets it straight back, and finishes first time.
 
 **Data:**
 {
   "title": "Porro's One-Two — 58'",
+  "cameraStyle": "dolly-in",
   "players": [
     { "id": "porro", "x": 78, "y": 62, "team": "home", "label": "Porro" },
     { "id": "olmo", "x": 82, "y": 50, "team": "home", "label": "Olmo" },
@@ -262,7 +348,7 @@
     { "type": "move", "actorId": "porro", "startSeconds": 0.4, "durationSeconds": 1.6, "to": { "x": 88, "y": 55 }, "runType": "overlap" },
     { "type": "possession", "fromId": "olmo", "toId": "porro", "startSeconds": 1.5, "durationSeconds": 0.7, "action": "pass" },
     { "type": "possession", "fromId": "porro", "toPoint": { "x": 97, "y": 50 }, "startSeconds": 2.3, "durationSeconds": 0.6, "action": "shot" },
-    { "type": "freeze", "startSeconds": 2.9, "durationSeconds": 2, "annotations": [ { "text": "GOAL", "x": 92, "y": 50 } ] }
+    { "type": "freeze", "startSeconds": 2.9, "durationSeconds": 2.0, "annotations": [ { "text": "GOAL", "x": 92, "y": 50 } ] }
   ]
 }
 
@@ -272,7 +358,7 @@
 
 ---
 
-### SCENE 10
+### SCENE 12
 
 **Scene Type:** Shot Map 3D
 
@@ -301,7 +387,7 @@
 
 ---
 
-### SCENE 11
+### SCENE 13
 
 **Scene Type:** Split Cards
 
@@ -320,7 +406,7 @@
 
 ---
 
-### SCENE 12
+### SCENE 14
 
 **Scene Type:** Statement
 

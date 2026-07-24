@@ -1,0 +1,278 @@
+### SCENE 1
+
+**Scene Type:** Canvas
+
+**Narration:** For the first ten or so years, my savings account looked like this — practically a flat line, barely worth checking. Then, without the growth rate ever changing... this happened.
+
+**Data:**
+{
+  "title": "Ten Years In, Still Looks Like Nothing",
+  "camera": { "x": 26, "y": 75, "zoom": 1.7 },
+  "objects": [
+    { "id": "seg0", "type": "line", "x": 8, "y": 82, "width": 12.17, "rotation": -9.46, "color": "#4f6bff", "strokeWidth": 4 },
+    { "id": "seg1", "type": "line", "x": 20, "y": 80, "width": 12.65, "rotation": -18.43, "color": "#4f6bff", "strokeWidth": 4 },
+    { "id": "seg2", "type": "line", "x": 32, "y": 76, "width": 14.42, "rotation": -33.69, "color": "#4f6bff", "strokeWidth": 4 },
+    { "id": "dot-now", "type": "dot", "x": 44, "y": 68, "color": "#4f6bff", "radius": 2.2, "idle": "pulse" },
+    { "id": "label-year", "type": "label", "x": 44, "y": 80, "label": "Year 15" },
+    { "id": "label-balance", "type": "label", "x": 58, "y": 66, "label": "$2,759" }
+  ],
+  "phases": [
+    {
+      "camera": { "x": 50, "y": 50, "zoom": 1 },
+      "objects": [
+        { "id": "seg0", "type": "line", "x": 8, "y": 82, "width": 12.17, "rotation": -9.46, "color": "#4f6bff", "strokeWidth": 4 },
+        { "id": "seg1", "type": "line", "x": 20, "y": 80, "width": 12.65, "rotation": -18.43, "color": "#4f6bff", "strokeWidth": 4 },
+        { "id": "seg2", "type": "line", "x": 32, "y": 76, "width": 14.42, "rotation": -33.69, "color": "#4f6bff", "strokeWidth": 4 },
+        { "id": "seg3", "type": "line", "x": 44, "y": 68, "width": 18.44, "rotation": -49.4, "color": "#4f6bff", "strokeWidth": 4 },
+        { "id": "seg4", "type": "line", "x": 56, "y": 54, "width": 25.06, "rotation": -61.39, "color": "#4f6bff", "strokeWidth": 4 },
+        { "id": "seg5", "type": "line", "x": 68, "y": 32, "width": 30.46, "rotation": -66.8, "color": "#4f6bff", "strokeWidth": 4 },
+        { "id": "dot-now", "type": "dot", "x": 80, "y": 4, "color": "#d4a017", "radius": 2.5, "idle": "glow" },
+        { "id": "label-year", "type": "label", "x": 80, "y": 15, "label": "Year 30" },
+        { "id": "label-balance", "type": "label", "x": 88, "y": 8, "label": "$7,612" }
+      ]
+    }
+  ]
+}
+
+**Duration:** 10 seconds
+
+**Story Beat:** question
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** Here's the trick: that early stretch isn't a separate, boring phase — it's the exact same curve, just viewed from inside a window too small to see where it's headed. Zoom into any ten-year slice near the start of any exponential curve, and it looks almost exactly like this: nearly flat.
+
+**Data:**
+{
+  "title": "Same Curve. You're Just Standing Too Close.",
+  "objects": [
+    { "id": "seg0", "type": "line", "x": 8, "y": 82, "width": 12.17, "rotation": -9.46, "color": "#4f6bff", "strokeWidth": 4 },
+    { "id": "seg1", "type": "line", "x": 20, "y": 80, "width": 12.65, "rotation": -18.43, "color": "#4f6bff", "strokeWidth": 4 },
+    { "id": "seg2", "type": "line", "x": 32, "y": 76, "width": 14.42, "rotation": -33.69, "color": "#4f6bff", "strokeWidth": 4 },
+    { "id": "seg3", "type": "line", "x": 44, "y": 68, "width": 18.44, "rotation": -49.4, "color": "#4f6bff", "strokeWidth": 4 },
+    { "id": "seg4", "type": "line", "x": 56, "y": 54, "width": 25.06, "rotation": -61.39, "color": "#4f6bff", "strokeWidth": 4 },
+    { "id": "seg5", "type": "line", "x": 68, "y": 32, "width": 30.46, "rotation": -66.8, "color": "#4f6bff", "strokeWidth": 4 },
+    { "id": "early-zone", "type": "roundedRectangle", "x": 6, "y": 62, "width": 40, "height": 26, "radius": 3, "color": "#d4a017", "filled": true, "fillOpacity": 0.16, "strokeWidth": 2, "enter": "fade" },
+    { "id": "label-zone", "type": "label", "x": 26, "y": 92, "label": "This Felt Like Nothing" }
+  ]
+}
+
+**Duration:** 13 seconds
+
+**Story Beat:** explanation
+
+---
+
+### SCENE 3
+
+**Scene Type:** Bar Chart
+
+**Narration:** Here's the part that's easy to miss: the interest rate never moved. Seven percent in year one, seven percent in year thirty. But seven percent of a bigger number is a bigger number — so the actual dollars you earn keep climbing every single year, even though the rate is dead flat.
+
+**Data:**
+{
+  "title": "Same 7% — Very Different Dollar Amounts",
+  "bars": [
+    { "label": "Year 1", "value": 70 },
+    { "label": "Year 10", "value": 129 },
+    { "label": "Year 20", "value": 253 },
+    { "label": "Year 30", "value": 499 }
+  ],
+  "prefix": "$"
+}
+
+**Duration:** 13 seconds
+
+**Story Beat:** explanation
+
+---
+
+### SCENE 4
+
+**Scene Type:** Split Cards
+
+**Narration:** Our brains just aren't built for this. We expect tomorrow to look roughly like today, plus a little — a straight line. Exponential curves don't work like that. They look almost completely flat, right up until the exact moment they don't.
+
+**Data:**
+{
+  "title": "Two Very Different Shapes",
+  "left": { "label": "What Your Brain Expects", "value": "A Straight Line", "caption": "Tomorrow looks like today, plus a little." },
+  "right": { "label": "What Actually Happens", "value": "Flat, Then Explosive", "caption": "Nearly invisible growth for years — until it isn't." }
+}
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+---
+
+### SCENE 5
+
+**Scene Type:** Stat
+
+**Narration:** There's a simple rule for this: divide seventy-two by your interest rate, and you get roughly how many years until your money doubles. At seven percent, that's about ten years — just to double. Long before any of this looks remotely dramatic.
+
+**Data:**
+{
+  "title": "The Rule Of 72",
+  "value": 72,
+  "context": "Divided by your interest rate, roughly equals the years until your money doubles. At 7%, that's about ten years — just to double."
+}
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+---
+
+### SCENE 6
+
+**Scene Type:** Bar Chart
+
+**Narration:** And the rate matters enormously. At four percent, you're waiting almost sixty years to grow your money tenfold. Bump that to ten percent, and the same ten-x arrives in twenty-four. A few points of rate can be the difference between one long lifetime and half of one.
+
+**Data:**
+{
+  "title": "Years To Grow Your Money 10x, By Rate",
+  "bars": [
+    { "label": "4%", "value": 59 },
+    { "label": "7%", "value": 34 },
+    { "label": "10%", "value": 24 },
+    { "label": "12%", "value": 20 }
+  ],
+  "suffix": " yrs"
+}
+
+**Duration:** 12 seconds
+
+**Story Beat:** evidence
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** There's an old legend about a chessboard and a single grain of rice, doubled on every square. One grain. Two. Four. It looks like nothing for the first half of the board. By square sixty-four, the doubling alone produces more rice than humanity has ever grown.
+
+**Data:**
+{
+  "title": "One Grain, Doubled Sixty-Four Times",
+  "objects": [
+    { "id": "c1", "type": "icon", "icon": "chip", "x": 10, "y": 80, "radius": 2, "color": "#4f6bff" },
+    { "id": "c2", "type": "icon", "icon": "chip", "x": 22, "y": 78, "radius": 3, "color": "#4f6bff" },
+    { "id": "c3", "type": "icon", "icon": "chip", "x": 34, "y": 74, "radius": 4.5, "color": "#4f6bff" },
+    { "id": "c4", "type": "icon", "icon": "chip", "x": 47, "y": 66, "radius": 6.5, "color": "#4f6bff" },
+    { "id": "c5", "type": "icon", "icon": "chip", "x": 61, "y": 52, "radius": 10, "color": "#4f6bff", "enter": "scale" },
+    { "id": "c6", "type": "icon", "icon": "chip", "x": 78, "y": 30, "radius": 16, "color": "#d4a017", "enter": "scale", "idle": "pulse" },
+    { "id": "bolt", "type": "icon", "icon": "bolt", "x": 90, "y": 14, "radius": 5, "color": "#d4a017", "enter": "scale" },
+    { "id": "label-square", "type": "label", "x": 78, "y": 12, "label": "Square 64" }
+  ]
+}
+
+**Duration:** 12 seconds
+
+**Story Beat:** escalation
+
+---
+
+### SCENE 8
+
+**Scene Type:** Split Cards
+
+**Narration:** And this isn't just a curiosity. It's exactly why so many people give up early, or never start at all — not because the maths stopped working, but because the years compounding needs the most are the years that feel the most pointless.
+
+**Data:**
+{
+  "title": "What The Illusion Actually Costs",
+  "left": { "label": "Feels Like It's Not Working", "value": "Years 1 To 10", "caption": "The exact years compounding needs the most, feel the most pointless." },
+  "right": { "label": "So People Quit, Or Never Start", "value": "The Real Cost", "caption": "Not a market crash — just impatience, at exactly the wrong moment." }
+}
+
+**Duration:** 11 seconds
+
+**Story Beat:** escalation
+
+---
+
+### SCENE 9
+
+**Scene Type:** Hero Metric
+
+**Narration:** Seven percent. Every single year, from day one to year thirty. Nothing sped up, nothing kicked in, nothing changed. The only thing different between the boring years and the explosive ones... was your own intuition.
+
+**Data:**
+{
+  "label": "The Growth Rate, Every Single Year",
+  "value": 7,
+  "suffix": "%",
+  "subtext": "Constant from day one to year thirty. Nothing sped up — your intuition was the only thing that changed.",
+  "barProgress": 0.7
+}
+
+**Duration:** 9 seconds
+
+**Story Beat:** reveal
+
+---
+
+### SCENE 10
+
+**Scene Type:** Split Cards
+
+**Narration:** Which is exactly why the boring years matter most. A dollar invested at the very start is worth seven point six times as much by year thirty. That same dollar, invested at year twenty instead, barely doubles. Same rate. Same market. Completely different result.
+
+**Data:**
+{
+  "title": "Timing Beats Almost Everything",
+  "left": { "label": "Invested At The Start", "value": "7.6x By Year 30", "caption": "Thirty years for the curve to actually do its work." },
+  "right": { "label": "Invested At Year 20", "value": "~2x By Year 30", "caption": "Same rate, same market — just ten years less runway." }
+}
+
+**Duration:** 11 seconds
+
+**Story Beat:** evidence
+
+---
+
+### SCENE 11
+
+**Scene Type:** Quote
+
+**Narration:** There's a line about this, often floated around as an Einstein quote — though nobody's ever actually found him saying it.
+
+**Data:**
+{
+  "quote": "Compound interest is the eighth wonder of the world.",
+  "attribution": "Widely (and almost certainly wrongly) attributed to Einstein"
+}
+
+**Duration:** 8 seconds
+
+**Story Beat:** reflection
+
+---
+
+### SCENE 12
+
+**Scene Type:** Canvas
+
+**Narration:** The best year to have started was year one. The honest, unglamorous second-best year... is this one.
+
+**Data:**
+{
+  "title": "The Second-Best Day To Start",
+  "objects": [
+    { "id": "you", "type": "icon", "icon": "person", "x": 50, "y": 50, "radius": 9, "color": "#4f6bff", "idle": "pulse" },
+    { "id": "label-you", "type": "label", "x": 50, "y": 66, "label": "You, Right Now" },
+    { "id": "label-line", "type": "label", "x": 50, "y": 20, "label": "Best Year: One. Second Best: Today." }
+  ]
+}
+
+**Duration:** 7 seconds
+
+**Story Beat:** reflection

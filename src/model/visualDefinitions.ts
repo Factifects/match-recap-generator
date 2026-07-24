@@ -765,7 +765,7 @@ export const VISUAL_DEFINITIONS = [
     category: "pitch-tactics",
     label: "Tactical Board 3D",
     description:
-      "3D counterpart to Tactical Board — a real camera arcs over billboarded player markers (always facing the camera, labels stay upright) on a genuine 3D pitch, instead of Tactical Board's 2D perspective-warp illusion. Same players/arrows/highlightZone/ball authoring shape. v1 deliberately doesn't support Tactical Board's `phases` multi-beat re-arrangement or its evented `timeline` (move/state/possession/camera/freeze) system — use Tactical Board for either of those; this is a single static arrangement with camera motion supplying the reveal.",
+      "3D counterpart to Tactical Board — a real camera arcs over billboarded player markers (always facing the camera, labels stay upright) on a genuine 3D pitch, instead of Tactical Board's 2D perspective-warp illusion. Same players/arrows/highlightZone/ball authoring shape, PLUS the same evented `timeline` (move/state/possession/camera/freeze) system and `tacticalObjects` (zone/line/lane/triangle) Tactical Board has — real gliding player runs, ball possession chains that track a moving receiver, and freeze-frame+circle+annotation callouts all work here too, rendered as real 3D geometry (a world-space bezier glide, a billboarded highlight ring, an Html-overlay annotation) instead of the 2D board's SVG path. `timeline`'s `camera` action type is not supported in 3D (camera framing here is driven by `cameraStyle` instead) — a `camera`-type timeline action is silently ignored if present. Still doesn't support `phases` (the older, pre-timeline multi-beat mechanism) — author multi-beat 3D choreography via `timeline` only.",
     sceneTypeKey: "tacticalboard3d",
     schema: z.object({
       kind: z.literal("tactical-board-3d"),
@@ -776,6 +776,8 @@ export const VISUAL_DEFINITIONS = [
       highlightZone: tacticalZoneSchema.optional(),
       ball: tacticalBallSchema.optional(),
       cameraStyle: cameraStyle3DSchema,
+      timeline: z.array(timedActionSchema).min(1).optional(),
+      tacticalObjects: z.array(tacticalObjectSchema).optional(),
     }),
   },
   {

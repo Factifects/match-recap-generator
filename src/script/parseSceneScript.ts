@@ -42,11 +42,35 @@ export function computeVisualMinDurationSeconds(visual: Visual | undefined): num
   // actually authored rather than a per-phase constant. `state` actions have
   // no `durationSeconds` (they're instantaneous), so they contribute just
   // their own `startSeconds` as an end point.
-  if (visual?.kind === "tactical-board" && visual.timeline && visual.timeline.length > 0) {
-    const lastEndSeconds = Math.max(
-      ...visual.timeline.map((action) => (action.type === "state" ? action.startSeconds : action.startSeconds + action.durationSeconds)),
+  //
+  // A freeze holds real (wall-clock) time for its own `durationSeconds`
+  // without advancing the NOMINAL timeline every later action's own
+  // `startSeconds` is authored against (see computeEffectiveSeconds's own
+  // docstring — authors write timestamps "as if freezes took zero time").
+  // That means a freeze's own `start + duration` only equals its real end
+  // when it's the LAST thing in the scene; a freeze followed by more moves/
+  // freezes needs every EARLIER freeze's duration added back in, or this
+  // floor undercounts by exactly that much and a multi-beat scene (a freeze,
+  // then more choreography) can get cut short once real narration audio
+  // replaces this estimate. `compressedEnd` treats every freeze as if it
+  // truly took zero time (contributing only its own `startSeconds`, not
+  // `startSeconds + durationSeconds`) so it isn't double-counted alongside
+  // `totalFreezeDuration` below, which adds every freeze's real duration
+  // back in exactly once.
+  if (
+    (visual?.kind === "tactical-board" || visual?.kind === "tactical-board-3d") &&
+    visual.timeline &&
+    visual.timeline.length > 0
+  ) {
+    const compressedEnd = Math.max(
+      ...visual.timeline.map((action) =>
+        action.type === "state" || action.type === "freeze" ? action.startSeconds : action.startSeconds + action.durationSeconds,
+      ),
     );
-    return lastEndSeconds + TIMELINE_SETTLE_BUFFER_SECONDS;
+    const totalFreezeDuration = visual.timeline
+      .filter((action) => action.type === "freeze")
+      .reduce((sum, action) => sum + action.durationSeconds, 0);
+    return compressedEnd + totalFreezeDuration + TIMELINE_SETTLE_BUFFER_SECONDS;
   }
   if (visual?.kind === "tactical-board" && visual.phases && visual.phases.length > 0) {
     const phaseCount = 1 + visual.phases.length;

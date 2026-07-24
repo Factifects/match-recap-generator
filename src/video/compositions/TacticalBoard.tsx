@@ -15,85 +15,11 @@ import { BallGlyph } from "./BallGlyph";
 import { CurvedMovementArrow, CURVED_ARROW_DRAW_DURATION, bezierPointAt, RUN_TYPE_GEOMETRY } from "./CurvedMovementArrow";
 import { fadeIn, drawIn, pulse } from "../motion";
 import { getCameraTransformPerspective, getCameraTransformTimeline } from "../camera";
+import { computeEffectiveSeconds, resolveActiveFreeze, movesFor, statesFor, objectOpacity, type TimelineAction } from "../timelineTiming";
 import type { CameraStage } from "../../model/Segment";
 import type { SharedVisualProps, TacticalBoardData } from "../sharedVisualProps";
 
 type TacticalActor = TacticalBoardData["players"][number];
-type TimelineAction = NonNullable<TacticalBoardData["timeline"]>[number];
-
-// Sorted-ascending `move` actions for one actor — a scene has at most a
-// handful of actions total, so a per-actor filter+sort per frame is cheap
-// and far simpler than pre-indexing by actorId.
-function movesFor(timeline: TimelineAction[], actorId: string) {
-  return timeline
-    .filter((a): a is Extract<TimelineAction, { type: "move" }> => a.type === "move" && a.actorId === actorId)
-    .sort((a, b) => a.startSeconds - b.startSeconds);
-}
-
-function statesFor(timeline: TimelineAction[], actorId: string) {
-  return timeline
-    .filter((a): a is Extract<TimelineAction, { type: "state" }> => a.type === "state" && a.actorId === actorId)
-    .sort((a, b) => a.startSeconds - b.startSeconds);
-}
-
-// A freeze holds the whole board at its own `startSeconds` for
-// `durationSeconds` of real elapsed time, then every later action resumes
-// exactly where it left off — authors write `startSeconds` on one nominal
-// timeline as if freezes took zero time, and this converts real elapsed
-// scene-seconds `t` down to that nominal timeline (`te`) for every other
-// fold below to consume. Freezes are assumed non-overlapping (the schema
-// doesn't enforce it, but an author authoring a teaching pause has no reason
-// to overlap two).
-function computeEffectiveSeconds(timeline: TimelineAction[] | undefined, t: number): number {
-  if (!timeline) return t;
-  const freezes = timeline
-    .filter((a): a is Extract<TimelineAction, { type: "freeze" }> => a.type === "freeze")
-    .sort((a, b) => a.startSeconds - b.startSeconds);
-  let shift = 0;
-  for (const freeze of freezes) {
-    const wallStart = freeze.startSeconds + shift;
-    const wallEnd = wallStart + freeze.durationSeconds;
-    if (t < wallStart) break;
-    if (t <= wallEnd) return freeze.startSeconds;
-    shift += freeze.durationSeconds;
-  }
-  return t - shift;
-}
-
-// Companion to computeEffectiveSeconds — that function tells every OTHER
-// fold "what nominal time is it," collapsing a freeze window to a single
-// held instant; this one tells the freeze's OWN rendering "am I currently
-// inside a freeze, and how far into its own (real, unfrozen) on-screen
-// duration am I" so its annotations/circles can fade in using real elapsed
-// seconds rather than the frozen nominal time everything else sees.
-function resolveActiveFreeze(
-  timeline: TimelineAction[],
-  t: number,
-): { freeze: Extract<TimelineAction, { type: "freeze" }>; localSeconds: number } | null {
-  const freezes = timeline
-    .filter((a): a is Extract<TimelineAction, { type: "freeze" }> => a.type === "freeze")
-    .sort((a, b) => a.startSeconds - b.startSeconds);
-  let shift = 0;
-  for (const freeze of freezes) {
-    const wallStart = freeze.startSeconds + shift;
-    const wallEnd = wallStart + freeze.durationSeconds;
-    if (t < wallStart) return null;
-    if (t <= wallEnd) return { freeze, localSeconds: t - wallStart };
-    shift += freeze.durationSeconds;
-  }
-  return null;
-}
-
-// Shared appear/disappear fade for a `tacticalObjects` entry — `disappear`
-// covers both `disappearSeconds` (zone/line/triangle) and a lane's
-// `closesAtSeconds`, which fade out identically (a closing passing lane IS
-// just an authored disappear moment, not different math).
-function objectOpacity(te: number, appearSeconds: number, disappearSeconds: number | undefined): number {
-  const appearOpacity = fadeIn(te * FPS, appearSeconds * FPS, 12);
-  if (disappearSeconds === undefined) return appearOpacity;
-  const disappearOpacity = 1 - fadeIn(te * FPS, disappearSeconds * FPS, 12);
-  return Math.min(appearOpacity, Math.max(0, disappearOpacity));
-}
 
 interface ActorFold {
   cx: number;
