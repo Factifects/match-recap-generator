@@ -1,40 +1,30 @@
 ### SCENE 1
 
-**Scene Type:** Canvas
+**Scene Type:** Line Chart
 
-**Narration:** For the first ten or so years, my savings account looked like this — practically a flat line, barely worth checking. Then, without the growth rate ever changing... this happened.
+**Narration:** This is one thousand dollars, at a flat seven percent a year, for thirty years straight. Your brain expects tomorrow to look like today, plus a little — so watch the first stretch: for years, it barely moves. Then, without the rate ever changing... this happens.
 
 **Data:**
 {
-  "title": "Ten Years In, Still Looks Like Nothing",
-  "camera": { "x": 26, "y": 75, "zoom": 1.7 },
-  "objects": [
-    { "id": "seg0", "type": "line", "x": 8, "y": 82, "width": 12.17, "rotation": -9.46, "color": "#4f6bff", "strokeWidth": 4 },
-    { "id": "seg1", "type": "line", "x": 20, "y": 80, "width": 12.65, "rotation": -18.43, "color": "#4f6bff", "strokeWidth": 4 },
-    { "id": "seg2", "type": "line", "x": 32, "y": 76, "width": 14.42, "rotation": -33.69, "color": "#4f6bff", "strokeWidth": 4 },
-    { "id": "dot-now", "type": "dot", "x": 44, "y": 68, "color": "#4f6bff", "radius": 2.2, "idle": "pulse" },
-    { "id": "label-year", "type": "label", "x": 44, "y": 80, "label": "Year 15" },
-    { "id": "label-balance", "type": "label", "x": 58, "y": 66, "label": "$2,759" }
+  "title": "One Deposit. One Rate. Thirty Years.",
+  "points": [
+    { "label": "Year 0", "value": 1000 },
+    { "label": "", "value": 1225.04 },
+    { "label": "", "value": 1500.73 },
+    { "label": "", "value": 1838.46 },
+    { "label": "", "value": 2252.19 },
+    { "label": "Year 15", "value": 2759.03 },
+    { "label": "", "value": 3379.93 },
+    { "label": "", "value": 4140.56 },
+    { "label": "", "value": 5072.37 },
+    { "label": "", "value": 6213.87 },
+    { "label": "Year 30", "value": 7612.26 }
   ],
-  "phases": [
-    {
-      "camera": { "x": 50, "y": 50, "zoom": 1 },
-      "objects": [
-        { "id": "seg0", "type": "line", "x": 8, "y": 82, "width": 12.17, "rotation": -9.46, "color": "#4f6bff", "strokeWidth": 4 },
-        { "id": "seg1", "type": "line", "x": 20, "y": 80, "width": 12.65, "rotation": -18.43, "color": "#4f6bff", "strokeWidth": 4 },
-        { "id": "seg2", "type": "line", "x": 32, "y": 76, "width": 14.42, "rotation": -33.69, "color": "#4f6bff", "strokeWidth": 4 },
-        { "id": "seg3", "type": "line", "x": 44, "y": 68, "width": 18.44, "rotation": -49.4, "color": "#4f6bff", "strokeWidth": 4 },
-        { "id": "seg4", "type": "line", "x": 56, "y": 54, "width": 25.06, "rotation": -61.39, "color": "#4f6bff", "strokeWidth": 4 },
-        { "id": "seg5", "type": "line", "x": 68, "y": 32, "width": 30.46, "rotation": -66.8, "color": "#4f6bff", "strokeWidth": 4 },
-        { "id": "dot-now", "type": "dot", "x": 80, "y": 4, "color": "#d4a017", "radius": 2.5, "idle": "glow" },
-        { "id": "label-year", "type": "label", "x": 80, "y": 15, "label": "Year 30" },
-        { "id": "label-balance", "type": "label", "x": 88, "y": 8, "label": "$7,612" }
-      ]
-    }
-  ]
+  "prefix": "$",
+  "highlightRange": { "fromIndex": 0, "toIndex": 5, "label": "This Felt Like Nothing" }
 }
 
-**Duration:** 10 seconds
+**Duration:** 13 seconds
 
 **Story Beat:** question
 
@@ -42,85 +32,137 @@
 
 ### SCENE 2
 
-**Scene Type:** Canvas
+**Scene Type:** Line Chart
 
-**Narration:** Here's the trick: that early stretch isn't a separate, boring phase — it's the exact same curve, just viewed from inside a window too small to see where it's headed. Zoom into any ten-year slice near the start of any exponential curve, and it looks almost exactly like this: nearly flat.
+**Narration:** There are two ways interest can work. Simple interest pays you seven percent of your original deposit, every single year, forever. Compound interest pays you seven percent of whatever you've grown to — including every dollar of interest you've already earned. Watch year one: identical, both earn seventy dollars. From year two on, they never agree again.
 
 **Data:**
 {
-  "title": "Same Curve. You're Just Standing Too Close.",
-  "objects": [
-    { "id": "seg0", "type": "line", "x": 8, "y": 82, "width": 12.17, "rotation": -9.46, "color": "#4f6bff", "strokeWidth": 4 },
-    { "id": "seg1", "type": "line", "x": 20, "y": 80, "width": 12.65, "rotation": -18.43, "color": "#4f6bff", "strokeWidth": 4 },
-    { "id": "seg2", "type": "line", "x": 32, "y": 76, "width": 14.42, "rotation": -33.69, "color": "#4f6bff", "strokeWidth": 4 },
-    { "id": "seg3", "type": "line", "x": 44, "y": 68, "width": 18.44, "rotation": -49.4, "color": "#4f6bff", "strokeWidth": 4 },
-    { "id": "seg4", "type": "line", "x": 56, "y": 54, "width": 25.06, "rotation": -61.39, "color": "#4f6bff", "strokeWidth": 4 },
-    { "id": "seg5", "type": "line", "x": 68, "y": 32, "width": 30.46, "rotation": -66.8, "color": "#4f6bff", "strokeWidth": 4 },
-    { "id": "early-zone", "type": "roundedRectangle", "x": 6, "y": 62, "width": 40, "height": 26, "radius": 3, "color": "#d4a017", "filled": true, "fillOpacity": 0.16, "strokeWidth": 2, "enter": "fade" },
-    { "id": "label-zone", "type": "label", "x": 26, "y": 92, "label": "This Felt Like Nothing" }
-  ]
+  "title": "Same $1,000. Same 7%. Two Totally Different Outcomes.",
+  "series1Label": "Compound Interest",
+  "series2Label": "Simple Interest",
+  "points": [
+    { "label": "Year 0", "value": 1000 },
+    { "label": "", "value": 1225.04 },
+    { "label": "", "value": 1500.73 },
+    { "label": "", "value": 1838.46 },
+    { "label": "", "value": 2252.19 },
+    { "label": "Year 15", "value": 2759.03 },
+    { "label": "", "value": 3379.93 },
+    { "label": "", "value": 4140.56 },
+    { "label": "", "value": 5072.37 },
+    { "label": "", "value": 6213.87 },
+    { "label": "Year 30", "value": 7612.26 }
+  ],
+  "points2": [
+    { "label": "", "value": 1000 },
+    { "label": "", "value": 1210 },
+    { "label": "", "value": 1420 },
+    { "label": "", "value": 1630 },
+    { "label": "", "value": 1840 },
+    { "label": "", "value": 2050 },
+    { "label": "", "value": 2260 },
+    { "label": "", "value": 2470 },
+    { "label": "", "value": 2680 },
+    { "label": "", "value": 2890 },
+    { "label": "", "value": 3100 }
+  ],
+  "prefix": "$"
 }
 
-**Duration:** 13 seconds
+**Duration:** 15 seconds
 
-**Story Beat:** explanation
+**Story Beat:** comparison
 
 ---
 
 ### SCENE 3
 
-**Scene Type:** Bar Chart
+**Scene Type:** Canvas
+
+**Narration:** Here's that exact split, year by year: your interest doesn't sit there — it gets folded straight back into the balance. So next year, you're earning interest on last year's interest too. Watch the yearly gain grow, even though the rate never does.
+
+**Data:**
+{
+  "title": "Interest, Earning Interest",
+  "camera": { "x": 50, "y": 55, "zoom": 1 },
+  "objects": [
+    { "id": "bal", "type": "icon", "icon": "cash", "x": 50, "y": 42, "radius": 12, "color": "#4f6bff" },
+    { "id": "label-year", "type": "label", "x": 50, "y": 66, "label": "Year 1" },
+    { "id": "label-balance", "type": "label", "x": 50, "y": 76, "label": "$1,000 Balance" },
+    { "id": "label-interest", "type": "label", "x": 50, "y": 86, "label": "Earns $70 Interest" }
+  ],
+  "phases": [
+    {
+      "camera": { "x": 50, "y": 50, "zoom": 1.15 },
+      "objects": [
+        { "id": "bal", "type": "icon", "icon": "cash", "x": 50, "y": 42, "radius": 15, "color": "#4f6bff", "idle": "pulse" },
+        { "id": "bolt", "type": "icon", "icon": "bolt", "x": 66, "y": 26, "radius": 6, "color": "#d4a017", "enter": "scale" },
+        { "id": "label-year", "type": "label", "x": 50, "y": 66, "label": "Year 2" },
+        { "id": "label-balance", "type": "label", "x": 50, "y": 76, "label": "$1,070 Balance" },
+        { "id": "label-interest", "type": "label", "x": 50, "y": 86, "label": "Earns $75 — Interest On The Interest" }
+      ]
+    },
+    {
+      "camera": { "x": 50, "y": 48, "zoom": 1.3 },
+      "objects": [
+        { "id": "bal", "type": "icon", "icon": "cash", "x": 50, "y": 42, "radius": 18, "color": "#4f6bff", "idle": "glow" },
+        { "id": "bolt", "type": "icon", "icon": "bolt", "x": 68, "y": 22, "radius": 9, "color": "#d4a017", "idle": "pulse" },
+        { "id": "label-year", "type": "label", "x": 50, "y": 66, "label": "Year 3" },
+        { "id": "label-balance", "type": "label", "x": 50, "y": 76, "label": "$1,145 Balance" },
+        { "id": "label-interest", "type": "label", "x": 50, "y": 86, "label": "Earns $80 — And It Keeps Stacking" }
+      ]
+    }
+  ]
+}
+
+**Duration:** 13 seconds
+
+**Story Beat:** evidence
+
+---
+
+### SCENE 4
+
+**Scene Type:** KPI Panel
 
 **Narration:** Here's the part that's easy to miss: the interest rate never moved. Seven percent in year one, seven percent in year thirty. But seven percent of a bigger number is a bigger number — so the actual dollars you earn keep climbing every single year, even though the rate is dead flat.
 
 **Data:**
 {
   "title": "Same 7% — Very Different Dollar Amounts",
-  "bars": [
-    { "label": "Year 1", "value": 70 },
-    { "label": "Year 10", "value": 129 },
-    { "label": "Year 20", "value": 253 },
-    { "label": "Year 30", "value": 499 }
-  ],
-  "prefix": "$"
+  "stats": [
+    { "label": "Year 1 Interest", "value": "$70" },
+    { "label": "Year 10 Interest", "value": "$129", "delta": "+$59 vs Year 1", "deltaDirection": "up" },
+    { "label": "Year 20 Interest", "value": "$253", "delta": "+$183 vs Year 1", "deltaDirection": "up" },
+    { "label": "Year 30 Interest", "value": "$499", "delta": "+$429 vs Year 1", "deltaDirection": "up" }
+  ]
 }
 
 **Duration:** 13 seconds
 
-**Story Beat:** explanation
-
----
-
-### SCENE 4
-
-**Scene Type:** Split Cards
-
-**Narration:** Our brains just aren't built for this. We expect tomorrow to look roughly like today, plus a little — a straight line. Exponential curves don't work like that. They look almost completely flat, right up until the exact moment they don't.
-
-**Data:**
-{
-  "title": "Two Very Different Shapes",
-  "left": { "label": "What Your Brain Expects", "value": "A Straight Line", "caption": "Tomorrow looks like today, plus a little." },
-  "right": { "label": "What Actually Happens", "value": "Flat, Then Explosive", "caption": "Nearly invisible growth for years — until it isn't." }
-}
-
-**Duration:** 10 seconds
-
-**Story Beat:** explanation
+**Story Beat:** evidence
 
 ---
 
 ### SCENE 5
 
-**Scene Type:** Stat
+**Scene Type:** Line Chart
 
-**Narration:** There's a simple rule for this: divide seventy-two by your interest rate, and you get roughly how many years until your money doubles. At seven percent, that's about ten years — just to double. Long before any of this looks remotely dramatic.
+**Narration:** There's a simple rule for this: divide seventy-two by your interest rate, and you get roughly how many years until your money doubles. At seven percent, that's about ten years — watch it happen.
 
 **Data:**
 {
-  "title": "The Rule Of 72",
-  "value": 72,
-  "context": "Divided by your interest rate, roughly equals the years until your money doubles. At 7%, that's about ten years — just to double."
+  "title": "Same 7% — About Ten Years To Double",
+  "points": [
+    { "label": "Year 0", "value": 1 },
+    { "label": "", "value": 1.14 },
+    { "label": "", "value": 1.31 },
+    { "label": "", "value": 1.5 },
+    { "label": "", "value": 1.72 },
+    { "label": "Year 10", "value": 1.97 }
+  ],
+  "suffix": "x"
 }
 
 **Duration:** 10 seconds
@@ -139,10 +181,10 @@
 {
   "title": "Years To Grow Your Money 10x, By Rate",
   "bars": [
-    { "label": "4%", "value": 59 },
-    { "label": "7%", "value": 34 },
-    { "label": "10%", "value": 24 },
-    { "label": "12%", "value": 20 }
+    { "label": "4%", "value": 59, "icon": "chart" },
+    { "label": "7%", "value": 34, "icon": "chart" },
+    { "label": "10%", "value": 24, "icon": "chart" },
+    { "label": "12%", "value": 20, "icon": "chart" }
   ],
   "suffix": " yrs"
 }
@@ -162,19 +204,39 @@
 **Data:**
 {
   "title": "One Grain, Doubled Sixty-Four Times",
+  "camera": { "x": 30, "y": 70, "zoom": 1.3 },
   "objects": [
     { "id": "c1", "type": "icon", "icon": "chip", "x": 10, "y": 80, "radius": 2, "color": "#4f6bff" },
     { "id": "c2", "type": "icon", "icon": "chip", "x": 22, "y": 78, "radius": 3, "color": "#4f6bff" },
     { "id": "c3", "type": "icon", "icon": "chip", "x": 34, "y": 74, "radius": 4.5, "color": "#4f6bff" },
-    { "id": "c4", "type": "icon", "icon": "chip", "x": 47, "y": 66, "radius": 6.5, "color": "#4f6bff" },
-    { "id": "c5", "type": "icon", "icon": "chip", "x": 61, "y": 52, "radius": 10, "color": "#4f6bff", "enter": "scale" },
-    { "id": "c6", "type": "icon", "icon": "chip", "x": 78, "y": 30, "radius": 16, "color": "#d4a017", "enter": "scale", "idle": "pulse" },
-    { "id": "bolt", "type": "icon", "icon": "bolt", "x": 90, "y": 14, "radius": 5, "color": "#d4a017", "enter": "scale" },
-    { "id": "label-square", "type": "label", "x": 78, "y": 12, "label": "Square 64" }
+    { "id": "label-square", "type": "label", "x": 22, "y": 92, "label": "Still Just Grains Of Rice" }
+  ],
+  "phases": [
+    {
+      "camera": { "x": 55, "y": 55, "zoom": 1.1 },
+      "objects": [
+        { "id": "c1", "type": "icon", "icon": "chip", "x": 10, "y": 80, "radius": 2, "color": "#4f6bff" },
+        { "id": "c2", "type": "icon", "icon": "chip", "x": 22, "y": 78, "radius": 3, "color": "#4f6bff" },
+        { "id": "c3", "type": "icon", "icon": "chip", "x": 34, "y": 74, "radius": 4.5, "color": "#4f6bff" },
+        { "id": "c4", "type": "icon", "icon": "chip", "x": 47, "y": 66, "radius": 6.5, "color": "#4f6bff", "enter": "scale" },
+        { "id": "c5", "type": "icon", "icon": "chip", "x": 61, "y": 52, "radius": 10, "color": "#4f6bff", "enter": "scale" },
+        { "id": "label-square", "type": "label", "x": 47, "y": 88, "label": "Now It's Starting To Move" }
+      ]
+    },
+    {
+      "camera": { "x": 82, "y": 22, "zoom": 1.7 },
+      "objects": [
+        { "id": "c4", "type": "icon", "icon": "chip", "x": 47, "y": 66, "radius": 6.5, "color": "#4f6bff" },
+        { "id": "c5", "type": "icon", "icon": "chip", "x": 61, "y": 52, "radius": 10, "color": "#4f6bff" },
+        { "id": "c6", "type": "icon", "icon": "chip", "x": 78, "y": 30, "radius": 16, "color": "#d4a017", "enter": "scale", "idle": "pulse" },
+        { "id": "bolt", "type": "icon", "icon": "bolt", "x": 90, "y": 14, "radius": 5, "color": "#d4a017", "enter": "scale" },
+        { "id": "label-square", "type": "label", "x": 78, "y": 12, "label": "Square 64" }
+      ]
+    }
   ]
 }
 
-**Duration:** 12 seconds
+**Duration:** 14 seconds
 
 **Story Beat:** escalation
 
@@ -182,36 +244,23 @@
 
 ### SCENE 8
 
-**Scene Type:** Split Cards
-
-**Narration:** And this isn't just a curiosity. It's exactly why so many people give up early, or never start at all — not because the maths stopped working, but because the years compounding needs the most are the years that feel the most pointless.
-
-**Data:**
-{
-  "title": "What The Illusion Actually Costs",
-  "left": { "label": "Feels Like It's Not Working", "value": "Years 1 To 10", "caption": "The exact years compounding needs the most, feel the most pointless." },
-  "right": { "label": "So People Quit, Or Never Start", "value": "The Real Cost", "caption": "Not a market crash — just impatience, at exactly the wrong moment." }
-}
-
-**Duration:** 11 seconds
-
-**Story Beat:** escalation
-
----
-
-### SCENE 9
-
-**Scene Type:** Hero Metric
+**Scene Type:** Line Chart
 
 **Narration:** Seven percent. Every single year, from day one to year thirty. Nothing sped up, nothing kicked in, nothing changed. The only thing different between the boring years and the explosive ones... was your own intuition.
 
 **Data:**
 {
-  "label": "The Growth Rate, Every Single Year",
-  "value": 7,
-  "suffix": "%",
-  "subtext": "Constant from day one to year thirty. Nothing sped up — your intuition was the only thing that changed.",
-  "barProgress": 0.7
+  "title": "The Growth Rate, Every Single Year",
+  "points": [
+    { "label": "Year 0", "value": 7 },
+    { "label": "", "value": 7 },
+    { "label": "", "value": 7 },
+    { "label": "", "value": 7 },
+    { "label": "", "value": 7 },
+    { "label": "", "value": 7 },
+    { "label": "Year 30", "value": 7 }
+  ],
+  "suffix": "%"
 }
 
 **Duration:** 9 seconds
@@ -220,26 +269,29 @@
 
 ---
 
-### SCENE 10
+### SCENE 9
 
-**Scene Type:** Split Cards
+**Scene Type:** Treemap
 
-**Narration:** Which is exactly why the boring years matter most. A dollar invested at the very start is worth seven point six times as much by year thirty. That same dollar, invested at year twenty instead, barely doubles. Same rate. Same market. Completely different result.
+**Narration:** Here's what this actually means for you. Two hundred dollars a month, invested at seven percent. Start at twenty-five, and by sixty-five you've got about half a million dollars — from ninety-six thousand of your own money. Start at thirty-five instead, same monthly amount, and you end up with less than half that. Ten years earlier beats an extra decade of contributions.
 
 **Data:**
 {
-  "title": "Timing Beats Almost Everything",
-  "left": { "label": "Invested At The Start", "value": "7.6x By Year 30", "caption": "Thirty years for the curve to actually do its work." },
-  "right": { "label": "Invested At Year 20", "value": "~2x By Year 30", "caption": "Same rate, same market — just ten years less runway." }
+  "title": "Same $200 A Month. Just Ten Years Earlier.",
+  "segments": [
+    { "label": "Start Saving At 25", "value": 494308 },
+    { "label": "Start Saving At 35", "value": 233891 }
+  ],
+  "prefix": "$"
 }
 
-**Duration:** 11 seconds
+**Duration:** 13 seconds
 
-**Story Beat:** evidence
+**Story Beat:** payoff
 
 ---
 
-### SCENE 11
+### SCENE 10
 
 **Scene Type:** Quote
 
@@ -257,11 +309,11 @@
 
 ---
 
-### SCENE 12
+### SCENE 11
 
 **Scene Type:** Canvas
 
-**Narration:** The best year to have started was year one. The honest, unglamorous second-best year... is this one.
+**Narration:** The best year to have started was year one. The honest, unglamorous second-best year is this one — and no, checking your balance every five minutes will not make it compound any faster.
 
 **Data:**
 {
@@ -270,9 +322,19 @@
     { "id": "you", "type": "icon", "icon": "person", "x": 50, "y": 50, "radius": 9, "color": "#4f6bff", "idle": "pulse" },
     { "id": "label-you", "type": "label", "x": 50, "y": 66, "label": "You, Right Now" },
     { "id": "label-line", "type": "label", "x": 50, "y": 20, "label": "Best Year: One. Second Best: Today." }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "you", "type": "icon", "icon": "person", "x": 50, "y": 50, "radius": 9, "color": "#4f6bff", "idle": "pulse" },
+        { "id": "label-you", "type": "label", "x": 50, "y": 66, "label": "You, Right Now" },
+        { "id": "label-line", "type": "label", "x": 50, "y": 20, "label": "Best Year: One. Second Best: Today." },
+        { "id": "check", "type": "icon", "icon": "check", "x": 66, "y": 38, "radius": 6, "color": "#3ddc97", "enter": "scale", "idle": "glow" }
+      ]
+    }
   ]
 }
 
-**Duration:** 7 seconds
+**Duration:** 9 seconds
 
 **Story Beat:** reflection

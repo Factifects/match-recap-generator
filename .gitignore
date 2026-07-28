@@ -12,5 +12,6 @@ output
 # what amounts to paid API output.
 public/audio-cache
 public/audio-cache-edge
+public/uploads
 
 

@@ -61,6 +61,7 @@ export type GoalSequenceData = Extract<Visual, { kind: "goal-sequence" }>;
 export type AnalysisData = Extract<Visual, { kind: "analysis" }>;
 export type StatBurstData = Extract<Visual, { kind: "statburst" }>;
 export type BarChartData = Extract<Visual, { kind: "barchart" }>;
+export type LineChartData = Extract<Visual, { kind: "line-chart" }>;
 export type DonutChartData = Extract<Visual, { kind: "shape" }>;
 export type RadarData = Extract<Visual, { kind: "radar" }>;
 export type SingleStatData = Extract<Visual, { kind: "single-stat" }>;

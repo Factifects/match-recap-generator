@@ -142,7 +142,7 @@ export const TreemapCard: React.FC<{ data: TreemapData } & SharedVisualProps> = 
                 >
                   <div style={{ fontFamily: DISPLAY_FONT_FAMILY, fontWeight: 800, fontSize: valueFontSize, color: "#111315", lineHeight: 1 }}>
                     {prefix}
-                    {Number.isInteger(rect.value) ? rect.value : rect.value.toFixed(2)}
+                    {Number.isInteger(rect.value) ? rect.value.toLocaleString("en-US") : rect.value.toFixed(2)}
                     {suffix}
                   </div>
                   <div

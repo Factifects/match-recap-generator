@@ -176,8 +176,9 @@ match-recap-generator/
       tacticalPatterns.ts        # named-pattern library for TacticalBoard — audited 2026-07-11
                                   # for arrow-direction and opposition-marker correctness, see file
                                   # comments
-      compositions/               # ~28 card components, one per visual kind (StatBurstCard,
-                                   # SequenceCard, BarChartCard, IconInfographicCard, ZoneMapCard,
+      compositions/               # ~29 card components, one per visual kind (StatBurstCard,
+                                   # SequenceCard, BarChartCard, LineChartCard, IconInfographicCard,
+                                   # ZoneMapCard,
                                    # TacticalBoard, VerticalTacticalBoard, Formation, ShotMap,
                                    # PlayerComparison, GoalSequence, MomentumTimeline,
                                    # SingleStatCard, RadarChart, QuoteCard, LeagueTableCard,
@@ -246,6 +247,17 @@ re-derive/update it from the source files above only when the parser or visual r
 changes. This project has deliberately deleted a template doc before specifically because it kept
 getting pulled into context and burning tokens on unrelated turns — don't repeat that with this
 one.
+
+**Statement Scene Type — hard cap of one per script.** Established 2026-07-27: at most one
+`Scene Type: Statement` card per script (plain kinetic-typography text, no graphic — see
+`SCRIPT_FORMAT_REFERENCE.md`'s "Chapter and Statement" section). Reason: the goal is catching
+viewers within the first 5-30 seconds, and a text-only card is the one Scene Type that can't help
+with that — every other beat should carry a real graphic/animation (TacticalBoard, Canvas, a
+stat/chart card, etc.), even for a beat that on the surface reads as "just a line of narration." If
+a beat doesn't obviously fit a registry visual, treat that as a prompt to find or build a fitting
+one (Canvas is the generic fallback for non-football content) rather than defaulting to Statement a
+second time in the same script. This is a script-drafting discipline, not a parser limit — nothing
+in the code enforces it; a script that violates it will still render, just with a weaker hook.
 
 A legacy, simpler tag format still parses as a fallback for non-scene-format input
 (`parseAnalysisScript.ts`):

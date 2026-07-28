@@ -16,11 +16,6 @@ const beatSchema = z.object({
   label: z.string(),
 });
 
-const barSchema = z.object({
-  label: z.string(),
-  value: z.number(),
-});
-
 const tableRowSchema = z.object({
   rank: z.number(),
   label: z.string(),
@@ -117,8 +112,27 @@ export const CANVAS_ICON_KEYS = [
   "factory",
   "person",
   "flask",
+  "cash",
+  "wallet",
+  "chart",
+  "mic",
+  "speaker",
+  "mute",
 ] as const;
 export type CanvasIconKey = (typeof CANVAS_ICON_KEYS)[number];
+
+// Shared by BarChart and Donut (`shape`) — `icon` is optional and BarChart-
+// only in practice (DonutChartCard doesn't read it, same "extra field is
+// safely ignored" convention as Animation on unsupported visual kinds).
+// Reuses Canvas's own icon vocabulary rather than a third icon enum, since
+// a bar chart is just as likely to need a topic-agnostic icon (money,
+// warning, a trophy stand-in via `target`) as a Canvas diagram is.
+const barSchema = z.object({
+  label: z.string(),
+  value: z.number(),
+  icon: z.enum(CANVAS_ICON_KEYS).optional(),
+});
+
 export const FORMATION_NAMES = ["4-3-3", "4-2-3-1", "3-4-2-1", "5-4-1", "4-4-2"] as const;
 
 // role is optional — when a script doesn't specify one, Formation.tsx falls
@@ -914,6 +928,35 @@ export const VISUAL_DEFINITIONS = [
       // set of price-tier bars) — bars within one chart always share a unit.
       prefix: z.string().optional(),
       suffix: z.string().optional(),
+    }),
+  },
+  {
+    kind: "line-chart",
+    category: "stats-dataviz",
+    label: "Line Chart",
+    description:
+      "A real interpolated curve through an ordered series of values (time, distance, count) — not Bar Chart's flat category comparison. Reveals left-to-right at a CONSTANT pace along the X-axis (a clip-wipe, not a constant stroke-length draw), so a shape that's genuinely slow-then-sudden (compounding, viral growth) actually reads that way instead of the reveal speed fighting the data's own shape. An optional `highlightRange` shades a contiguous stretch under the curve with its own caption, for calling out one stretch (\"this felt like nothing\") on the same curve instead of a second, disconnected diagram. An optional second series (`points2`) draws a SECOND curve on the same axes — same X positions (both arrays must be the same length, sharing one set of point labels), different color, its own small legend — for the one explanation that actually needs two lines diverging live rather than a single shape: \"here's what a FLAT rate would look like, and here's what actually happens.\" Without `points2`, renders exactly as a single-series chart always has.",
+    sceneTypeKey: "linechart",
+    schema: z.object({
+      kind: z.literal("line-chart"),
+      title: z.string(),
+      points: z.array(z.object({ label: z.string(), value: z.number() })).min(2),
+      // A second curve sharing the same X-axis positions as `points` — for a
+      // genuine "two mechanisms, same starting conditions" comparison (e.g.
+      // simple vs compound interest). Author-supplied labels so each series
+      // reads correctly regardless of which one is more dramatic.
+      points2: z.array(z.object({ label: z.string(), value: z.number() })).min(2).optional(),
+      series1Label: z.string().optional(),
+      series2Label: z.string().optional(),
+      prefix: z.string().optional(),
+      suffix: z.string().optional(),
+      highlightRange: z
+        .object({
+          fromIndex: z.number().min(0),
+          toIndex: z.number().min(0),
+          label: z.string().optional(),
+        })
+        .optional(),
     }),
   },
   {

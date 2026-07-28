@@ -127,6 +127,7 @@ All pitch coordinates are `0-100` in both x/y (attacking left-to-right, higher x
 |---|---|
 | `StatBurst` | `{ label, leftLabel, leftValue: number, rightLabel, rightValue: number, format?: "integer"\|"decimal", prefix?, suffix? }` |
 | `BarChart` | `{ title, bars: [{label, value: number}] (min 2), prefix?, suffix? }` |
+| `LineChart` | `{ title, points: [{label, value: number}] (min 2), prefix?, suffix?, highlightRange?: {fromIndex, toIndex, label?} }` — a REAL interpolated curve through `points` (Catmull-Rom smoothing), for an ordered series (time/count/distance). Never fake a curve out of several rotated Canvas `line` objects — use this instead. `points[i].label` left as `""` renders no axis tick for that point (draw as many points as the curve needs for smoothness; label only the ones worth calling out). `highlightRange` shades a contiguous stretch under the curve with its own caption — for "this stretch felt like nothing" directly on the same curve, instead of a second disconnected diagram. |
 | `Donut` | `{ title, segments: [{label, value: number}] (min 2) }` (note: JSON `kind` is `"shape"` if you're constructing raw JSON by hand instead of just using this table) |
 | `Radar` | `{ title, axes: string[] (min 3), series: [{label, values: number[0-100][], color?: string}] (1-2 entries) }` |
 | `Stat` (Single Stat) | `{ title, value: number, context?, prefix?, suffix? }` — **`value` must be a real number**, not a string/symbolic value. |
@@ -155,7 +156,7 @@ All pitch coordinates are `0-100` in both x/y (attacking left-to-right, higher x
 
 | Scene Type (key) | Data JSON shape |
 |---|---|
-| `Canvas` | `{ title?, objects: [CanvasObject] (min 1), arrows?: [CanvasArrow], phases?: [{objects, arrows?, camera?}] (min 1), snap?: number, camera?: {x,y,zoom} }` |
+| `Canvas` | `{ title?, objects: [CanvasObject] (min 1), arrows?: [CanvasArrow], phases?: [{objects, arrows?, camera?}] (min 1), snap?: number, camera?: {x,y,zoom} }` — good for diagrams built from Canvas's own primitives (dot/circle/rectangle/polygon/**icon**, the last being real Heroicons via `CANVAS_ICON_KEYS` — the chessboard-doubling "one grain of rice" scene is a real example: growing icon objects, not a fake curve). Do **not** approximate a smooth data curve out of several rotated `line` objects — use `LineChart` (above) for any actual growth/trend curve. |
 
 A generic, non-pitch 2D scene — for spatial/systems explanations no pitch or chart visual can
 express (two planes converging, a radar bubble growing until it touches another, a supply chain, a

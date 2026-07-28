@@ -15,6 +15,7 @@ import { GoalSequence } from "./compositions/GoalSequence";
 import { AnalysisBoard } from "./compositions/AnalysisBoard";
 import { StatBurstCard } from "./compositions/StatBurstCard";
 import { BarChartCard } from "./compositions/BarChartCard";
+import { LineChartCard } from "./compositions/LineChartCard";
 import { DonutChartCard } from "./compositions/DonutChartCard";
 import { RadarChart } from "./compositions/RadarChart";
 import { SingleStatCard } from "./compositions/SingleStatCard";
@@ -60,6 +61,7 @@ export const VISUAL_COMPONENTS: { [K in Visual["kind"]]: React.FC<{ data: DataFo
   analysis: AnalysisBoard,
   statburst: StatBurstCard,
   barchart: BarChartCard,
+  "line-chart": LineChartCard,
   shape: DonutChartCard,
   radar: RadarChart,
   "single-stat": SingleStatCard,

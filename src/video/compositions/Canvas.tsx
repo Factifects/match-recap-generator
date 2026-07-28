@@ -272,12 +272,18 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
     const isNew = phaseIndex > 0 && !previous;
     const props = resolveAnimatedProps(object, previous, phaseLocalFrame, object.easing);
 
-    // Entrance: phase 0 fades every object in fresh, staggered by index
-    // (today's exact behavior). A later phase only plays an entrance for a
-    // genuinely new object — one continuing from the previous phase is
-    // already fully visible and just glides via `props` above.
+    // Entrance: phase 0 fades every object in fresh, staggered by index —
+    // widened from the original 4 frames/object (imperceptible, everything
+    // read as arriving at once) to 10, so a scene's opening beat visibly
+    // builds piece by piece instead of flashing in as a group. A later
+    // phase only plays an entrance for a genuinely new object — one
+    // continuing from the previous phase is already fully visible and just
+    // glides via `props` above — but when a phase introduces MORE than one
+    // new object at once, they get the same per-object stagger (previously
+    // 0: every new-in-this-phase object popped in at the exact same
+    // instant) rather than all landing together.
     const entranceActive = phaseIndex === 0 || isNew;
-    const entranceStart = phaseIndex === 0 ? 10 + index * 4 : 0;
+    const entranceStart = phaseIndex === 0 ? 10 + index * 10 : index * 8;
     const entranceFrame = phaseIndex === 0 ? frame : phaseLocalFrame;
     let entranceOpacity = 1;
     let entranceScale = 1;
@@ -363,6 +369,53 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
   // was just being fed a canvas that could still get magnified afterward.
   const cameraObjects = renderObjects.filter((r) => r.object.type !== "label");
   const fixedLabelObjects = renderObjects.filter((r) => r.object.type === "label");
+  // Below, each fixed label's own fitText call only ever clamped its width
+  // against the FULL canvas — so three labels placed side by side (e.g. a
+  // signal-path diagram: mic -> chip -> speaker, each with its own caption
+  // underneath) could each legally fit on their own and still collide with
+  // their neighbors, confirmed via a real render where three such captions
+  // overlapped into unreadable mush. Precomputing every fixed label's
+  // projected position here lets each one's max width be capped at the gap
+  // to its nearest SAME-ROW neighbor (labels more than ~100px apart in y
+  // don't constrain each other at all) instead of always assuming it has
+  // the whole canvas to itself.
+  // Carries each label's own current entrance opacity too — a phase
+  // transition swaps the WHOLE objects array in one frame, so a label that
+  // isn't new (still fully visible from the previous phase) would otherwise
+  // suddenly gain brand-new neighbors at full strength the instant the new
+  // phase starts, snapping its own width constraint (and so its font size)
+  // from "alone, full width" to "crowded, small" in a single frame — the
+  // "big text that instantly glitches smaller" confirmed via a real render.
+  // Dividing the raw gap by the neighbor's own opacity below fixes that: a
+  // neighbor still at opacity 0 counts as effectively infinitely far away
+  // (no constraint yet), and as it fades in over its own entrance the
+  // constraint tightens smoothly toward the true gap, so fitText's own
+  // (otherwise-instant) size change now plays out gradually across the same
+  // frames as the neighbor's fade-in instead of popping in one frame.
+  const fixedLabelPositions = fixedLabelObjects.map(({ object, x, y, opacity }) => {
+    const [px, py] = project(x, y);
+    return { id: object.id, px, py, opacity };
+  });
+  function maxLabelWidthPx(id: string, px: number, py: number): number {
+    const fullWidth = canvasWidth * 0.85;
+    // The label is centered on px (textAnchor="middle"), so half of
+    // whatever width it's given extends to each side — a label placed near
+    // an edge (e.g. under an icon at x:18%) can legally fit its neighbor
+    // gap and STILL run off the left or right of the frame, confirmed via
+    // a real render ("Your Voice + Background Noise" losing its leading
+    // "Yo" at x:18%). 2*px / 2*(canvasWidth-px) is the actual room to each
+    // edge; a small margin keeps text from touching the frame border.
+    const edgeWidth = 2 * Math.min(px, canvasWidth - px) - 24;
+    let nearestGap = Infinity;
+    for (const other of fixedLabelPositions) {
+      if (other.id === id) continue;
+      if (Math.abs(other.py - py) > 100) continue;
+      const gap = Math.abs(other.px - px) / Math.max(other.opacity, 0.05);
+      nearestGap = Math.min(nearestGap, gap);
+    }
+    const neighborWidth = Number.isFinite(nearestGap) ? nearestGap * 0.88 : fullWidth;
+    return Math.max(60, Math.min(fullWidth, neighborWidth, edgeWidth));
+  }
   // Every fitText(...) call still inside the camera-transformed svg below
   // (arrow labels, shape captions, the dot caption) divides its target
   // width by `camZoom` for the same reason — these captions are attached
@@ -762,7 +815,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                     dominantBaseline="middle"
                     fontFamily={FONT_FAMILY}
                     fontWeight={700}
-                    {...fitText(object.label, 46, canvasWidth * 0.85)}
+                    {...fitText(object.label, 46, maxLabelWidthPx(object.id, px, py))}
                     fill={COLORS.text}
                     opacity={opacity}
                     style={{ filter: `drop-shadow(0 0 8px ${COLORS.background})`, ...transformStyle }}

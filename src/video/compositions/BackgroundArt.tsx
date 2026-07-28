@@ -72,19 +72,28 @@ export const BackgroundArt: React.FC<{
   if (featured) {
     // "center" is a fundamentally different layout from "left"/"right", not
     // just a horizontal-position variant — it has no edge to stay flush
-    // against, so it gets a real flexbox-centered box sized generously (72%
-    // width, 66% height — the ~30% left under that is stackedLayout's own
-    // text band) instead of the narrow fixed-width panel below. A still
-    // render of the first version of this (440px wide, top-anchored) showed
-    // exactly the failure mode you'd expect from those two choices combined:
-    // a "contain"-fit photo has no reason to fill a box that narrow, so it
-    // rendered tiny and stranded at the top with dead space under it.
+    // against, so it gets a real flexbox box sized generously (92% width, 58%
+    // height — the ~42% left under that is stackedLayout's own text band)
+    // instead of the narrow fixed-width panel below. A still render of the
+    // first version of this (440px wide, top-anchored) showed exactly the
+    // failure mode you'd expect from a too-narrow box: a "contain"-fit photo
+    // has no reason to fill a box that narrow, so it rendered tiny and
+    // stranded at the top with dead space under it. A LATER version centered
+    // the box vertically in the whole frame instead of anchoring it to the
+    // top — which, for a stacked layout whose text is pinned to the bottom
+    // (see QuoteCard's `stackedLayout`), let the box's own bottom edge drift
+    // down far enough to overlap that text (confirmed via a still render:
+    // the image's legs/hem rendered directly behind the first line of the
+    // quote). Anchoring to the top with `flex-start` instead keeps the
+    // image's bottom edge a predictable distance from the top regardless of
+    // its own aspect ratio, guaranteeing the same clearance for the text
+    // band below every time.
     if (side === "center") {
       return (
-        <AbsoluteFill style={{ overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <AbsoluteFill style={{ overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "flex-start", paddingTop: "6%" }}>
           <Img
             src={staticFile(src)}
-            style={{ width: "92%", height: "66%", opacity, objectFit: "contain", objectPosition: "center" }}
+            style={{ width: "92%", height: "58%", opacity, objectFit: "contain", objectPosition: "top" }}
           />
         </AbsoluteFill>
       );

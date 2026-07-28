@@ -22,6 +22,12 @@ import ScaleIcon from "@heroicons/react/24/solid/ScaleIcon";
 import BuildingOffice2Icon from "@heroicons/react/24/solid/BuildingOffice2Icon";
 import UserIcon from "@heroicons/react/24/solid/UserIcon";
 import BeakerIcon from "@heroicons/react/24/solid/BeakerIcon";
+import BanknotesIcon from "@heroicons/react/24/solid/BanknotesIcon";
+import WalletIcon from "@heroicons/react/24/solid/WalletIcon";
+import ChartBarIcon from "@heroicons/react/24/solid/ChartBarIcon";
+import MicrophoneIcon from "@heroicons/react/24/solid/MicrophoneIcon";
+import SpeakerWaveIcon from "@heroicons/react/24/solid/SpeakerWaveIcon";
+import SpeakerXMarkIcon from "@heroicons/react/24/solid/SpeakerXMarkIcon";
 import type { CanvasIconKey } from "../model/visualDefinitions";
 
 // The rendering half of Canvas's icon vocabulary — CANVAS_ICON_KEYS itself
@@ -56,4 +62,10 @@ export const CANVAS_ICON_COMPONENTS: Record<CanvasIconKey, ComponentType<SVGProp
   factory: BuildingOffice2Icon,
   person: UserIcon,
   flask: BeakerIcon,
+  cash: BanknotesIcon,
+  wallet: WalletIcon,
+  chart: ChartBarIcon,
+  mic: MicrophoneIcon,
+  speaker: SpeakerWaveIcon,
+  mute: SpeakerXMarkIcon,
 };

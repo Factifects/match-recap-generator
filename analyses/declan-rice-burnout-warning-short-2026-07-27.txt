@@ -1,0 +1,97 @@
+### SCENE 1
+
+**Scene Type:** Quote
+
+**Narration:** After England's World Cup run finally ended, Declan Rice didn't pretend he was fine.
+
+**Subject:** Declan Rice
+
+**Image Style:** featured
+
+**Image Side:** center
+
+**Data:**
+{
+  "quote": "I think you can see I'm mentally done, physically done. I need a break now.",
+  "attribution": "Declan Rice, England vice-captain"
+}
+
+**Duration:** 8 seconds
+
+**Story Beat:** question
+
+---
+
+### SCENE 2
+
+**Scene Type:** Bar Chart
+
+**Narration:** This season alone: sixty-nine games, close to five thousand minutes, for club and country. He missed exactly two Premier League matches all year.
+
+**Data:**
+{
+  "title": "One Player, One Relentless Season",
+  "bars": [
+    { "label": "PL Games Missed", "value": 2 },
+    { "label": "Total Games Played", "value": 69 }
+  ]
+}
+
+**Duration:** 9 seconds
+
+**Story Beat:** evidence
+
+---
+
+### SCENE 3
+
+**Scene Type:** Canvas
+
+**Narration:** Here's what should worry Arsenal: burnout at this level doesn't creep up slowly. Ask what happened to Fabinho at Liverpool — one phenomenal season, then a single summer where, in one club chairman's words, he "aged ten years."
+
+**Data:**
+{
+  "title": "One Summer Is All It Takes",
+  "objects": [
+    { "id": "p", "type": "icon", "icon": "person", "x": 50, "y": 45, "radius": 14, "color": "#4f6bff" },
+    { "id": "label-state", "type": "label", "x": 50, "y": 66, "label": "Elite Level" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "p", "type": "icon", "icon": "person", "x": 50, "y": 45, "radius": 14, "color": "#ff5252" },
+        { "id": "warn", "type": "icon", "icon": "warning", "x": 66, "y": 30, "radius": 7, "color": "#ff5252", "enter": "scale", "idle": "pulse" },
+        { "id": "label-state", "type": "label", "x": 50, "y": 66, "label": "Burnt Out" },
+        { "id": "label-time", "type": "label", "x": 50, "y": 82, "label": "— One Summer Later" }
+      ]
+    }
+  ]
+}
+
+**Duration:** 11 seconds
+
+**Story Beat:** reveal
+
+---
+
+### SCENE 4
+
+**Scene Type:** Quote
+
+**Narration:** In his own words, right after his last game of the tournament.
+
+**Subject:** Declan Rice
+
+**Image Style:** featured
+
+**Image Side:** center
+
+**Data:**
+{
+  "quote": "You never know when it's going to come to an end. You never take it for granted.",
+  "attribution": "Declan Rice"
+}
+
+**Duration:** 8 seconds
+
+**Story Beat:** reflection
