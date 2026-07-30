@@ -1,0 +1,578 @@
+### SCENE 1
+
+**Scene Type:** Canvas
+
+**Narration:** Say you open GitHub in one tab and sign in. Then, out of habit, you open a second tab and sign into a different account — maybe a work account this time. You go back to that first tab, hit refresh... and it's now showing your work account too. You never touched that tab. So why did logging in somewhere else change it?
+
+**Duration:** 27 seconds
+
+**Story Beat:** hook
+
+**Transition Style:** zoom in
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Same App, Two Tabs, One Surprise",
+  "objects": [
+    { "id": "tab1", "type": "roundedRectangle", "x": 25, "y": 40, "width": 34, "height": 28, "radius": 6, "color": "#475569", "filled": true, "label": "TAB 1 — Personal" },
+    { "id": "tab2", "type": "roundedRectangle", "x": 75, "y": 40, "width": 34, "height": 28, "radius": 6, "color": "#475569", "filled": true, "label": "TAB 2" },
+    { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "You Sign Into Tab 1...", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 25, "y": 40, "width": 34, "height": 28, "radius": 6, "color": "#475569", "filled": true, "label": "TAB 1 — Personal", "scale": 1.05 },
+        { "id": "tab2", "type": "roundedRectangle", "x": 75, "y": 40, "width": 34, "height": 28, "radius": 6, "color": "#475569", "filled": true, "label": "TAB 2" },
+        { "id": "cursorIcon0", "type": "icon", "icon": "cursor", "x": 25, "y": 40, "color": "#e2e8f0", "radius": 5, "enter": "fade", "exit": "fade" },
+        { "id": "clickBurst0", "type": "icon", "icon": "sparkle", "x": 25, "y": 40, "color": "#fde047", "radius": 6, "enter": "scale", "exit": "fade" },
+        { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "...You Sign In There, All Normal...", "color": "#cbd5e1" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 25, "y": 40, "width": 34, "height": 28, "radius": 6, "color": "#475569", "filled": true, "label": "TAB 1 — Personal" },
+        { "id": "tab2", "type": "roundedRectangle", "x": 75, "y": 40, "width": 34, "height": 28, "radius": 6, "color": "#38bdf8", "filled": true, "label": "TAB 2 — Work Account" },
+        { "id": "cursorIcon", "type": "icon", "icon": "cursor", "x": 75, "y": 40, "color": "#e2e8f0", "radius": 5, "enter": "fade", "exit": "fade" },
+        { "id": "clickBurst", "type": "icon", "icon": "sparkle", "x": 75, "y": 40, "color": "#fde047", "radius": 6, "enter": "scale", "exit": "fade" },
+        { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "...Then Log Into A Second Account In Tab 2...", "color": "#cbd5e1" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 25, "y": 40, "width": 34, "height": 28, "radius": 6, "color": "#475569", "filled": true, "label": "TAB 1 — Personal", "scale": 1.05 },
+        { "id": "tab2", "type": "roundedRectangle", "x": 75, "y": 40, "width": 34, "height": 28, "radius": 6, "color": "#38bdf8", "filled": true, "label": "TAB 2 — Work Account" },
+        { "id": "cursorIcon2", "type": "icon", "icon": "cursor", "x": 25, "y": 40, "color": "#e2e8f0", "radius": 5, "enter": "fade", "exit": "fade" },
+        { "id": "clickBurst2", "type": "icon", "icon": "sparkle", "x": 25, "y": 40, "color": "#fde047", "radius": 6, "enter": "scale", "exit": "fade" },
+        { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "You Go Back To Tab 1 And Hit Refresh...", "color": "#cbd5e1" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 25, "y": 40, "width": 34, "height": 28, "radius": 6, "color": "#38bdf8", "filled": true, "label": "TAB 1 — Work Account?!" },
+        { "id": "tab2", "type": "roundedRectangle", "x": 75, "y": 40, "width": 34, "height": 28, "radius": 6, "color": "#38bdf8", "filled": true, "label": "TAB 2 — Work Account" },
+        { "id": "caption", "type": "label", "x": 50, "y": 88, "label": "It Now Shows The Work Account Too.", "color": "#fca5a5" }
+      ],
+      "camera": { "x": 50, "y": 45, "zoom": 1.1 }
+    }
+  ]
+}
+
+---
+
+### SCENE 2
+
+**Scene Type:** Canvas
+
+**Narration:** Okay, quick basics first. A cookie is really just a little note the website leaves sitting in your browser, saying "this person is logged in." Simple enough.
+
+**Duration:** 13 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "What A Cookie Actually Is",
+  "objects": [
+    { "id": "tabIcon", "type": "roundedRectangle", "x": 30, "y": 50, "width": 24, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB" },
+    { "id": "noteIcon", "type": "icon", "icon": "document", "x": 70, "y": 45, "color": "#fbbf24", "radius": 9 },
+    { "id": "caption", "type": "label", "x": 50, "y": 86, "label": "A Cookie Is Just A Little Note...", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "tabIcon", "type": "roundedRectangle", "x": 30, "y": 50, "width": 24, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB" },
+        { "id": "noteIcon", "type": "icon", "icon": "document", "x": 70, "y": 45, "color": "#fbbf24", "radius": 9 },
+        { "id": "noteLabel", "type": "label", "x": 70, "y": 66, "label": "\"This Person Is Logged In\"", "color": "#fde68a", "enter": "fade" },
+        { "id": "caption", "type": "label", "x": 50, "y": 86, "label": "...Sitting In Your Browser. That's It.", "color": "#fde68a" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 3
+
+**Scene Type:** Canvas
+
+**Narration:** But here's the bit almost nobody actually pictures right: your browser does not hand each tab its own little private copy of that note. There's really just one shared jar per browser, per website — and every tab you've got open, ten of them, twenty of them, is all reaching into that exact same jar.
+
+**Duration:** 24 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "One Shared Jar, Not One Per Tab",
+  "objects": [
+    { "id": "tab1", "type": "roundedRectangle", "x": 18, "y": 22, "width": 22, "height": 16, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+    { "id": "tab2", "type": "roundedRectangle", "x": 82, "y": 22, "width": 22, "height": 16, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 2" },
+    { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 62, "width": 44, "height": 30, "radius": 8, "color": "#fbbf24", "filled": true, "label": "SHARED COOKIE STORAGE" },
+    { "id": "caption", "type": "label", "x": 50, "y": 92, "label": "Not One Private Copy Per Tab...", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 18, "y": 22, "width": 22, "height": 16, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+        { "id": "tab2", "type": "roundedRectangle", "x": 82, "y": 22, "width": 22, "height": 16, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 2" },
+        { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 62, "width": 44, "height": 30, "radius": 8, "color": "#fbbf24", "filled": true, "label": "SHARED COOKIE STORAGE" },
+        { "id": "caption", "type": "label", "x": 50, "y": 92, "label": "...Just One Shared Jar, Per Browser, Per Site", "color": "#fde68a" }
+      ],
+      "arrows": [
+        { "from": "tab1", "to": "jar", "style": "dashed", "color": "#38bdf8", "flow": true }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 18, "y": 22, "width": 22, "height": 16, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+        { "id": "tab2", "type": "roundedRectangle", "x": 82, "y": 22, "width": 22, "height": 16, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 2" },
+        { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 62, "width": 44, "height": 30, "radius": 8, "color": "#fbbf24", "filled": true, "label": "SHARED COOKIE STORAGE" },
+        { "id": "caption", "type": "label", "x": 50, "y": 92, "label": "Every Tab You Open Reaches Into That Same One", "color": "#fde68a" }
+      ],
+      "arrows": [
+        { "from": "tab1", "to": "jar", "style": "dashed", "color": "#38bdf8", "flow": true },
+        { "from": "tab2", "to": "jar", "style": "dashed", "color": "#38bdf8", "flow": true }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 18, "y": 22, "width": 22, "height": 16, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+        { "id": "tab2", "type": "roundedRectangle", "x": 82, "y": 22, "width": 22, "height": 16, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 2" },
+        { "id": "ghostTab3", "type": "roundedRectangle", "x": 8, "y": 40, "width": 16, "height": 12, "radius": 3, "color": "#475569", "filled": true, "opacity": 0.4, "enter": "fade" },
+        { "id": "ghostTab4", "type": "roundedRectangle", "x": 92, "y": 40, "width": 16, "height": 12, "radius": 3, "color": "#475569", "filled": true, "opacity": 0.4, "enter": "fade" },
+        { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 62, "width": 44, "height": 30, "radius": 8, "color": "#fbbf24", "filled": true, "label": "SHARED COOKIE STORAGE" },
+        { "id": "caption", "type": "label", "x": 50, "y": 92, "label": "Ten Tabs. Twenty Tabs. Same One Jar.", "color": "#fde68a" }
+      ],
+      "arrows": [
+        { "from": "tab1", "to": "jar", "style": "dashed", "color": "#38bdf8", "flow": true },
+        { "from": "tab2", "to": "jar", "style": "dashed", "color": "#38bdf8", "flow": true }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 4
+
+**Scene Type:** Code
+
+**Narration:** So what's actually written on that note? Think of a classic session like a coat-check ticket. The ticket itself is just a random number — completely meaningless on its own. Hand it to the counter, though, and they look up exactly whose coat that is. That's the whole trick: your real account info lives server-side, in a database, looked up by that string on every single request.
+
+**Duration:** 34 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "filename": "session-based",
+  "language": "AUTH",
+  "lines": [
+    [{ "text": "session=", "token": "keyword" }, { "text": "8f3ad1c9e0a24f11", "token": "string" }],
+    [],
+    [{ "text": "// ", "token": "comment" }, { "text": "just a coat-check ticket — meaningless on its own", "token": "comment" }]
+  ],
+  "revealSteps": [
+    {
+      "at": 0.55,
+      "lines": [
+        [{ "text": "session=", "token": "keyword" }, { "text": "8f3ad1c9e0a24f11", "token": "string" }],
+        [],
+        [{ "text": "// ", "token": "comment" }, { "text": "the server looks it up on every request:", "token": "comment" }],
+        [{ "text": "db.sessions.find(", "token": "function" }, { "text": "id", "token": "string" }, { "text": ")", "token": "function" }, { "text": " → ", "token": "plain" }, { "text": "{ userId: 123 }", "token": "variable" }]
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 5
+
+**Scene Type:** Code
+
+**Narration:** A JWT works the opposite way. Instead of a ticket you hand back to the same counter, think of it more like a sealed, signed note. Break it open and the information is just sitting right there — a header, a payload with actual claims like your user ID and role, and a signature proving nobody tampered with it. There's no counter to check back with at all. It's completely self-contained.
+
+**Duration:** 30 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "filename": "token.jwt",
+  "language": "JWT",
+  "lines": [
+    [{ "text": "header", "token": "comment" }, { "text": ".", "token": "plain" }, { "text": "payload", "token": "comment" }, { "text": ".", "token": "plain" }, { "text": "signature", "token": "comment" }],
+    [{ "text": "eyJhbGciOi...", "token": "plain" }, { "text": ".", "token": "plain" }, { "text": "eyJzdWIiOi...", "token": "string" }, { "text": ".", "token": "plain" }, { "text": "4f9c1a2e...", "token": "function" }]
+  ],
+  "revealSteps": [
+    {
+      "at": 0.4,
+      "lines": [
+        [{ "text": "eyJhbGciOi...", "token": "plain" }, { "text": ".", "token": "plain" }, { "text": "eyJzdWIiOi...", "token": "string" }, { "text": ".", "token": "plain" }, { "text": "4f9c1a2e...", "token": "function" }],
+        [],
+        [{ "text": "// ", "token": "comment" }, { "text": "the payload decodes to real claims:", "token": "comment" }],
+        [{ "text": "{ ", "token": "plain" }, { "text": "\"sub\"", "token": "keyword" }, { "text": ": ", "token": "plain" }, { "text": "\"user_123\"", "token": "string" }, { "text": ", ", "token": "plain" }, { "text": "\"role\"", "token": "keyword" }, { "text": ": ", "token": "plain" }, { "text": "\"admin\"", "token": "string" }, { "text": " }", "token": "plain" }],
+        [],
+        [{ "text": "// ", "token": "comment" }, { "text": "self-contained — no lookup needed", "token": "comment" }]
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 6
+
+**Scene Type:** Code
+
+**Narration:** Watch what actually happens on the network. When you log into tab one, the server sends back one line: Set-Cookie, session equals this. Log into tab two, and the server sends back that exact same instruction — Set-Cookie, session equals a completely different value. Same cookie name. Same jar. The second one just overwrites the first.
+
+**Duration:** 24 seconds
+
+**Story Beat:** evidence
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "filename": "tab 1 — login response",
+  "language": "HTTP",
+  "lines": [
+    [{ "text": "HTTP/1.1 200 OK", "token": "plain" }],
+    [{ "text": "Set-Cookie: ", "token": "keyword" }, { "text": "session=abc123; Path=/", "token": "string" }]
+  ],
+  "secondPanel": {
+    "filename": "tab 2 — login response",
+    "language": "HTTP",
+    "lines": [
+      [{ "text": "HTTP/1.1 200 OK", "token": "plain" }],
+      [{ "text": "Set-Cookie: ", "token": "keyword" }, { "text": "session=xyz789; Path=/", "token": "string" }],
+      [],
+      [{ "text": "// ", "token": "comment" }, { "text": "overwrites tab 1's cookie", "token": "comment" }]
+    ]
+  },
+  "layout": "side-by-side",
+  "revealAt": 0.5
+}
+
+---
+
+### SCENE 7
+
+**Scene Type:** Canvas
+
+**Narration:** Your first tab never got told any of this happened — tabs don't talk to each other. But cookies aren't tab memory, they're browser memory. So the moment you hit refresh, that tab just grabs whatever's sitting in the jar right now, attaches it to the request, and the server has no idea it's not talking to the same person anymore.
+
+**Duration:** 27 seconds
+
+**Story Beat:** escalation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Refresh Just Reads Whatever's There Right Now",
+  "objects": [
+    { "id": "tab1", "type": "roundedRectangle", "x": 20, "y": 30, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+    { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 62, "width": 34, "height": 22, "radius": 6, "color": "#fbbf24", "filled": true, "label": "session=xyz789 (Account B)" },
+    { "id": "serverIcon", "type": "icon", "icon": "server", "x": 82, "y": 30, "color": "#4ade80", "radius": 8 },
+    { "id": "caption", "type": "label", "x": 50, "y": 92, "label": "Tabs Don't Talk To Each Other...", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 20, "y": 30, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+        { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 62, "width": 34, "height": 22, "radius": 6, "color": "#fbbf24", "filled": true, "label": "session=xyz789 (Account B)" },
+        { "id": "serverIcon", "type": "icon", "icon": "server", "x": 82, "y": 30, "color": "#4ade80", "radius": 8 },
+        { "id": "caption", "type": "label", "x": 50, "y": 92, "label": "...But Cookies Are Browser Memory, Not Tab Memory", "color": "#cbd5e1" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 20, "y": 30, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+        { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 62, "width": 34, "height": 22, "radius": 6, "color": "#fbbf24", "filled": true, "label": "session=xyz789 (Account B)" },
+        { "id": "serverIcon", "type": "icon", "icon": "server", "x": 82, "y": 30, "color": "#4ade80", "radius": 8 },
+        { "id": "cursorIcon", "type": "icon", "icon": "cursor", "x": 20, "y": 30, "color": "#e2e8f0", "radius": 5, "enter": "fade", "exit": "fade" },
+        { "id": "clickBurst", "type": "icon", "icon": "sparkle", "x": 20, "y": 30, "color": "#fde047", "radius": 6, "enter": "scale", "exit": "fade" },
+        { "id": "caption", "type": "label", "x": 50, "y": 92, "label": "Hit Refresh — Tab 1 Reads The Jar Right Now...", "color": "#fde68a" }
+      ],
+      "arrows": [
+        { "from": "tab1", "to": "jar", "style": "dashed", "color": "#f87171", "flow": true },
+        { "from": "jar", "to": "serverIcon", "style": "dashed", "color": "#f87171", "flow": true }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 20, "y": 30, "width": 26, "height": 18, "radius": 4, "color": "#38bdf8", "filled": true, "label": "TAB 1 — Account B" },
+        { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 62, "width": 34, "height": 22, "radius": 6, "color": "#fbbf24", "filled": true, "label": "session=xyz789 (Account B)" },
+        { "id": "serverIcon", "type": "icon", "icon": "server", "x": 82, "y": 30, "color": "#4ade80", "radius": 8 },
+        { "id": "caption", "type": "label", "x": 50, "y": 92, "label": "...The Server Has No Idea Anything Changed", "color": "#fca5a5" }
+      ],
+      "arrows": [
+        { "from": "serverIcon", "to": "tab1", "style": "solid", "color": "#4ade80", "flow": true }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 20, "y": 30, "width": 26, "height": 18, "radius": 4, "color": "#38bdf8", "filled": true, "label": "TAB 1 — Account B" },
+        { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 62, "width": 34, "height": 22, "radius": 6, "color": "#fbbf24", "filled": true, "label": "session=xyz789 (Account B)" },
+        { "id": "serverIcon", "type": "icon", "icon": "server", "x": 82, "y": 30, "color": "#4ade80", "radius": 8 },
+        { "id": "caption", "type": "label", "x": 50, "y": 92, "label": "Same Request. Completely Different Person.", "color": "#fca5a5" }
+      ],
+      "camera": { "x": 40, "y": 40, "zoom": 1.2 }
+    }
+  ]
+}
+
+---
+
+### SCENE 8
+
+**Scene Type:** Canvas
+
+**Narration:** So then how does YouTube pull off the exact opposite trick — both tabs just happily sitting there, each logged into a different account, no drama? Turns out browsers do have one kind of storage that's genuinely private per tab. And no, it's not some secret magic — it's just a feature nobody tells you about.
+
+**Duration:** 27 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** yellow
+
+**Data:**
+{
+  "title": "The Opposite Trick",
+  "objects": [
+    { "id": "tab1", "type": "roundedRectangle", "x": 25, "y": 45, "width": 34, "height": 26, "radius": 6, "color": "#4ade80", "filled": true, "label": "TAB 1 — Account A" },
+    { "id": "tab2", "type": "roundedRectangle", "x": 75, "y": 45, "width": 34, "height": 26, "radius": 6, "color": "#38bdf8", "filled": true, "label": "TAB 2 — Account B" },
+    { "id": "caption", "type": "label", "x": 50, "y": 86, "label": "Both Tabs. Two Accounts. No Drama.", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 25, "y": 45, "width": 34, "height": 26, "radius": 6, "color": "#4ade80", "filled": true, "label": "TAB 1 — Account A" },
+        { "id": "tab2", "type": "roundedRectangle", "x": 75, "y": 45, "width": 34, "height": 26, "radius": 6, "color": "#38bdf8", "filled": true, "label": "TAB 2 — Account B" },
+        { "id": "searchIcon", "type": "icon", "icon": "search", "x": 50, "y": 18, "color": "#facc15", "radius": 6, "enter": "scale" },
+        { "id": "caption", "type": "label", "x": 50, "y": 86, "label": "One Kind Of Browser Storage Is Genuinely Private Per Tab", "color": "#fef08a" }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "tab1", "type": "roundedRectangle", "x": 25, "y": 45, "width": 34, "height": 26, "radius": 6, "color": "#4ade80", "filled": true, "label": "TAB 1 — Account A" },
+        { "id": "tab2", "type": "roundedRectangle", "x": 75, "y": 45, "width": 34, "height": 26, "radius": 6, "color": "#38bdf8", "filled": true, "label": "TAB 2 — Account B" },
+        { "id": "notMagicLabel", "type": "label", "x": 50, "y": 18, "label": "Not Magic — Just A Feature Nobody Mentions", "color": "#fef08a", "enter": "fade" },
+        { "id": "caption", "type": "label", "x": 50, "y": 86, "label": "So What Is It?", "color": "#fef08a" }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 9
+
+**Scene Type:** SplitCards
+
+**Narration:** Cookies and localStorage belong to the website itself, no matter how many tabs you've thrown open. sessionStorage belongs to exactly one tab's own little browsing context. Close that tab, and it's gone with it.
+
+**Duration:** 15 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** yellow
+
+**Data:**
+{
+  "title": "Not All Browser Storage Is Shared",
+  "left": { "label": "Cookies & localStorage", "value": "Shared", "caption": "Every tab can read it — it belongs to the site, not the tab" },
+  "right": { "label": "sessionStorage", "value": "Tab-Only", "caption": "Only that one tab can see it — gone when the tab closes" },
+  "revealRightAt": 0.5
+}
+
+---
+
+### SCENE 10
+
+**Scene Type:** Canvas
+
+**Narration:** Google combines both. Logging into a second account doesn't erase the first — it appends to a running list of everyone currently signed in, all sitting in one shared cookie. Then each tab separately remembers, in its own tab-scoped storage, which name on that list it's supposed to be looking at right now.
+
+**Duration:** 23 seconds
+
+**Story Beat:** explanation
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "One Shared List, A Private Pointer Each",
+  "objects": [
+    { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 20, "width": 46, "height": 16, "radius": 6, "color": "#38bdf8", "filled": true, "label": "SIGNED IN: [ Account A, Account B ]" },
+    { "id": "tab1", "type": "roundedRectangle", "x": 22, "y": 60, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+    { "id": "tab2", "type": "roundedRectangle", "x": 78, "y": 60, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 2" },
+    { "id": "caption", "type": "label", "x": 50, "y": 94, "label": "Logging Into A Second Account Doesn't Erase The First...", "color": "#cbd5e1" }
+  ],
+  "arrows": [
+    { "from": "tab1", "to": "jar", "style": "dashed", "color": "#38bdf8", "flow": true },
+    { "from": "tab2", "to": "jar", "style": "dashed", "color": "#38bdf8", "flow": true }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 20, "width": 46, "height": 16, "radius": 6, "color": "#38bdf8", "filled": true, "label": "SIGNED IN: [ Account A, Account B ]" },
+        { "id": "tab1", "type": "roundedRectangle", "x": 22, "y": 60, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+        { "id": "tab2", "type": "roundedRectangle", "x": 78, "y": 60, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 2" },
+        { "id": "caption", "type": "label", "x": 50, "y": 94, "label": "...It Just Appends To A Running List", "color": "#cbd5e1" }
+      ],
+      "arrows": [
+        { "from": "tab1", "to": "jar", "style": "dashed", "color": "#38bdf8", "flow": true },
+        { "from": "tab2", "to": "jar", "style": "dashed", "color": "#38bdf8", "flow": true }
+      ]
+    },
+    {
+      "objects": [
+        { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 20, "width": 46, "height": 16, "radius": 6, "color": "#38bdf8", "filled": true, "label": "SIGNED IN: [ Account A, Account B ]" },
+        { "id": "tab1", "type": "roundedRectangle", "x": 22, "y": 60, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+        { "id": "tab2", "type": "roundedRectangle", "x": 78, "y": 60, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 2" },
+        { "id": "pointer1", "type": "label", "x": 22, "y": 80, "label": "Viewing: Account A", "color": "#fde68a", "enter": "fade" },
+        { "id": "pointer2", "type": "label", "x": 78, "y": 80, "label": "Viewing: Account B", "color": "#fde68a", "enter": "fade" },
+        { "id": "caption", "type": "label", "x": 50, "y": 94, "label": "Each Tab Keeps Its Own Private Pointer Into That List", "color": "#fde68a" }
+      ],
+      "arrows": [
+        { "from": "tab1", "to": "jar", "style": "dashed", "color": "#38bdf8", "flow": true },
+        { "from": "tab2", "to": "jar", "style": "dashed", "color": "#38bdf8", "flow": true }
+      ]
+    }
+  ]
+}
+
+---
+
+### SCENE 11
+
+**Scene Type:** Canvas
+
+**Narration:** You can actually see this yourself: open Gmail or Google Docs and look at the address bar — that slash-u-slash-zero or slash-u-slash-one sitting right in the URL is literally that per-tab account pointer, hiding in plain sight.
+
+**Duration:** 17 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "The Pointer Is Sitting Right In The URL",
+  "objects": [
+    { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 20, "width": 46, "height": 16, "radius": 6, "color": "#38bdf8", "filled": true, "label": "SIGNED IN: [ Account A, Account B ]" },
+    { "id": "tab1", "type": "roundedRectangle", "x": 22, "y": 60, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+    { "id": "tab2", "type": "roundedRectangle", "x": 78, "y": 60, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 2" },
+    { "id": "caption", "type": "label", "x": 50, "y": 94, "label": "Open Gmail Or Google Docs. Check The Address Bar.", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "jar", "type": "roundedRectangle", "x": 50, "y": 20, "width": 46, "height": 16, "radius": 6, "color": "#38bdf8", "filled": true, "label": "SIGNED IN: [ Account A, Account B ]" },
+        { "id": "tab1", "type": "roundedRectangle", "x": 22, "y": 60, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 1" },
+        { "id": "tab2", "type": "roundedRectangle", "x": 78, "y": 60, "width": 26, "height": 18, "radius": 4, "color": "#475569", "filled": true, "label": "TAB 2" },
+        { "id": "urlLabel1", "type": "label", "x": 22, "y": 80, "label": "docs.google.com/u/0/ → Account A", "color": "#86efac", "enter": "fade" },
+        { "id": "urlLabel2", "type": "label", "x": 78, "y": 80, "label": "docs.google.com/u/1/ → Account B", "color": "#86efac", "enter": "fade" },
+        { "id": "caption", "type": "label", "x": 50, "y": 94, "label": "That's The Pointer, Hiding In Plain Sight", "color": "#86efac" }
+      ],
+      "camera": { "x": 50, "y": 55, "zoom": 1.15 }
+    }
+  ]
+}
+
+---
+
+### SCENE 12
+
+**Scene Type:** Code
+
+**Narration:** And this is the part that actually matters if you're building this yourself: none of it depends on whether you're using server-side sessions or JWTs. A JWT sitting in a cookie gets silently swapped exactly like a session ID does, because the behavior was never about the token format. It's entirely about which storage you put it in.
+
+**Duration:** 25 seconds
+
+**Story Beat:** reveal
+
+**Panel Color:** blue
+
+**Data:**
+{
+  "filename": "shared-everywhere.js",
+  "language": "JS",
+  "lines": [
+    [{ "text": "// ", "token": "comment" }, { "text": "session ID or JWT — same rule", "token": "comment" }],
+    [{ "text": "document.cookie", "token": "variable" }, { "text": " = ", "token": "plain" }, { "text": "\"auth=\" + token", "token": "string" }, { "text": ";", "token": "plain" }],
+    [],
+    [{ "text": "// ", "token": "comment" }, { "text": "every tab reads this exact value", "token": "comment" }]
+  ],
+  "secondPanel": {
+    "label": "TAB-SCOPED",
+    "lines": [
+      [{ "text": "// ", "token": "comment" }, { "text": "only this one tab can see this", "token": "comment" }],
+      [{ "text": "sessionStorage", "token": "variable" }, { "text": ".setItem(", "token": "function" }, { "text": "\"activeAccount\"", "token": "string" }, { "text": ", ", "token": "plain" }, { "text": "\"B\"", "token": "string" }, { "text": ")", "token": "function" }, { "text": ";", "token": "plain" }]
+    ]
+  },
+  "layout": "side-by-side",
+  "revealAt": 0.55
+}
+
+---
+
+### SCENE 13
+
+**Scene Type:** Canvas
+
+**Narration:** So, honestly? If your app only ever needs one logged-in person per browser, a plain shared cookie is all you need — that's GitHub's entire trick, and there's no shame in it. You only need Google's version, the list plus a tab-scoped pointer, the day you actually want someone juggling three accounts at once. Which, unless you're building the next Gmail, is probably not this afternoon.
+
+**Duration:** 29 seconds
+
+**Story Beat:** payoff
+
+**Panel Color:** neutral
+
+**Data:**
+{
+  "title": "Build The One You Actually Need",
+  "objects": [
+    { "id": "simpleTile", "type": "roundedRectangle", "x": 28, "y": 45, "width": 40, "height": 30, "radius": 6, "color": "#4ade80", "filled": true, "label": "One Login Per Browser? → Plain Shared Cookie" },
+    { "id": "complexTile", "type": "roundedRectangle", "x": 72, "y": 45, "width": 40, "height": 30, "radius": 6, "color": "#38bdf8", "filled": true, "label": "Juggling Accounts Per Tab? → List + Tab-Scoped Index" },
+    { "id": "checkIcon", "type": "icon", "icon": "check", "x": 28, "y": 22, "color": "#4ade80", "radius": 6 },
+    { "id": "chipIcon", "type": "icon", "icon": "chip", "x": 72, "y": 22, "color": "#38bdf8", "radius": 6 },
+    { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "GitHub's Trick vs. Google's Trick", "color": "#cbd5e1" }
+  ],
+  "phases": [
+    {
+      "objects": [
+        { "id": "simpleTile", "type": "roundedRectangle", "x": 28, "y": 45, "width": 40, "height": 30, "radius": 6, "color": "#4ade80", "filled": true, "label": "One Login Per Browser? → Plain Shared Cookie" },
+        { "id": "complexTile", "type": "roundedRectangle", "x": 72, "y": 45, "width": 40, "height": 30, "radius": 6, "color": "#38bdf8", "filled": true, "label": "Juggling Accounts Per Tab? → List + Tab-Scoped Index" },
+        { "id": "checkIcon", "type": "icon", "icon": "check", "x": 28, "y": 22, "color": "#4ade80", "radius": 6 },
+        { "id": "chipIcon", "type": "icon", "icon": "chip", "x": 72, "y": 22, "color": "#38bdf8", "radius": 6 },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Most Apps Only Ever Need The Left One", "color": "#86efac" }
+      ],
+      "camera": { "x": 28, "y": 40, "zoom": 1.15 }
+    },
+    {
+      "objects": [
+        { "id": "simpleTile", "type": "roundedRectangle", "x": 28, "y": 45, "width": 40, "height": 30, "radius": 6, "color": "#4ade80", "filled": true, "label": "One Login Per Browser? → Plain Shared Cookie" },
+        { "id": "complexTile", "type": "roundedRectangle", "x": 72, "y": 45, "width": 40, "height": 30, "radius": 6, "color": "#38bdf8", "filled": true, "label": "Juggling Accounts Per Tab? → List + Tab-Scoped Index" },
+        { "id": "checkIcon", "type": "icon", "icon": "check", "x": 28, "y": 22, "color": "#4ade80", "radius": 6 },
+        { "id": "chipIcon", "type": "icon", "icon": "chip", "x": 72, "y": 22, "color": "#38bdf8", "radius": 6 },
+        { "id": "caption", "type": "label", "x": 50, "y": 90, "label": "Unless You're Building The Next Gmail", "color": "#86efac" }
+      ],
+      "camera": { "x": 50, "y": 40, "zoom": 1.05 }
+    }
+  ]
+}
