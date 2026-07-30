@@ -1,0 +1,140 @@
+### SCENE 1
+
+**Scene Type:** Tactical Board 3D
+
+**Narration:** It's not just about swarming the ball. Watch the third player — he isn't closing down the ball at all. He's cutting off the only easy pass out. No space, no outlet, no time to think.
+
+**Data:**
+{
+  "title": "The Moment It's Lost",
+  "cameraStyle": "orbit",
+  "players": [
+    { "id": "opp", "x": 55, "y": 50, "team": "away", "label": "Wins The Ball" },
+    { "id": "opp2", "x": 70, "y": 45, "team": "away", "label": "The Easy Pass" },
+    { "id": "p1", "x": 50, "y": 45, "team": "home", "label": "Presser" },
+    { "id": "p2", "x": 50, "y": 55, "team": "home", "label": "Presser" },
+    { "id": "p3", "x": 60, "y": 38, "team": "home", "label": "Cuts The Lane" }
+  ],
+  "ball": { "x": 55, "y": 50, "belongsTo": "opp" },
+  "tacticalObjects": [
+    { "shape": "lane", "from": { "x": 55, "y": 50 }, "to": { "x": 70, "y": 45 }, "appearSeconds": 0, "closesAtSeconds": 1.6 }
+  ],
+  "timeline": [
+    { "type": "state", "actorId": "p1", "startSeconds": 0, "state": "pressing" },
+    { "type": "state", "actorId": "p2", "startSeconds": 0, "state": "pressing" },
+    { "type": "state", "actorId": "p3", "startSeconds": 0, "state": "covering" },
+    { "type": "move", "actorId": "p1", "startSeconds": 0.1, "durationSeconds": 0.9, "to": { "x": 56, "y": 47 }, "runType": "standard" },
+    { "type": "move", "actorId": "p2", "startSeconds": 0.1, "durationSeconds": 0.9, "to": { "x": 56, "y": 53 }, "runType": "standard" },
+    { "type": "move", "actorId": "p3", "startSeconds": 0.2, "durationSeconds": 1.1, "to": { "x": 64, "y": 43 }, "runType": "standard" },
+    { "type": "possession", "startSeconds": 1.3, "durationSeconds": 0.5, "fromId": "opp", "toId": "p1", "action": "pass" },
+    { "type": "freeze", "startSeconds": 2.0, "durationSeconds": 1.4, "annotations": [{ "text": "No pass. No time. No space.", "x": 55, "y": 30 }] },
+    { "type": "move", "actorId": "p1", "startSeconds": 3.6, "durationSeconds": 1.6, "to": { "x": 30, "y": 32 }, "runType": "counterRun" }
+  ]
+}
+
+**Duration:** 15 seconds
+
+**Story Beat:** question
+
+---
+
+### SCENE 2
+
+**Scene Type:** Formation 3D
+
+**Narration:** It's not just the forwards. The whole team stays compact enough that whoever loses the ball always has two or three teammates within sprinting distance.
+
+**Data:**
+{
+  "title": "Nobody's Ever Far From The Ball",
+  "cameraStyle": "sideline-pan",
+  "sides": [
+    {
+      "team": "Press Ready",
+      "formationName": "4-3-3",
+      "side": "home",
+      "players": [
+        { "name": "Keeper" },
+        { "name": "Left-Back" },
+        { "name": "Centre-Back" },
+        { "name": "Centre-Back" },
+        { "name": "Right-Back" },
+        { "name": "Midfielder" },
+        { "name": "Midfielder" },
+        { "name": "Midfielder" },
+        { "name": "Left Wing" },
+        { "name": "Striker" },
+        { "name": "Right Wing" }
+      ]
+    }
+  ]
+}
+
+**Duration:** 10 seconds
+
+**Story Beat:** explanation
+
+---
+
+### SCENE 3
+
+**Scene Type:** Shot Map 3D
+
+**Narration:** Win it back that high up the pitch, and you're already inside the danger zone — the kind of chance that never needed a build-up at all.
+
+**Data:**
+{
+  "title": "Chances That Start Ten Yards From Goal",
+  "cameraStyle": "dolly-in",
+  "shots": [
+    { "x": 90, "y": 50, "team": "home", "result": "goal", "xg": 0.42 },
+    { "x": 78, "y": 66, "team": "home", "result": "saved", "xg": 0.28 },
+    { "x": 94, "y": 38, "team": "home", "result": "goal", "xg": 0.51 },
+    { "x": 74, "y": 30, "team": "home", "result": "off-target", "xg": 0.15 },
+    { "x": 82, "y": 20, "team": "home", "result": "blocked", "xg": 0.22 }
+  ]
+}
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+---
+
+### SCENE 4
+
+**Scene Type:** Icon
+
+**Narration:** It's why Klopp coached it as a literal rule: win the ball back within six seconds, or stop chasing it and drop off into your actual defensive shape instead.
+
+**Data:**
+{
+  "icon": "whistle",
+  "headline": "The Six-Second Rule",
+  "caption": "Hunt it for six seconds. After that, stop chasing and reset the shape properly."
+}
+
+**Duration:** 10 seconds
+
+**Story Beat:** evidence
+
+---
+
+### SCENE 5
+
+**Scene Type:** Canvas
+
+**Narration:** So next time a Klopp team loses the ball in a dangerous area, don't relax — the real moment isn't the pass that gave it away. It's the five seconds right after.
+
+**Data:**
+{
+  "title": "Five Seconds. That's The Whole Idea.",
+  "objects": [
+    { "id": "bolt", "type": "icon", "icon": "bolt", "x": 50, "y": 45, "radius": 14, "color": "#d4a017", "idle": "pulse" },
+    { "id": "lbl", "type": "label", "x": 50, "y": 66, "label": "Win It Back Before They Reset" }
+  ]
+}
+
+**Duration:** 9 seconds
+
+**Story Beat:** reflection

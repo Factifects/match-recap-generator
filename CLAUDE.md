@@ -15,9 +15,13 @@ User runs a YouTube channel around football content, called **The Tactical Debri
 project's primary output channel; every `analyses/` script and rendered video described in this
 file feeds it. (User also runs a second, separate multi-topic explainer channel, **Second Order
 Synce**, spanning business, maths, software engineering, aerospace, and other fields — no football
-content; not this project's concern beyond scripts occasionally being drafted here, but its
-name/branding is worth knowing since both channels come up in the same conversations.) Core pain
-points: hours of manual editing,
+content; and a third, **Techijest**, covering tech content — AI/ML, software development,
+programming, cybersecurity, cloud/DevOps, data science, gadgets, startups, business technology,
+productivity tools, tech news. Neither is this project's concern beyond scripts occasionally being
+drafted here, but reuses this project's rendering pipeline and visual library (Canvas, Canvas 3D,
+the code-visual composition, and others) rather than needing new visual types built for it; their
+names/branding are worth knowing since all three channels come up in the same conversations.) Core
+pain points: hours of manual editing,
 copyright strikes from reposting broadcast footage, and (discovered through building this) an
 unwillingness to be on camera or record their own voice confidently. This direction is the one
 that survived contact with all of those constraints — see history.
@@ -277,13 +281,14 @@ A statement win for Brighton on the road.
 Do not write new scripts in this format — it's kept only because `generate.ts` still routes to it
 when a script doesn't match the `### SCENE N` marker.
 
-## Story structure — the narrative pattern (both channels)
+## Story structure — the narrative pattern (all channels)
 
 Standing rule for how every script opens, explains, and closes — established 2026-07-21 after
 direct feedback wanting scripts to follow Hannah Fry's explainer pattern (mathematician/broadcaster
 known for *The Mathematics of Love*, *Hello World*, and the *Curious Cases of Rutherford & Fry*
-podcast). Applies to **both** The Tactical Debrief and Second Order Synce. Revise this section (not
-just remember it in chat) if the approach changes.
+podcast). Applies to **all three** channels — The Tactical Debrief, Second Order Synce, and
+Techijest (added 2026-07-30). Revise this section (not just remember it in chat) if the approach
+changes.
 
 1. **Open on a lived experience, not a concept.** The first thing on screen/in narration is
    something the viewer has actually felt, seen, or done — never a definition or an abstract setup.

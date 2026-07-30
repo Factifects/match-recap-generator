@@ -84,6 +84,7 @@ export async function renderVideo<T extends Record<string, unknown>>(
     outputLocation: outputPath,
     inputProps,
     concurrency: resolvedConcurrency,
+    chromiumOptions: { gl: "swangle" },
     onProgress: ({ progress, renderedFrames, encodedFrames, stitchStage }) => {
       reportProgress({
         percent: Math.round(progress * 100),
