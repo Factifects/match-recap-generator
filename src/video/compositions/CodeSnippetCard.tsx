@@ -210,7 +210,7 @@ const PanelWindow: React.FC<{
  * before the answer appears; the two panels are never simultaneous just
  * because the layout is side-by-side. */
 export const CodeSnippetCard: React.FC<{ data: CodeData } & SharedVisualProps> = ({
-  data: { filename, language, lines, secondPanel, layout, revealAt },
+  data: { filename, language, lines, secondPanel, layout, revealAt, revealSteps },
   backgroundColor,
   orientation,
   durationInFrames,
@@ -227,9 +227,29 @@ export const CodeSnippetCard: React.FC<{ data: CodeData } & SharedVisualProps> =
   const secondFontSize = secondIsEditor ? fontSize : Math.round(fontSize * 0.85);
   const maxWidth = isPortrait ? 960 : isSideBySide ? 1700 : 1460;
 
-  const codeLastNonEmptyIndex = [...lines].map((l) => l.length > 0).lastIndexOf(true);
+  // The primary panel's own progressive reveal: `lines` is always the
+  // frame-0 step; each `revealSteps` entry swaps in a new `lines` array
+  // (with its own fresh staggered fade-in, exactly like the initial
+  // reveal) once the scene reaches that fraction of its on-screen
+  // duration. Omitted `revealSteps` collapses this to the single frame-0
+  // step, reproducing today's exact behavior.
+  const primarySteps = [
+    { atFrame: 0, lines },
+    ...(revealSteps ?? []).map((step) => ({
+      atFrame: durationInFrames ? Math.round(durationInFrames * step.at) : 0,
+      lines: step.lines,
+    })),
+  ];
+  let currentStepIndex = 0;
+  for (let i = 0; i < primarySteps.length; i++) {
+    if (primarySteps[i].atFrame <= frame) currentStepIndex = i;
+  }
+  const currentLines = primarySteps[currentStepIndex].lines;
+  const currentStartFrame = primarySteps[currentStepIndex].atFrame;
+
+  const codeLastNonEmptyIndex = [...currentLines].map((l) => l.length > 0).lastIndexOf(true);
   const codeCursorRevealFrame =
-    codeLastNonEmptyIndex >= 0 ? codeLastNonEmptyIndex * LINE_STAGGER_FRAMES + LINE_FADE_FRAMES : 0;
+    currentStartFrame + (codeLastNonEmptyIndex >= 0 ? codeLastNonEmptyIndex * LINE_STAGGER_FRAMES + LINE_FADE_FRAMES : 0);
   const secondStartFrame = durationInFrames
     ? Math.round(durationInFrames * (revealAt ?? DEFAULT_REVEAL_FRACTION))
     : codeCursorRevealFrame + FALLBACK_SECOND_PANEL_DELAY_FRAMES;
@@ -252,9 +272,9 @@ export const CodeSnippetCard: React.FC<{ data: CodeData } & SharedVisualProps> =
           variant="editor"
           filename={filename}
           language={language}
-          lines={lines}
+          lines={currentLines}
           fontSize={fontSize}
-          startFrame={0}
+          startFrame={currentStartFrame}
           frame={frame}
           showCursor={!secondPanel || frame < secondStartFrame}
           flex={isSideBySide}

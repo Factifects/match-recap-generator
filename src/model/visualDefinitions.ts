@@ -118,6 +118,16 @@ export const CANVAS_ICON_KEYS = [
   "mic",
   "speaker",
   "mute",
+  "trash",
+  "document",
+  "cursor",
+  "sparkle",
+  "scissors",
+  "envelope",
+  "key",
+  "identification",
+  "funnel",
+  "tag",
 ] as const;
 export type CanvasIconKey = (typeof CANVAS_ICON_KEYS)[number];
 
@@ -1142,13 +1152,18 @@ export const VISUAL_DEFINITIONS = [
     kind: "split-cards",
     category: "stats-dataviz",
     label: "Split Cards",
-    description: "Two panels side by side, each a label/value/caption — for a qualitative or mixed-content comparison (a claim vs a claim, not just two numbers) that Stat Burst's numeric-only head-to-head can't carry.",
+    description: "Two panels side by side, each a label/value/caption — for a qualitative or mixed-content comparison (a claim vs a claim, not just two numbers) that Stat Burst's numeric-only head-to-head can't carry. `left` always settles in near the start; `right` follows a short beat later by default (an 8-frame stagger) so the two never feel like a single flat image — set `revealRightAt` (0-1, a fraction of the scene's own on-screen time) to hold `right` back further, e.g. so a narration line can pose the question before `right` lands as the answer.",
     sceneTypeKey: "splitcards",
     schema: z.object({
       kind: z.literal("split-cards"),
       title: z.string().optional(),
       left: splitPanelSchema,
       right: splitPanelSchema,
+      // Fraction (0-1) of the scene's own on-screen duration at which the
+      // right panel starts revealing. Omitted (the default) keeps today's
+      // exact fixed 8-frame stagger after the left panel — this only takes
+      // over once explicitly set, so no existing script's timing shifts.
+      revealRightAt: z.number().min(0).max(1).optional(),
     }),
   },
   {
@@ -1280,6 +1295,25 @@ export const VISUAL_DEFINITIONS = [
       // `_canvasClipBoundaries` handling) — a fraction sidesteps needing
       // that entirely. Defaults to 0.6 when unset.
       revealAt: z.number().min(0).max(1).optional(),
+      // Progressive reveals for the PRIMARY panel itself — each entry
+      // swaps in a new `lines` array (its own fresh staggered fade-in,
+      // same as the initial reveal) once the scene reaches `at` (0-1, a
+      // fraction of the scene's own on-screen duration, same convention as
+      // `revealAt` above). For a long scene that keeps building on the
+      // same file (e.g. typing a lookup call in below an already-shown
+      // line) rather than dumping every line at frame 0 and holding a
+      // static frame for the rest of the scene. Entries should be given in
+      // increasing `at` order; omitted (the default) reproduces today's
+      // exact behavior — the full `lines` array revealed once at frame 0
+      // with no further changes.
+      revealSteps: z
+        .array(
+          z.object({
+            at: z.number().min(0).max(1),
+            lines: codeLinesSchema,
+          }),
+        )
+        .optional(),
     }),
   },
   {

@@ -11,9 +11,10 @@ import type { SharedVisualProps, SplitCardsData } from "../sharedVisualProps";
  * just two numbers). Values are strings by design, not numbers — this card
  * never counts up, it settles in as two whole panels at once. */
 export const SplitCardsCard: React.FC<{ data: SplitCardsData } & SharedVisualProps> = ({
-  data: { title, left, right },
+  data: { title, left, right, revealRightAt },
   backgroundColor,
   orientation,
+  durationInFrames,
 }) => {
   const frame = useCurrentFrame();
   const isPortrait = orientation === "portrait";
@@ -22,9 +23,15 @@ export const SplitCardsCard: React.FC<{ data: SplitCardsData } & SharedVisualPro
   const leftOpacity = fadeIn(frame, 10, 16);
   const leftX = slideIn(frame, 10, 18, isPortrait ? 0 : -40);
   const leftY = slideIn(frame, 10, 18, isPortrait ? -30 : 0);
-  const rightOpacity = fadeIn(frame, 18, 16);
-  const rightX = slideIn(frame, 18, 18, isPortrait ? 0 : 40);
-  const rightY = slideIn(frame, 18, 18, isPortrait ? 30 : 0);
+  // Omitted `revealRightAt` reproduces today's exact fixed 8-frame stagger
+  // after the left panel; set it (a 0-1 fraction of the scene's own
+  // on-screen duration) to hold `right` back further, e.g. so a narration
+  // line can pose the question before `right` lands as the answer.
+  const rightStartFrame =
+    revealRightAt !== undefined && durationInFrames ? Math.round(durationInFrames * revealRightAt) : 18;
+  const rightOpacity = fadeIn(frame, rightStartFrame, 16);
+  const rightX = slideIn(frame, rightStartFrame, 18, isPortrait ? 0 : 40);
+  const rightY = slideIn(frame, rightStartFrame, 18, isPortrait ? 30 : 0);
 
   const panel = (label: string, value: string, caption: string | undefined, opacity: number, x: number, y: number) => (
     <div

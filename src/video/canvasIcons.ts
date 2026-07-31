@@ -28,6 +28,16 @@ import ChartBarIcon from "@heroicons/react/24/solid/ChartBarIcon";
 import MicrophoneIcon from "@heroicons/react/24/solid/MicrophoneIcon";
 import SpeakerWaveIcon from "@heroicons/react/24/solid/SpeakerWaveIcon";
 import SpeakerXMarkIcon from "@heroicons/react/24/solid/SpeakerXMarkIcon";
+import TrashIcon from "@heroicons/react/24/solid/TrashIcon";
+import DocumentTextIcon from "@heroicons/react/24/solid/DocumentTextIcon";
+import CursorArrowRippleIcon from "@heroicons/react/24/solid/CursorArrowRippleIcon";
+import SparklesIcon from "@heroicons/react/24/solid/SparklesIcon";
+import ScissorsIcon from "@heroicons/react/24/solid/ScissorsIcon";
+import EnvelopeIcon from "@heroicons/react/24/solid/EnvelopeIcon";
+import KeyIcon from "@heroicons/react/24/solid/KeyIcon";
+import IdentificationIcon from "@heroicons/react/24/solid/IdentificationIcon";
+import FunnelIcon from "@heroicons/react/24/solid/FunnelIcon";
+import TagIcon from "@heroicons/react/24/solid/TagIcon";
 import type { CanvasIconKey } from "../model/visualDefinitions";
 
 // The rendering half of Canvas's icon vocabulary — CANVAS_ICON_KEYS itself
@@ -68,4 +78,14 @@ export const CANVAS_ICON_COMPONENTS: Record<CanvasIconKey, ComponentType<SVGProp
   mic: MicrophoneIcon,
   speaker: SpeakerWaveIcon,
   mute: SpeakerXMarkIcon,
+  trash: TrashIcon,
+  document: DocumentTextIcon,
+  cursor: CursorArrowRippleIcon,
+  sparkle: SparklesIcon,
+  scissors: ScissorsIcon,
+  envelope: EnvelopeIcon,
+  key: KeyIcon,
+  identification: IdentificationIcon,
+  funnel: FunnelIcon,
+  tag: TagIcon,
 };
