@@ -128,8 +128,31 @@ export const CANVAS_ICON_KEYS = [
   "identification",
   "funnel",
   "tag",
+  "clock",
+  "refresh",
+  "laptop",
+  "githubLogo",
+  "googleLogo",
+  "chromeLogo",
+  "javascriptLogo",
+  "youtubeLogo",
+  "thumbsUp",
+  "bell",
+  "chat",
 ] as const;
 export type CanvasIconKey = (typeof CANVAS_ICON_KEYS)[number];
+
+// Canvas's Lottie vocabulary — same curated-allow-list convention as
+// CANVAS_ICON_KEYS, for motion Canvas's static icon/shape primitives can't
+// express: small hand-authored motifs (a loading spinner, a checkmark
+// burst) AND sourced illustrations dropped in as a JSON file (e.g.
+// "humanComputer" — a person at a laptop, from LottieFiles) that get
+// registered the exact same way. The actual Lottie JSON + <Lottie>
+// rendering lives in ../video/lottieAssets/index.ts (video-layer only, same
+// reasoning as canvasIcons.ts) — this file only owns the data-level key
+// list.
+export const LOTTIE_ASSET_KEYS = ["spinner", "checkBurst", "humanComputer", "videoGoingViral"] as const;
+export type LottieAssetKey = (typeof LOTTIE_ASSET_KEYS)[number];
 
 // Shared by BarChart and Donut (`shape`) — `icon` is optional and BarChart-
 // only in practice (DonutChartCard doesn't read it, same "extra field is
@@ -504,18 +527,48 @@ const codeLinesSchema = z
 // byte-for-byte identically.
 const canvasObjectSchema = z.object({
   id: z.string(),
-  type: z.enum(["dot", "circle", "label", "rectangle", "roundedRectangle", "ellipse", "line", "polygon", "icon"]),
+  type: z.enum(["dot", "circle", "label", "rectangle", "roundedRectangle", "ellipse", "line", "polygon", "icon", "lottie", "gif"]),
   x: z.number().min(0).max(100),
   y: z.number().min(0).max(100),
   label: z.string().optional(),
   color: z.string().optional(),
-  // "icon" type only — which Heroicon to render. Required for that type to
-  // render anything (an "icon" object with no `icon` key renders nothing).
+  // "icon" type only — which Heroicon (or curated brand SVG) to render.
+  // Required for that type to render anything (an "icon" object with no
+  // `icon` key renders nothing).
   icon: z.enum(CANVAS_ICON_KEYS).optional(),
+  // "lottie" type only — which hand-authored Lottie motif to play (see
+  // LOTTIE_ASSET_KEYS above). Required for that type to render anything.
+  // Plays once (no loop) starting the frame this object first appears —
+  // for a one-shot confirmation beat (a checkmark burst on success), not
+  // continuous ambient motion (that's `idle` on a plain icon/shape).
+  lottie: z.enum(LOTTIE_ASSET_KEYS).optional(),
+  // "gif" type only — the filename of a GIF sitting in public/assets/gifs/
+  // (e.g. "trending-up.gif"). Unlike `icon`/`lottie`, deliberately a free
+  // string rather than a curated enum: a GIF is an arbitrary sourced
+  // illustration (GIPHY, etc.), open-ended by nature the same way a player
+  // photo in assets.ts is — there's no fixed small vocabulary to enumerate.
+  // A typo here fails silently at render time (the GIF just doesn't load)
+  // rather than at schema-validation time, the one real tradeoff against
+  // `icon`/`lottie`'s stricter enum safety; worth it for not needing a code
+  // change every time a new GIF is dropped in.
+  gifFile: z.string().optional(),
+  // "label" type only — tweens the DISPLAYED NUMBER smoothly from
+  // `countFrom` to `countTo` over `countDurationSeconds` once this object
+  // appears, instead of `label` sitting static or hard-swapping text at
+  // each phase boundary. This is what an actual "counter" motion graphic
+  // needs (a real odometer-style count-up) — phase-to-phase text swapping
+  // alone reads as a slideshow, not motion, confirmed as a real complaint on
+  // a real render. Formats with thousands separators automatically. When
+  // set, overrides `label` entirely for as long as this object is on
+  // screen; omit both `countFrom`/`countTo` to keep authoring a plain
+  // static label exactly as before.
+  countFrom: z.number().optional(),
+  countTo: z.number().optional(),
+  countDurationSeconds: z.number().min(0.1).optional(),
   // "circle"/"ellipse" radius, OR "roundedRectangle" corner radius, OR
-  // "icon" half-size — percent of canvas width, so a growing radar bubble/
-  // zone can be authored without pixel math (same convention as pitch
-  // coordinates).
+  // "icon"/"lottie"/"gif" half-size — percent of canvas width, so a growing
+  // radar bubble/zone can be authored without pixel math (same convention
+  // as pitch coordinates).
   radius: z.number().min(0).max(100).optional(),
   // "rectangle"/"roundedRectangle"/"ellipse"/"line" — percent of canvas
   // width/height. For "line", `width` is the segment length and `rotation`
@@ -545,13 +598,31 @@ const canvasObjectSchema = z.object({
   // phase it's newly present in) / out (present in the previous phase but
   // absent from this one). "fade" (today's only enter behavior) and "none"
   // (today's only exit behavior — an absent object simply vanishes) are the
-  // defaults, so no existing script's visual behavior changes.
-  enter: z.enum(["none", "fade", "scale", "slide"]).default("fade"),
-  exit: z.enum(["none", "fade", "scale", "slide"]).default("none"),
+  // defaults, so no existing script's visual behavior changes. The extra
+  // variants beyond fade/scale/slide exist because every scene defaulting to
+  // the same fade/slide-up read as visually samey next to something like
+  // CapCut's transition variety — "slide" keeps its original meaning
+  // (glides up into place) for backward compatibility; "slideLeft"/
+  // "slideRight" glide in horizontally, "rotate" eases in a slight tilt
+  // alongside the fade, "blur" sharpens in from a soft focus, "zoomOut" is
+  // the opposite feel from "scale" (starts LARGER than its final size and
+  // settles down, vs. "scale" growing up from nothing). All still build on
+  // motion.ts's settle/ease helpers — no spring/bounce/overshoot anywhere,
+  // same calm-broadcast rule as the original three.
+  enter: z.enum(["none", "fade", "scale", "slide", "slideLeft", "slideRight", "rotate", "blur", "zoomOut"]).default("fade"),
+  exit: z.enum(["none", "fade", "scale", "slide", "slideLeft", "slideRight", "rotate", "blur"]).default("none"),
   easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut"]).default("easeOut"),
   // A fading ghost trail behind this object while it glides — same
   // technique as TacticalBoard's GHOST_TRAIL, opt-in per object.
   trail: z.boolean().default(false),
+  // Frosted-glass styling instead of the object's normal flat fill — a
+  // translucent tint, blurred backdrop, and a soft light-catching border.
+  // For "rectangle"/"roundedRectangle"/"circle"/"ellipse" this replaces the
+  // shape's own flat fill; for "icon" it adds a frosted tile panel behind
+  // the glyph (icons themselves stay flat/opaque — a frosted glyph reads as
+  // illegible, not stylish). No-op on every other type. `color` still
+  // tints the glass (a faint wash of that hue) rather than being ignored.
+  glass: z.boolean().default(false),
   // Continuous ambient motion, layered on top of everything above (entrance,
   // phase-to-phase glide, author-set rotation/scale/opacity) rather than
   // replacing it — built on motion.ts's `pulse()` helper, which already
@@ -1311,6 +1382,130 @@ export const VISUAL_DEFINITIONS = [
           z.object({
             at: z.number().min(0).max(1),
             lines: codeLinesSchema,
+          }),
+        )
+        .optional(),
+    }),
+  },
+  {
+    kind: "browser-mock",
+    category: "narrative-callouts",
+    label: "Browser Mock",
+    description:
+      "A realistic browser-window-plus-DevTools mockup — traffic-light chrome and a real address bar (or a simpler flat 'API client' header when `chrome: \"tool\"`, for a Postman/Thunder-Client-style contrast frame), with a Network-tab request table or a Console-tab log underneath. For content that specifically needs to LOOK like a browser screen, not a generic diagram — CORS, network errors, console output, request/response inspection. Not for narration that's just about an HTTP request/response body or a code snippet (use `Code` for that). `revealSteps` progressively swaps in new `requests`/`consoleLines`/`panel`/`highlightIndex` at a fraction of the scene's own on-screen duration, same convention as Code's own `revealSteps` — for a request that starts `pending` and then resolves, or a console error that appears only after the request fails.",
+    sceneTypeKey: "browsermock",
+    schema: z.object({
+      kind: z.literal("browser-mock"),
+      // "browser" (default): full traffic-light + address-bar chrome, for
+      // an actual browser tab. "tool": a simpler flat header (a colored
+      // dot + `toolLabel`) with no address bar — for a non-browser HTTP
+      // client (Postman, Thunder Client, curl) shown for contrast, since
+      // those tools have no address bar and don't enforce CORS at all.
+      chrome: z.enum(["browser", "tool"]).optional(),
+      // Shown in the address bar (browser chrome). Ignored for "tool".
+      url: z.string().optional(),
+      // Shown in the flat header (tool chrome only), e.g. "Thunder Client".
+      toolLabel: z.string().optional(),
+      // Which DevTools-style panel is active. Only meaningful for
+      // "browser" chrome — a "tool" client has no DevTools. Defaults to
+      // "network".
+      panel: z.enum(["network", "console"]).optional(),
+      // Network-tab rows. `status` is a real 2xx/4xx/5xx number, or the
+      // string "pending" (a request still in flight — rendered with a
+      // pulsing indicator, no color verdict yet) or "blocked" (the
+      // browser refused to hand the response to JS — rendered in red,
+      // with a small "CORS" tag, distinct from a real HTTP error status).
+      requests: z
+        .array(
+          z.object({
+            method: z.string(),
+            path: z.string(),
+            status: z.union([z.number(), z.enum(["pending", "blocked"])]).optional(),
+          }),
+        )
+        .optional(),
+      // Console-tab lines — "error" renders red with a small warning
+      // glyph, "warn" amber, "log" the default monospace grey/white.
+      consoleLines: z
+        .array(
+          z.object({
+            text: z.string(),
+            level: z.enum(["error", "warn", "log"]).default("log"),
+          }),
+        )
+        .optional(),
+      // Index into `requests` (post any revealStep) to give a glowing red
+      // outline — the one row narration is currently pointing at.
+      highlightIndex: z.number().optional(),
+      // Progressive reveal: each entry swaps in a new snapshot of
+      // panel/requests/consoleLines/highlightIndex once the scene reaches
+      // `at` (0-1, a fraction of the scene's own on-screen duration) — same
+      // convention as Code's own `revealSteps`. Omitted (the default)
+      // reproduces a single static screen for the whole scene.
+      revealSteps: z
+        .array(
+          z.object({
+            at: z.number().min(0).max(1),
+            panel: z.enum(["network", "console"]).optional(),
+            requests: z
+              .array(
+                z.object({
+                  method: z.string(),
+                  path: z.string(),
+                  status: z.union([z.number(), z.enum(["pending", "blocked"])]).optional(),
+                }),
+              )
+              .optional(),
+            consoleLines: z
+              .array(
+                z.object({
+                  text: z.string(),
+                  level: z.enum(["error", "warn", "log"]).default("log"),
+                }),
+              )
+              .optional(),
+            highlightIndex: z.number().optional(),
+          }),
+        )
+        .optional(),
+    }),
+  },
+  {
+    kind: "terminal-mock",
+    category: "narrative-callouts",
+    label: "Terminal Mock",
+    description:
+      "A realistic terminal/CLI window — traffic-light chrome, a monospace prompt, typed commands and their real output. For narration about a command-line tool (curl, git, npm, docker, a deploy log) — not for a code file (use `Code`) or a browser screen (use `BrowserMock`). Each line is a `kind`: \"command\" (rendered with a `$` prompt glyph), \"output\" (plain), \"success\" (green), \"error\" (red), or \"comment\" (dim, `#`-prefixed). `revealSteps` progressively appends/replaces lines at a fraction of the scene's own on-screen duration, same convention as Code's and BrowserMock's own `revealSteps` — for a command that's typed first and only shows its output a beat later.",
+    sceneTypeKey: "terminalmock",
+    schema: z.object({
+      kind: z.literal("terminal-mock"),
+      // Shown in the window's tab pill, e.g. "zsh" or "bash" — purely
+      // cosmetic, same convention as Code's `filename`.
+      title: z.string().optional(),
+      lines: z
+        .array(
+          z.object({
+            text: z.string(),
+            kind: z.enum(["command", "output", "success", "error", "comment"]).default("output"),
+          }),
+        )
+        .min(1),
+      // Progressive reveal: each entry swaps in a new `lines` array (its
+      // own fresh staggered fade-in) once the scene reaches `at` (0-1, a
+      // fraction of the scene's own on-screen duration) — e.g. the typed
+      // command lands first, then a later step adds its real output below
+      // it. Omitted (the default) reveals the full `lines` array once at
+      // frame 0, same as Code's own default.
+      revealSteps: z
+        .array(
+          z.object({
+            at: z.number().min(0).max(1),
+            lines: z.array(
+              z.object({
+                text: z.string(),
+                kind: z.enum(["command", "output", "success", "error", "comment"]).default("output"),
+              }),
+            ),
           }),
         )
         .optional(),

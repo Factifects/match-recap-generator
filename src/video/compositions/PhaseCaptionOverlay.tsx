@@ -38,12 +38,18 @@ export const PhaseCaptionOverlay: React.FC<{
           opacity,
           background: "rgba(17, 19, 21, 0.82)",
           border: `1px solid ${COLORS.border}`,
-          borderRadius: 16,
-          padding: "18px 40px",
+          borderRadius: 18,
+          padding: "20px 48px",
           maxWidth: "80%",
         }}
       >
-        <div style={{ fontFamily: FONT_FAMILY, fontWeight: 600, fontSize: 32, color: COLORS.text, textAlign: "center" }}>
+        {/* Sized well above the title (54px) on purpose — captions are meant
+            to read as short keyword badges, not a subtitle bar, and are the
+            one piece of text a viewer with sound off actually relies on.
+            Authors should keep `caption` to a handful of words; long
+            sentences here will still render (CSS wraps), just smaller than
+            intended. */}
+        <div style={{ fontFamily: FONT_FAMILY, fontWeight: 700, fontSize: 44, color: COLORS.text, textAlign: "center", lineHeight: 1.25 }}>
           {phases[activeIndex]?.caption}
         </div>
       </div>

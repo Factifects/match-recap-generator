@@ -1,9 +1,12 @@
 import React from "react";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, staticFile } from "remotion";
+import { Lottie } from "@remotion/lottie";
+import { Gif } from "@remotion/gif";
 import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter, FPS } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, drawIn, slideIn, pulse, type EasingName } from "../motion";
+import { fadeIn, drawIn, slideIn, pulse, settleFrom, type EasingName } from "../motion";
 import { CANVAS_ICON_COMPONENTS } from "../canvasIcons";
+import { LOTTIE_ASSETS } from "../lottieAssets";
 import type { SharedVisualProps, CanvasData } from "../sharedVisualProps";
 
 // Exported so Canvas3D.tsx reuses the exact same on-screen footprint instead
@@ -82,6 +85,88 @@ function fitText(text: string, maxFontSize: number, maxWidthPx: number): FitText
   return { fontSize, textLength: maxWidthPx, lengthAdjust: "spacingAndGlyphs" };
 }
 
+// Frosted-glass look (`object.glass`) — a soft white wash, a bright
+// light-catching border, and a blurred backdrop, instead of the shape's
+// normal flat opaque fill. `backdrop-filter` needs both the standard and
+// -webkit- prefixed property to render in the Chromium headless renderer
+// Remotion uses for actual video export, not just live preview.
+//
+// This is deliberately aiming at "frosted glassmorphism panel" (the iOS
+// control-center look), NOT a true refractive glass orb — a real glass-
+// with-visible-refraction look (light actually bending through the object,
+// like a raytraced 3D render) isn't achievable with flat SVG/CSS at all,
+// confirmed against a real reference image; that needs an actual 3D
+// renderer (this project's Canvas3D/Three.js layer could do it via a real
+// physical glass material, but that's a materially bigger, separate build
+// from this). A white wash (not the object's own color) reads as glass far
+// more convincingly than a tinted one — real frosted glass is closer to
+// colorless than to "glass dyed the icon's brand color."
+const GLASS_BORDER = "rgba(255,255,255,0.55)";
+function withGlassBackdrop(style: React.CSSProperties): React.CSSProperties {
+  return { ...style, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" } as React.CSSProperties;
+}
+
+interface WrappedText {
+  lines: string[];
+  fontSize: number;
+  textLength?: number;
+  lengthAdjust?: "spacingAndGlyphs";
+}
+
+// A same-row set of short labels (e.g. "PROTOCOL"/"DOMAIN"/"PORT", or a
+// GET/POST/PUT/DELETE chip list) used to each get squeezed to whatever font
+// size let them individually fit their own gap — one long neighbor meant
+// every OTHER label in the row shrank too, so the row read as uneven and the
+// squeezed ones as barely legible. Wrapping onto a second line at the SAME
+// font size (confirmed via real renders as the actual fix, not a smaller
+// uniform size) keeps every label in a row visually consistent; only a
+// label that still doesn't fit in `maxLines` falls back to fitText's old
+// shrink-to-fit-on-one-line behavior, so nothing regresses to overflowing.
+function wrapLabel(text: string, maxFontSize: number, maxWidthPx: number, maxLines = 2): WrappedText {
+  if (!text) return { lines: [""], fontSize: maxFontSize };
+  if (text.length * maxFontSize * AVG_CHAR_WIDTH_RATIO <= maxWidthPx) return { lines: [text], fontSize: maxFontSize };
+
+  const words = text.split(" ");
+  if (words.length > 1) {
+    const maxCharsPerLine = Math.max(1, Math.floor(maxWidthPx / (maxFontSize * AVG_CHAR_WIDTH_RATIO)));
+    const lines: string[] = [];
+    let current = "";
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (candidate.length <= maxCharsPerLine || !current) {
+        current = candidate;
+      } else {
+        lines.push(current);
+        current = word;
+      }
+    }
+    if (current) lines.push(current);
+    if (lines.length <= maxLines) return { lines, fontSize: maxFontSize };
+  }
+
+  const fontSize = Math.max(14, Math.floor(maxWidthPx / (text.length * AVG_CHAR_WIDTH_RATIO)));
+  return { lines: [text], fontSize, textLength: maxWidthPx, lengthAdjust: "spacingAndGlyphs" };
+}
+
+/** Renders `wrapLabel`'s result as the `<tspan>` children of a `<text>` that
+ * already carries x/y/textAnchor/etc. — `x` must be repeated on every tspan
+ * (SVG doesn't inherit it from the parent for line positioning) and the
+ * whole block is vertically re-centered around the parent's own y via `dy`
+ * offsets, so a 2-line wrap doesn't shift the label's anchor point down. */
+function WrappedTspans({ wrapped, x }: { wrapped: WrappedText; x: number }): React.ReactElement {
+  const lineHeight = wrapped.fontSize * 1.15;
+  const startDy = -((wrapped.lines.length - 1) * lineHeight) / 2;
+  return (
+    <>
+      {wrapped.lines.map((line, i) => (
+        <tspan key={i} x={x} dy={i === 0 ? startDy : lineHeight} textLength={wrapped.textLength} lengthAdjust={wrapped.lengthAdjust}>
+          {line}
+        </tspan>
+      ))}
+    </>
+  );
+}
+
 // How long each phase of a multi-phase diagram holds the screen — exported so
 // parseSceneScript.ts's computeVisualMinDurationSeconds can reserve a real
 // floor for a multi-phase Canvas scene, same convention as TacticalBoard's
@@ -94,6 +179,14 @@ const CANVAS_GLIDE_DURATION_FRAMES = 20;
 // separate constant from the glide duration even though it's the same
 // number today, since these represent conceptually different motions.
 const LIFECYCLE_DURATION_FRAMES = 12;
+// Starting values the new enter/exit variants settle FROM (toward the
+// object's normal 0/1 state) — sized to read clearly at a glance without
+// tipping into anything spring-like; same calm-settle spirit as the
+// original three variants, just more directions to settle from.
+const SLIDE_HORIZONTAL_DISTANCE_PX = 50;
+const ROTATE_ENTRANCE_DEG = 16;
+const BLUR_ENTRANCE_PX = 12;
+const ZOOM_OUT_START_SCALE = 1.35;
 // Ghost trail behind a gliding object with `trail: true` — same technique as
 // TacticalBoard's GHOST_TRAIL (src/video/compositions/TacticalBoard.tsx),
 // simplified to a plain faint dot regardless of the object's own shape.
@@ -288,25 +381,54 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
     let entranceOpacity = 1;
     let entranceScale = 1;
     let entranceSlideY = 0;
+    let entranceSlideX = 0;
+    let entranceRotationOffset = 0;
+    let entranceBlur = 0;
     if (entranceActive && object.enter !== "none") {
       entranceOpacity = fadeIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
       if (object.enter === "scale") entranceScale = drawIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
       if (object.enter === "slide") entranceSlideY = slideIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, 30, object.easing);
+      if (object.enter === "slideLeft") entranceSlideX = slideIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, -SLIDE_HORIZONTAL_DISTANCE_PX, object.easing);
+      if (object.enter === "slideRight") entranceSlideX = slideIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, SLIDE_HORIZONTAL_DISTANCE_PX, object.easing);
+      if (object.enter === "rotate") entranceRotationOffset = settleFrom(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, ROTATE_ENTRANCE_DEG, 0, object.easing);
+      if (object.enter === "blur") entranceBlur = settleFrom(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, BLUR_ENTRANCE_PX, 0, object.easing);
+      if (object.enter === "zoomOut") entranceScale = settleFrom(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, ZOOM_OUT_START_SCALE, 1, object.easing);
     } else if (entranceActive) {
       entranceOpacity = 1; // enter: "none" — appears immediately, no animation
     }
 
+    // A real count-up tween (not a phase-to-phase text swap) — deliberately
+    // computed from the scene's own ABSOLUTE frame, not gated behind
+    // entranceActive/isNew the way fade/slide/etc. are: those are one-shot
+    // ENTRANCE animations that only matter the instant an object first
+    // appears, but a counter has to keep advancing smoothly through later
+    // phase transitions too (e.g. a phase that adds a "hit the ceiling" X
+    // icon alongside it) — gating this the same way would freeze the number
+    // dead the moment any later phase re-lists the object, which is exactly
+    // the "counter never visibly counts" bug this replaces. `settleFrom`
+    // clamps past its own end, so the value holds at `countTo` for the rest
+    // of the scene once the tween finishes, without needing special-casing.
+    let displayLabel: string | undefined;
+    if (object.countTo !== undefined) {
+      const countDurationFrames = (object.countDurationSeconds ?? 2) * FPS;
+      const countValue = settleFrom(frame, 0, countDurationFrames, object.countFrom ?? 0, object.countTo, object.easing);
+      displayLabel = Math.round(countValue).toLocaleString("en-US");
+    }
+
     return {
       object,
+      displayLabel,
       x: props.x,
       y: props.y,
       radius: props.radius,
       width: props.width,
       height: props.height,
-      rotation: props.rotation,
+      rotation: props.rotation + entranceRotationOffset,
       scale: props.scale * entranceScale,
       opacity: props.opacity * entranceOpacity,
       slideYOffset: entranceSlideY,
+      slideXOffset: entranceSlideX,
+      blurPx: entranceBlur,
       isExiting: false,
     };
   });
@@ -327,6 +449,9 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
             let opacity = baseOpacity;
             let scale = object.scale ?? 1;
             let slideYOffset = 0;
+            let slideXOffset = 0;
+            let rotationOffset = 0;
+            let blurPx = 0;
             if (object.exit === "fade") opacity = baseOpacity * (1 - exitProgress);
             if (object.exit === "scale") {
               scale = (object.scale ?? 1) * (1 - exitProgress);
@@ -336,17 +461,36 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               opacity = baseOpacity * (1 - exitProgress);
               slideYOffset = -exitProgress * 30;
             }
+            if (object.exit === "slideLeft") {
+              opacity = baseOpacity * (1 - exitProgress);
+              slideXOffset = -exitProgress * SLIDE_HORIZONTAL_DISTANCE_PX;
+            }
+            if (object.exit === "slideRight") {
+              opacity = baseOpacity * (1 - exitProgress);
+              slideXOffset = exitProgress * SLIDE_HORIZONTAL_DISTANCE_PX;
+            }
+            if (object.exit === "rotate") {
+              opacity = baseOpacity * (1 - exitProgress);
+              rotationOffset = exitProgress * ROTATE_ENTRANCE_DEG;
+            }
+            if (object.exit === "blur") {
+              opacity = baseOpacity * (1 - exitProgress);
+              blurPx = exitProgress * BLUR_ENTRANCE_PX;
+            }
             return {
               object,
+              displayLabel: undefined as string | undefined,
               x: object.x,
               y: object.y,
               radius: object.radius ?? 0,
               width: object.width ?? 0,
               height: object.height ?? 0,
-              rotation: object.rotation,
+              rotation: object.rotation + rotationOffset,
               scale,
               opacity,
               slideYOffset,
+              slideXOffset,
+              blurPx,
               isExiting: true,
             };
           })
@@ -410,6 +554,14 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
     for (const other of fixedLabelPositions) {
       if (other.id === id) continue;
       if (Math.abs(other.py - py) > 100) continue;
+      // A label stacked directly above/below this one (near-identical px,
+      // different py — a vertical chip list like a GET/POST/PUT/DELETE
+      // legend) doesn't compete for HORIZONTAL space at all; the old code
+      // still measured their near-zero px gap and starved every label in
+      // the stack down toward the 14px floor, confirmed via a real render
+      // (a 5-item vertical legend rendering unreadably tiny). Only labels
+      // that are actually offset sideways are real horizontal neighbors.
+      if (Math.abs(other.px - px) < 20) continue;
       const gap = Math.abs(other.px - px) / Math.max(other.opacity, 0.05);
       nearestGap = Math.min(nearestGap, gap);
     }
@@ -529,9 +681,9 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               );
             })}
 
-            {cameraObjects.map(({ object, x, y, radius, width, height, rotation: baseRotation, scale: baseScale, opacity: baseOpacity, slideYOffset }) => {
+            {cameraObjects.map(({ object, x, y, radius, width, height, rotation: baseRotation, scale: baseScale, opacity: baseOpacity, slideYOffset, slideXOffset, blurPx }) => {
               const [rawPx, rawPy] = project(x, y);
-              const px = rawPx;
+              const px = rawPx + slideXOffset;
               const py = rawPy + slideYOffset;
               const color = object.color ?? colorForCharacter(object.label ?? object.id);
               // Continuous ambient motion (see canvasObjectSchema's `idle`
@@ -543,8 +695,12 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               const scale = object.idle === "pulse" ? baseScale * pulse(frame, IDLE_PULSE_PERIOD_FRAMES, ...IDLE_PULSE_RANGE, idlePhase) : baseScale;
               const opacity = object.idle === "glow" ? baseOpacity * pulse(frame, GLOW_PERIOD_FRAMES, ...GLOW_RANGE, idlePhase) : baseOpacity;
               const transformStyle: React.CSSProperties =
-                rotation !== 0 || scale !== 1
-                  ? { transform: `rotate(${rotation}deg) scale(${scale})`, transformOrigin: `${px}px ${py}px` }
+                rotation !== 0 || scale !== 1 || blurPx > 0.5
+                  ? {
+                      transform: `rotate(${rotation}deg) scale(${scale})`,
+                      transformOrigin: `${px}px ${py}px`,
+                      filter: blurPx > 0.5 ? `blur(${blurPx}px)` : undefined,
+                    }
                   : {};
 
               // Faint trail of earlier positions while this object is
@@ -594,13 +750,24 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       cx={px}
                       cy={py}
                       r={r}
-                      fill={color}
-                      fillOpacity={(object.fillOpacity ?? 0.18) * opacity}
-                      stroke={color}
-                      strokeWidth={object.strokeWidth ?? 2.5}
+                      fill={object.glass ? "#ffffff" : color}
+                      fillOpacity={object.glass ? 0.22 * opacity : (object.fillOpacity ?? 0.18) * opacity}
+                      stroke={object.glass ? GLASS_BORDER : color}
+                      strokeWidth={object.glass ? 2 : (object.strokeWidth ?? 2.5)}
                       opacity={opacity}
-                      style={transformStyle}
+                      style={object.glass ? withGlassBackdrop(transformStyle) : transformStyle}
                     />
+                    {object.glass && (
+                      <ellipse
+                        cx={px - r * 0.32}
+                        cy={py - r * 0.4}
+                        rx={r * 0.24}
+                        ry={r * 0.15}
+                        fill="rgba(255,255,255,0.5)"
+                        opacity={opacity * 0.85}
+                        style={transformStyle}
+                      />
+                    )}
                     {belowLabel(r + 24)}
                   </React.Fragment>
                 );
@@ -617,12 +784,12 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       cy={py}
                       rx={rx}
                       ry={ry}
-                      fill={object.filled ? color : "none"}
-                      fillOpacity={(object.fillOpacity ?? 1) * opacity}
-                      stroke={color}
-                      strokeWidth={object.strokeWidth ?? 2.5}
+                      fill={object.glass ? "#ffffff" : object.filled ? color : "none"}
+                      fillOpacity={object.glass ? 0.22 * opacity : (object.fillOpacity ?? 1) * opacity}
+                      stroke={object.glass ? GLASS_BORDER : color}
+                      strokeWidth={object.glass ? 1.5 : (object.strokeWidth ?? 2.5)}
                       opacity={opacity}
-                      style={transformStyle}
+                      style={object.glass ? withGlassBackdrop(transformStyle) : transformStyle}
                     />
                     {belowLabel(ry + 24)}
                   </React.Fragment>
@@ -641,34 +808,38 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       width={w}
                       height={h}
                       rx={object.type === "roundedRectangle" ? projectRadius(radius) : 0}
-                      fill={object.filled ? color : "none"}
-                      fillOpacity={(object.fillOpacity ?? 1) * opacity}
-                      stroke={color}
-                      strokeWidth={object.strokeWidth ?? 2.5}
+                      fill={object.glass ? "#ffffff" : object.filled ? color : "none"}
+                      fillOpacity={object.glass ? 0.22 * opacity : (object.fillOpacity ?? 1) * opacity}
+                      stroke={object.glass ? GLASS_BORDER : color}
+                      strokeWidth={object.glass ? 1.5 : (object.strokeWidth ?? 2.5)}
                       opacity={opacity}
-                      style={transformStyle}
+                      style={object.glass ? withGlassBackdrop(transformStyle) : transformStyle}
                     />
-                    {object.label && (
-                      // Rectangles default to a fully opaque, bright fill —
-                      // dark text centered inside reads far better there
-                      // than white-on-bright, matching the same convention
-                      // TreemapCard/PackedCirclesCard already use for
-                      // labels sitting directly on a solid color fill.
-                      <text
-                        x={px}
-                        y={py}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fontFamily={FONT_FAMILY}
-                        fontWeight={700}
-                        {...fitText(object.label ?? "", 36, (w * 0.9) / camZoom)}
-                        fill={object.filled ? "#111315" : COLORS.text}
-                        opacity={opacity}
-                        style={transformStyle}
-                      >
-                        {object.label}
-                      </text>
-                    )}
+                    {object.label &&
+                      (() => {
+                        const wrapped = wrapLabel(object.label ?? "", 36, (w * 0.9) / camZoom);
+                        return (
+                          // Rectangles default to a fully opaque, bright
+                          // fill — dark text centered inside reads far
+                          // better there than white-on-bright, matching the
+                          // same convention TreemapCard/PackedCirclesCard
+                          // already use for labels sitting directly on a
+                          // solid color fill.
+                          <text
+                            y={py}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontFamily={FONT_FAMILY}
+                            fontWeight={700}
+                            fontSize={wrapped.fontSize}
+                            fill={object.filled && !object.glass ? "#111315" : COLORS.text}
+                            opacity={opacity}
+                            style={transformStyle}
+                          >
+                            <WrappedTspans wrapped={wrapped} x={px} />
+                          </text>
+                        );
+                      })()}
                   </React.Fragment>
                 );
               }
@@ -739,9 +910,45 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                 const IconComponent = object.icon ? CANVAS_ICON_COMPONENTS[object.icon] : null;
                 if (!IconComponent) return null;
                 const size = projectRadius(radius) * 2;
+                // Glass mode adds a frosted tile PANEL behind the glyph
+                // rather than making the icon itself translucent — a
+                // blurred/see-through icon reads as illegible, not stylish.
+                const tileSize = size * 1.7;
                 return (
                   <React.Fragment key={object.id}>
                     {trailNodes}
+                    {object.glass && (
+                      <>
+                        {/* White, not the icon's own color — real frosted
+                            glass is closer to colorless than to "glass dyed
+                            the brand color," and a colored tint at low
+                            opacity against a dark scene just read as "a
+                            slightly darker circle," not glass, confirmed
+                            against a real render. This is aiming at a
+                            frosted-panel glassmorphism read, not a true
+                            refractive orb — that needs real 3D rendering. */}
+                        <circle
+                          cx={px}
+                          cy={py}
+                          r={tileSize / 2}
+                          fill="#ffffff"
+                          fillOpacity={0.22 * opacity}
+                          stroke={GLASS_BORDER}
+                          strokeWidth={2}
+                          opacity={opacity}
+                          style={withGlassBackdrop(transformStyle)}
+                        />
+                        <ellipse
+                          cx={px - tileSize * 0.16}
+                          cy={py - tileSize * 0.2}
+                          rx={tileSize * 0.24}
+                          ry={tileSize * 0.15}
+                          fill="rgba(255,255,255,0.5)"
+                          opacity={opacity * 0.85}
+                          style={transformStyle}
+                        />
+                      </>
+                    )}
                     <IconComponent
                       x={px - size / 2}
                       y={py - size / 2}
@@ -751,7 +958,86 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       opacity={opacity}
                       style={transformStyle}
                     />
-                    {belowLabel(size / 2 + 24)}
+                    {belowLabel((object.glass ? tileSize : size) / 2 + 24)}
+                  </React.Fragment>
+                );
+              }
+
+              if (object.type === "lottie") {
+                const asset = object.lottie ? LOTTIE_ASSETS[object.lottie] : null;
+                if (!asset) return null;
+                // `radius` authors a bounding box, not a forced square — most
+                // Lottie files (a person illustration, an icon-style motif)
+                // aren't natively 1:1, and stretching a non-square asset to
+                // fill a square box would visibly distort it. Fit the
+                // asset's own w/h (contain-style) inside a `size`-square box
+                // instead, centered, same as object-fit: contain.
+                const box = projectRadius(radius) * 2;
+                const nativeW = asset.data.w || 1;
+                const nativeH = asset.data.h || 1;
+                const nativeAspect = nativeW / nativeH;
+                const dispW = nativeAspect >= 1 ? box : box * nativeAspect;
+                const dispH = nativeAspect >= 1 ? box / nativeAspect : box;
+                // @remotion/lottie maps Remotion's own per-frame counter
+                // straight onto the asset's raw frame count with NO fps
+                // conversion (see its getLottieFrame: `remotionFrame %
+                // lottieTotalFrames`, nothing else) — so a sourced file
+                // authored at a different native fr than this project's 30fps
+                // (very common; LottieFiles exports are often 24/25/60fps)
+                // plays back at the wrong real-world speed here: a lower
+                // native fr means fewer total frames for the same intended
+                // duration, so its loop cycles far faster than the designer
+                // meant — confirmed as the actual cause of a "plays for half
+                // a second" report, not a sizing issue. `playbackRate` is
+                // exactly the correction lever @remotion/lottie exposes for
+                // this (it scales Remotion's frame count before the modulo);
+                // 1 when the file already matches this project's 30fps, so
+                // every existing asset (`fr: 30` already) is a no-op change.
+                const lottiePlaybackRate = (asset.data.fr || FPS) / FPS;
+                return (
+                  <React.Fragment key={object.id}>
+                    {trailNodes}
+                    <foreignObject x={px - dispW / 2} y={py - dispH / 2} width={dispW} height={dispH} opacity={opacity} style={transformStyle}>
+                      <Lottie animationData={asset.data} loop={asset.loop} playbackRate={lottiePlaybackRate} style={{ width: dispW, height: dispH }} />
+                    </foreignObject>
+                    {belowLabel(box / 2 + 24)}
+                  </React.Fragment>
+                );
+              }
+
+              if (object.type === "gif") {
+                if (!object.gifFile) return null;
+                // Unlike Lottie, a GIF's real dimensions aren't known ahead
+                // of time (no JSON metadata to read at build time) — fit:
+                // "contain" inside a fixed square box does the same
+                // no-distortion job Lottie's w/h-aspect math does, just
+                // without needing the source dimensions up front.
+                const box = projectRadius(radius) * 2;
+                return (
+                  <React.Fragment key={object.id}>
+                    {trailNodes}
+                    <foreignObject x={px - box / 2} y={py - box / 2} width={box} height={box} opacity={opacity} style={transformStyle}>
+                      <Gif
+                        src={staticFile(`assets/gifs/${object.gifFile}`)}
+                        fit="contain"
+                        loopBehavior="loop"
+                        // Free-sourced GIFs are overwhelmingly exported on a
+                        // solid white background (real GIF transparency is
+                        // rare in practice, and hard to filter for) — a
+                        // white box floating on this project's dark panels
+                        // reads as a visible bug, confirmed in a real render.
+                        // `multiply` is the standard fix for exactly this:
+                        // white * any color = that color (so a white
+                        // background optically vanishes into whatever's
+                        // behind it), while the illustration's own darker
+                        // linework stays visible. Not a substitute for a
+                        // genuinely transparent GIF if one's ever sourced —
+                        // just the right default for what's realistically
+                        // available for free today.
+                        style={{ width: box, height: box, mixBlendMode: "multiply" }}
+                      />
+                    </foreignObject>
+                    {belowLabel(box / 2 + 24)}
                   </React.Fragment>
                 );
               }
@@ -797,30 +1083,35 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
               style={{ overflow: "visible", position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
             >
-              {fixedLabelObjects.map(({ object, x, y, rotation, scale, opacity, slideYOffset }) => {
-                if (!object.label) return null;
+              {fixedLabelObjects.map(({ object, displayLabel, x, y, rotation, scale, opacity, slideYOffset, slideXOffset, blurPx }) => {
+                const text = displayLabel ?? object.label;
+                if (!text) return null;
                 const [rawPx, rawPy] = project(x, y);
-                const px = rawPx;
+                const px = rawPx + slideXOffset;
                 const py = rawPy + slideYOffset;
                 const transformStyle: React.CSSProperties =
-                  rotation !== 0 || scale !== 1
-                    ? { transform: `rotate(${rotation}deg) scale(${scale})`, transformOrigin: `${px}px ${py}px` }
+                  rotation !== 0 || scale !== 1 || blurPx > 0.5
+                    ? {
+                        transform: `rotate(${rotation}deg) scale(${scale})`,
+                        transformOrigin: `${px}px ${py}px`,
+                        filter: blurPx > 0.5 ? `blur(${blurPx}px)` : undefined,
+                      }
                     : {};
+                const wrapped = wrapLabel(text, 46, maxLabelWidthPx(object.id, px, py));
                 return (
                   <text
                     key={object.id}
-                    x={px}
                     y={py}
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fontFamily={FONT_FAMILY}
                     fontWeight={700}
-                    {...fitText(object.label, 46, maxLabelWidthPx(object.id, px, py))}
+                    fontSize={wrapped.fontSize}
                     fill={COLORS.text}
                     opacity={opacity}
                     style={{ filter: `drop-shadow(0 0 8px ${COLORS.background})`, ...transformStyle }}
                   >
-                    {object.label}
+                    <WrappedTspans wrapped={wrapped} x={px} />
                   </text>
                 );
               })}

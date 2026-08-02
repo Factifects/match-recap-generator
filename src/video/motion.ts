@@ -59,6 +59,18 @@ export function scaleSettle(frame: number, start: number, duration = 16, from = 
   });
 }
 
+/** Generic settle from `from` to `to` — the fully general form scaleSettle is
+ * a fixed (from, 1) special case of. Used for anything that eases between two
+ * numeric values (a rotation offset, a blur radius), not just scale, so a new
+ * entrance/exit variant doesn't need its own bespoke interpolate() call. */
+export function settleFrom(frame: number, start: number, duration: number, from: number, to: number, easing: EasingName = "easeOut"): number {
+  return interpolate(frame, [start, start + duration], [from, to], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: EASING_CURVES[easing],
+  });
+}
+
 /** Continuous sine oscillation between `min` and `max` — unlike every other
  * helper in this file, this never settles; it's for ambient "still alive"
  * motion (a pulsing highlight zone, an idle glow at a landed arrow's tip)
