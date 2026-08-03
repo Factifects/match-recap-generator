@@ -10,7 +10,12 @@ export interface CameraPose3D {
 // formation-3d/shot-map-3d Data schemas) — "sway" is the original v1 behavior
 // (a narrow behind-goal arc), the other three were added directly off
 // real feedback that a single fixed move wasn't enough variety.
-export type CameraStyle3D = "sway" | "orbit" | "sideline-pan" | "dolly-in" | "two-team-reveal";
+// "cinematic-drift" is a different geometry family from the rest (a forward-
+// looking dolly/truck, not an orbit around a fixed target) — added for
+// non-pitch cinematic scenes (see InfiniteRoadBenchmark.tsx) where the
+// camera is following/leading motion down an axis rather than circling a
+// subject.
+export type CameraStyle3D = "sway" | "orbit" | "sideline-pan" | "dolly-in" | "two-team-reveal" | "cinematic-drift";
 
 export interface CameraOptions3D {
   /** sway/orbit: orbit radius. dolly-in: starting radius. */
@@ -31,6 +36,36 @@ export interface CameraOptions3D {
   /** two-team-reveal only: the second target to hold on (see `target` above
    * for the first) — typically one team's cluster center, then the other's. */
   targetB?: [number, number, number];
+  /** cinematic-drift only: the camera's starting world position (before
+   * drift/push-in are applied). */
+  basePosition?: [number, number, number];
+  /** cinematic-drift only: lateral truck sway amplitude, world units. */
+  driftAmplitude?: number;
+  /** cinematic-drift only: frames per full lateral sway cycle — kept longer
+   * than the scene's own duration by convention so a short clip only ever
+   * shows one slow sweep, never a visible back-and-forth repeat. */
+  driftPeriodFrames?: number;
+  /** cinematic-drift only: fraction (0-1) of the CURRENT distance to
+   * `target` the camera closes over the full duration — the "push-in".
+   * Deliberately relative, not a raw world-unit distance: a fixed-unit push
+   * (this option's original shape) overshoots badly on any scene whose
+   * scale/zoom it wasn't hand-tuned against — confirmed against a real
+   * render where it pushed the camera far enough that authored content fell
+   * out of frame entirely. A fraction of current distance scales correctly
+   * regardless of world size, and internally clamps well short of 1 so the
+   * camera can never push through/past its own subject. */
+  pushInFraction?: number;
+  /** cinematic-drift only: progress fraction (0-1) at which the camera
+   * subtly reframes toward `reframeTarget` instead of `target` — e.g. the
+   * moment a scene's own focal action (an overtake) happens. Omitted means
+   * no reframe, camera holds on `target` throughout. */
+  reframeAtProgress?: number;
+  /** cinematic-drift only: the target to reframe toward (see
+   * `reframeAtProgress`). */
+  reframeTarget?: [number, number, number];
+  /** cinematic-drift only: fraction of the total duration the reframe
+   * transition itself takes, centered on `reframeAtProgress`. */
+  reframeWindow?: number;
 }
 
 function progressFor(frame: number, durationInFrames: number): number {
@@ -131,6 +166,82 @@ export function getTwoTeamRevealPose(frame: number, durationInFrames: number, op
   return { position, target: currentTarget, fov };
 }
 
+function lerp3(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+}
+
+/** A forward-looking dolly/truck, not an orbit — the camera drifts laterally
+ * and creeps toward its subject continuously, the way a real handheld/dolly
+ * shot never sits perfectly still even on an otherwise "held" beat. Every
+ * value is still a pure function of `frame`, same convention as every other
+ * pose function in this file. Lateral drift is computed from raw `frame`
+ * (not the 0-1 `progress` the push-in uses) specifically so its period can
+ * be tuned independently and stay slow/non-repeating within a short clip,
+ * while the push-in eases smoothly across the whole duration via
+ * `progressFor`. An optional `reframeAtProgress`/`reframeTarget` lets a
+ * scene's own focal beat (e.g. an overtake) pull the camera's attention
+ * without breaking the continuous drift — the reframe blends the TARGET
+ * only, position keeps drifting/pushing in underneath it. */
+export function getCinematicDriftPose(frame: number, durationInFrames: number, options: CameraOptions3D = {}): CameraPose3D {
+  // Defaults deliberately restrained, not "alive" in the sense of visibly
+  // swaying — a camera that continuously drifts left-right on every single
+  // scene reads as nervous/gimmicky, not directed, confirmed against a real
+  // render (this was the actual complaint: constant lateral sway with no
+  // relationship to content). Real cinematography holds a shot far more
+  // than it moves it, and moves ONLY when a beat earns it — for a
+  // multi-phase scene, that deliberate move is already the phase-to-phase
+  // camera target/zoom glide Canvas3D already does at a reframe, not this
+  // function's own continuous drift. So the drift/push-in here default to
+  // barely perceptible (just enough that a long static hold doesn't read as
+  // a frozen still), and a scene that wants a real, noticeable move should
+  // get it from a phase reframe, not from cranking these back up.
+  const {
+    basePosition = [0, 6, 14],
+    target = [0, 1, -20],
+    driftAmplitude = 0.18,
+    driftPeriodFrames = 340,
+    pushInFraction = 0.05,
+    fov = 42,
+    reframeAtProgress,
+    reframeTarget,
+    reframeWindow = 0.12,
+  } = options;
+  // Hard ceiling regardless of what a caller passes — the camera can never
+  // close more than a third of its own starting distance to the subject, so
+  // it's structurally impossible for push-in alone to reach (let alone pass
+  // through) authored content, at any scene scale.
+  const safePushInFraction = Math.min(Math.max(pushInFraction, 0), 0.35);
+
+  const progress = progressFor(frame, durationInFrames);
+  const driftX = Math.sin((frame / driftPeriodFrames) * Math.PI * 2) * driftAmplitude;
+
+  let currentTarget = target;
+  if (reframeTarget && reframeAtProgress !== undefined) {
+    const reframeT = interpolate(
+      progress,
+      [reframeAtProgress - reframeWindow / 2, reframeAtProgress + reframeWindow / 2],
+      [0, 1],
+      { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.inOut(Easing.cubic) },
+    );
+    currentTarget = lerp3(target, reframeTarget, reframeT);
+  }
+
+  const viewLength = Math.hypot(target[0] - basePosition[0], target[1] - basePosition[1], target[2] - basePosition[2]) || 1;
+  const dir: [number, number, number] = [
+    (target[0] - basePosition[0]) / viewLength,
+    (target[1] - basePosition[1]) / viewLength,
+    (target[2] - basePosition[2]) / viewLength,
+  ];
+  const pushed = viewLength * safePushInFraction * progress;
+  const position: [number, number, number] = [
+    basePosition[0] + dir[0] * pushed + driftX,
+    basePosition[1] + dir[1] * pushed,
+    basePosition[2] + dir[2] * pushed,
+  ];
+
+  return { position, target: currentTarget, fov };
+}
+
 /** Single entry point every 3D card calls instead of picking a pose function
  * directly — keeps `cameraStyle` -> implementation a one-place mapping, same
  * role resolveVisual plays for Scene Type -> visual kind. "orbit" is
@@ -151,6 +262,8 @@ export function resolveCameraPose3D(
       return getDollyInPose(frame, durationInFrames, options);
     case "two-team-reveal":
       return getTwoTeamRevealPose(frame, durationInFrames, options);
+    case "cinematic-drift":
+      return getCinematicDriftPose(frame, durationInFrames, options);
     case "sway":
     default:
       return getOrbitCameraPose(frame, durationInFrames, options);

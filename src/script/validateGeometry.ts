@@ -1,6 +1,7 @@
 import type { TimedSegment } from "../model/Segment";
-import type { FormationData } from "../video/sharedVisualProps";
+import type { FormationData, CanvasData } from "../video/sharedVisualProps";
 import { FORMATION_TEMPLATES } from "../video/formations";
+import { resolveObjectPosition, estimateObjectBoundingBox, boxesOverlap } from "../video/canvasLayout";
 
 // This project's established pitch convention: low y = screen-right, high y
 // = screen-left (see feedback_formation_slot_order_bug in memory — confirmed
@@ -114,6 +115,79 @@ function fixFormationSide(formationSide: FormationSide, sceneLabel: string, fixe
   return { ...formationSide, players: nextPlayers };
 }
 
+type CanvasObjectT = CanvasData["objects"][number];
+
+// Two objects placed within this many percent of each other on BOTH axes
+// are treated as a copy-paste mistake (a clear signature — no real design
+// deliberately stacks two objects exactly on top of one another), not an
+// intentionally tight layout. Anything looser than this is left alone.
+const IDENTICAL_POSITION_TOLERANCE = 1.5;
+const NUDGE_OFFSET_PERCENT = 6;
+
+function isNearIdenticalPosition(a: { x: number; y: number }, b: { x: number; y: number }): boolean {
+  return Math.abs(a.x - b.x) < IDENTICAL_POSITION_TOLERANCE && Math.abs(a.y - b.y) < IDENTICAL_POSITION_TOLERANCE;
+}
+
+/** Checks one Canvas phase's object list (the top-level `objects`, or one
+ * `phases[]` entry) for overlaps, using canvasLayout.ts's shared position/
+ * bounding-box logic — the same code the renderer itself uses, so this
+ * lint sees exactly what the render will. Mirrors this file's own
+ * relabel/reorder philosophy: only the unambiguous case (two objects at the
+ * literal same spot) gets auto-corrected — pinned to explicit x/y (winning
+ * over any anchor, same "specific beats general" precedence the schema
+ * already documents) offset a fixed amount, logged like every other fix
+ * here. Every other overlap is flagged via console.warn and left exactly as
+ * authored — untangling it would require understanding what the diagram is
+ * trying to say, which this pass has no way to know. */
+function fixCanvasPhaseOverlap(objects: CanvasObjectT[], sceneLabel: string, phaseLabel: string, fixes: string[]): CanvasObjectT[] {
+  const resolved = objects.map((object) => {
+    const pos = resolveObjectPosition(object);
+    return { object, pos, box: estimateObjectBoundingBox(object, pos.x, pos.y) };
+  });
+  const result = objects.map((object) => ({ ...object }));
+  const alreadyNudged = new Set<string>();
+
+  for (let i = 0; i < resolved.length; i++) {
+    for (let j = i + 1; j < resolved.length; j++) {
+      const a = resolved[i];
+      const b = resolved[j];
+      if (alreadyNudged.has(b.object.id)) continue;
+      if (isNearIdenticalPosition(a.pos, b.pos)) {
+        const target = result.find((o) => o.id === b.object.id);
+        if (!target) continue;
+        const newX = Math.min(96, b.pos.x + NUDGE_OFFSET_PERCENT);
+        const newY = Math.min(96, b.pos.y + NUDGE_OFFSET_PERCENT);
+        target.x = newX;
+        target.y = newY;
+        alreadyNudged.add(b.object.id);
+        fixes.push(
+          `${sceneLabel}${phaseLabel}: "${b.object.id}" was placed at the same position as "${a.object.id}" — nudged to (${newX.toFixed(0)}, ${newY.toFixed(0)})`,
+        );
+      } else if (boxesOverlap(a.box, b.box)) {
+        console.warn(
+          `[validateGeometry] ${sceneLabel}${phaseLabel}: possible overlap between "${a.object.id}" and "${b.object.id}" — left as authored, not auto-fixed.`,
+        );
+      }
+    }
+  }
+
+  return result;
+}
+
+/** Canvas scenes have no left/right convention to get backwards — their
+ * recurring mistake class is spatial (objects overlapping), so this is a
+ * different kind of check than the label/slot fixes above, but the same
+ * "narrow auto-fix, flag the rest" philosophy the whole file follows. */
+function fixCanvasOverlap(visual: CanvasData, sceneLabel: string, fixes: string[]): CanvasData {
+  const fixedObjects = fixCanvasPhaseOverlap(visual.objects, sceneLabel, "", fixes);
+  if (!visual.phases) return { ...visual, objects: fixedObjects };
+  const fixedPhases = visual.phases.map((phase, index) => ({
+    ...phase,
+    objects: fixCanvasPhaseOverlap(phase.objects, sceneLabel, ` (phase ${index + 2})`, fixes),
+  }));
+  return { ...visual, objects: fixedObjects, phases: fixedPhases };
+}
+
 /** Runs after parsing, before render — auto-corrects the recurring "LW/RW
  * (or Formation slot order) backwards" mistake instead of blocking
  * generation on it, since a script drafted outside this repo (another tool,
@@ -136,6 +210,9 @@ export function autoFixGeometry(segments: TimedSegment[]): { segments: TimedSegm
     }
     if (visual.kind === "formation") {
       return { ...segment, visual: { ...visual, sides: visual.sides.map((side) => fixFormationSide(side, sceneLabel, fixes)) } };
+    }
+    if (visual.kind === "canvas") {
+      return { ...segment, visual: fixCanvasOverlap(visual, sceneLabel, fixes) };
     }
     return segment;
   });

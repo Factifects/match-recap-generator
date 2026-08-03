@@ -1,6 +1,6 @@
 import React from "react";
 import * as THREE from "three";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, interpolate } from "remotion";
 import { Billboard, Html, Line } from "@react-three/drei";
 import { ThreeCanvas } from "@remotion/three";
 import { COLORS, FONT_FAMILY, TITLE_STYLE, colorForCharacter } from "../theme";
@@ -15,7 +15,8 @@ import {
   percentToWorldWidth3D,
   percentToWorldHeight3D,
 } from "../canvasCoords3D";
-import { fadeIn, drawIn, slideIn, pulse, type EasingName } from "../motion";
+import { fadeIn, drawIn, pulse, type EasingName } from "../motion";
+import { resolveEasing } from "../keyframes";
 import type { SharedVisualProps, Canvas3DData } from "../sharedVisualProps";
 
 type CanvasObject3DT = Canvas3DData["objects"][number];
@@ -56,13 +57,24 @@ const IDLE_PULSE_RANGE: [number, number] = [0.94, 1.06];
 const GLOW_PERIOD_FRAMES = 75;
 const GLOW_RANGE: [number, number] = [0.55, 1];
 
+// Canvas3D labels render through drei's <Html> — real DOM, not SVG, so
+// unlike Canvas.tsx's fitText (which has to fake wrapping via textLength
+// since SVG <text> never wraps on its own) this gets the browser's actual
+// text-layout engine for free. `nowrap` + no width constraint meant a long
+// label just ran straight off the frame edge with nothing stopping it
+// (confirmed against a real render, not a guess) — `normal` whiteSpace +
+// `maxWidth` is the real fix: the browser wraps onto a second line inside a
+// safe width instead. maxWidth is in the label's own pre-distanceFactor CSS
+// px, which drei scales as a whole along with everything else at that
+// object's distance, so it stays proportionally safe regardless of depth.
 const CANVAS3D_LABEL_STYLE = {
   fontFamily: FONT_FAMILY,
   fontWeight: 700 as const,
   fontSize: 30,
   color: COLORS.text,
-  whiteSpace: "nowrap" as const,
+  whiteSpace: "normal" as const,
   textAlign: "center" as const,
+  maxWidth: 440,
 };
 
 const DEFAULT_CAMERA: CanvasCamera3DT = { target: { x: 50, y: 50, z: 50 }, zoom: 1 };
@@ -80,10 +92,12 @@ function idlePhaseOffset(id: string): number {
   return ((sum % 100) / 100) * Math.PI * 2;
 }
 
-const ANIMATABLE_KEYS = ["x", "y", "z", "radius", "width", "height", "rotation", "scale", "opacity"] as const;
+const ANIMATABLE_KEYS = ["x", "y", "z", "radius", "width", "height", "depth", "rotation", "scale", "opacity"] as const;
 type AnimatableKey = (typeof ANIMATABLE_KEYS)[number];
 // z defaults to 50 (mid-depth), matching the schema default — every other
 // key defaults the same way Canvas.tsx's own ANIMATABLE_DEFAULTS does.
+// depth defaults to 0 (flat/billboarded — see the volumetric rendering
+// branch below), matching its own schema default of "absent".
 const ANIMATABLE_DEFAULTS: Record<AnimatableKey, number> = {
   x: 0,
   y: 0,
@@ -91,6 +105,7 @@ const ANIMATABLE_DEFAULTS: Record<AnimatableKey, number> = {
   radius: 0,
   width: 0,
   height: 0,
+  depth: 0,
   rotation: 0,
   scale: 1,
   opacity: 1,
@@ -120,6 +135,44 @@ function resolveAnimatedProps(
     props[key] = entryVal + (targetVal - entryVal) * t;
   }
   return props;
+}
+
+// object.easing now legally includes cinematicEasing.ts's curves (see
+// visualDefinitions.ts), but phase-to-phase glide/idle motion deliberately
+// keeps using only motion.ts's original calm four — those are the only
+// values drawIn()/pulse() etc. accept. Anything outside that set (an
+// entrance-only choice) falls back to "easeOut" here rather than widening
+// glide's own type, keeping glide's behavior exactly as calm as before this
+// existed for every scene that doesn't touch depth/cinematic easing at all.
+const GLIDE_EASING_NAMES = new Set<string>(["linear", "easeIn", "easeOut", "easeInOut"]);
+function glideEasing(easing: CanvasObject3DT["easing"]): EasingName {
+  return GLIDE_EASING_NAMES.has(easing) ? (easing as EasingName) : "easeOut";
+}
+
+// Entrance-only counterparts of motion.ts's fadeIn/drawIn/slideIn — same
+// clamp/interpolate shape, but resolved through keyframes.ts's resolveEasing
+// so an entrance can actually use easeOutBack/anticipate, which motion.ts's
+// own strictly-typed helpers can't accept.
+function fadeInAny(frame: number, start: number, duration: number, easing: CanvasObject3DT["easing"]): number {
+  return interpolate(frame, [start, start + duration], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: resolveEasing(easing),
+  });
+}
+function drawInAny(frame: number, start: number, duration: number, easing: CanvasObject3DT["easing"]): number {
+  return interpolate(frame, [start, start + duration], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: resolveEasing(easing),
+  });
+}
+function slideInAny(frame: number, start: number, duration: number, distance: number, easing: CanvasObject3DT["easing"]): number {
+  return interpolate(frame, [start, start + duration], [distance, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: resolveEasing(easing),
+  });
 }
 
 function resolveCamera(phase: ResolvedPhase | undefined): CanvasCamera3DT {
@@ -162,6 +215,7 @@ interface ResolvedObject {
   radius: number;
   width: number;
   height: number;
+  depth: number;
   rotation: number;
   scale: number;
   opacity: number;
@@ -184,7 +238,7 @@ function CanvasObjectMesh3D({
   previousPhase: ResolvedPhase | undefined;
   phaseIndex: number;
 }) {
-  const { object, x, y, z, radius, width, height, slideYOffset } = resolved;
+  const { object, x, y, z, radius, width, height, depth, slideYOffset } = resolved;
   const color = object.color ?? colorForCharacter(object.label ?? object.id);
   const idlePhase = idlePhaseOffset(object.id);
   const rotation = object.idle === "spin" ? resolved.rotation + ((frame * (360 / SPIN_PERIOD_FRAMES)) % 360) : resolved.rotation;
@@ -228,7 +282,7 @@ function CanvasObjectMesh3D({
       ? GHOST_TRAIL.map(({ lag, opacity: trailOpacity }, trailIndex) => {
           const ghostLocalFrame = frame - Math.round(lag * CANVAS3D_GLIDE_DURATION_FRAMES);
           if (ghostLocalFrame <= 0) return null;
-          const ghostProps = resolveAnimatedProps(object, previous, ghostLocalFrame, object.easing);
+          const ghostProps = resolveAnimatedProps(object, previous, ghostLocalFrame, glideEasing(object.easing));
           const [gx, gy, gz] = percentToCanvasWorld3D(ghostProps.x, ghostProps.y, ghostProps.z);
           return (
             <mesh key={trailIndex} position={[gx, gy, gz]}>
@@ -248,6 +302,26 @@ function CanvasObjectMesh3D({
 
   if (object.type === "dot") {
     const r = percentToWorldRadius3D(radius || 6);
+    // depth > 0 opts into a real sphere — genuine volume/shading as the
+    // camera moves around it, not a flat disc that always faces the lens
+    // (see feedback_canvas3d_needs_real_geometry). Deliberately NOT wrapped
+    // in <Billboard> — a real 3D object should hold its own orientation in
+    // the world, not fake-face the camera the way flat content has to.
+    if (depth > 0) {
+      return (
+        <group position={[px, worldY, pz]}>
+          {trailNodes}
+          {orbitGhostNodes}
+          <group rotation={[0, 0, rotationRad]} scale={scale}>
+            <mesh>
+              <sphereGeometry args={[r, 24, 24]} />
+              <meshStandardMaterial color={color} transparent opacity={opacity} roughness={0.5} metalness={0.08} side={THREE.DoubleSide} />
+            </mesh>
+          </group>
+          {belowLabel(-(r + 0.5))}
+        </group>
+      );
+    }
     return (
       <group position={[px, worldY, pz]}>
         {trailNodes}
@@ -267,6 +341,30 @@ function CanvasObjectMesh3D({
 
   if (object.type === "circle") {
     const r = percentToWorldRadius3D(radius);
+    // depth > 0: a real puck (an extruded disc), not a flat billboarded
+    // ring — same "hold real world orientation" reasoning as dot above. The
+    // inner group's fixed X rotation just reorients the cylinder's axis
+    // (Y by default) into a puck lying flat toward the viewer; the OUTER
+    // group still carries the object's own authored `rotation` around Z,
+    // same convention as every other type.
+    if (depth > 0) {
+      const worldDepth = Math.max(percentToWorldRadius3D(depth), 0.06);
+      return (
+        <group position={[px, worldY, pz]}>
+          {trailNodes}
+          {orbitGhostNodes}
+          <group rotation={[0, 0, rotationRad]} scale={scale}>
+            <group rotation={[Math.PI / 2, 0, 0]}>
+              <mesh>
+                <cylinderGeometry args={[r, r, worldDepth, 32]} />
+                <meshStandardMaterial color={color} transparent opacity={(object.fillOpacity ?? 1) * opacity} roughness={0.5} metalness={0.08} side={THREE.DoubleSide} />
+              </mesh>
+            </group>
+          </group>
+          {belowLabel(-(r + 0.6))}
+        </group>
+      );
+    }
     return (
       <group position={[px, worldY, pz]}>
         {trailNodes}
@@ -291,6 +389,43 @@ function CanvasObjectMesh3D({
     const w = percentToWorldWidth3D(width);
     const h = percentToWorldHeight3D(height);
     const shape = roundedRectShape(w, h, percentToWorldRadius3D(radius));
+    // depth > 0: a real extruded block (THREE.ExtrudeGeometry off the same
+    // shape the flat version already builds), not a flat card facing the
+    // camera — a script can finally get an actual "3D card/panel" instead
+    // of always a cutout. ExtrudeGeometry extrudes from local z=0 to
+    // z=depth, so the mesh is offset by -depth/2 to stay centered on the
+    // object's own origin, matching every other (already-centered) type.
+    if (depth > 0) {
+      const worldDepth = Math.max(percentToWorldRadius3D(depth), 0.06);
+      return (
+        <group position={[px, worldY, pz]}>
+          {trailNodes}
+          {orbitGhostNodes}
+          <group rotation={[0, 0, rotationRad]} scale={scale}>
+            {object.filled && (
+              <mesh position={[0, 0, -worldDepth / 2]}>
+                <extrudeGeometry args={[shape, { depth: worldDepth, bevelEnabled: false }]} />
+                <meshStandardMaterial color={color} transparent opacity={(object.fillOpacity ?? 1) * opacity} roughness={0.45} metalness={0.05} side={THREE.DoubleSide} />
+              </mesh>
+            )}
+            {object.label && (
+              <Html center distanceFactor={9} position={[0, 0, worldDepth / 2 + 0.02]} style={{ pointerEvents: "none" }}>
+                <div
+                  style={{
+                    ...CANVAS3D_LABEL_STYLE,
+                    fontSize: 26,
+                    color: object.filled ? "#111315" : COLORS.text,
+                    opacity,
+                  }}
+                >
+                  {object.label}
+                </div>
+              </Html>
+            )}
+          </group>
+        </group>
+      );
+    }
     const outline = shape.getPoints(8).map((p): [number, number, number] => [p.x, p.y, 0]);
     return (
       <group position={[px, worldY, pz]}>
@@ -526,16 +661,28 @@ export const Canvas3D: React.FC<{ data: Canvas3DData } & SharedVisualProps> = ({
   const camZ = entryCam.target.z + (targetCam.target.z - entryCam.target.z) * camT;
   const camZoom = entryCam.zoom + (targetCam.zoom - entryCam.zoom) * camT;
   const cameraTarget = percentToCanvasWorld3D(camX, camY, camZ);
+  // basePosition is cinematic-drift's own equivalent of radius/height (the
+  // orbit-family styles' own options, which it otherwise ignores) — passing
+  // it derived the same way keeps `camera.zoom` behaving consistently
+  // regardless of which cameraStyle a scene picks, instead of cinematic-
+  // drift silently falling back to its own hardcoded default position.
+  // Positioned RELATIVE to the actual (phase-glided) target, same
+  // target-plus-offset convention every orbit-family pose already uses —
+  // an earlier absolute [0, H, R] version ignored where the target actually
+  // was, so a scene whose phases move/rezoom the target (a deliberate
+  // reframe) got a camera that didn't track it, confirmed against a real
+  // render where a phase-1 "push in on X" landed framed on the wrong thing.
   const pose = resolveCameraPose3D(cameraStyle, frame, durationInFrames, {
     target: cameraTarget,
     radius: CAMERA_BASE_RADIUS / camZoom,
     height: CAMERA_BASE_HEIGHT,
+    basePosition: [cameraTarget[0], cameraTarget[1] + CAMERA_BASE_HEIGHT, cameraTarget[2] + CAMERA_BASE_RADIUS / camZoom],
   });
 
   const resolvedObjects: ResolvedObject[] = currentPhase.objects.map((object, index) => {
     const previous = previousPhase?.objects.find((o) => o.id === object.id);
     const isNew = phaseIndex > 0 && !previous;
-    const props = resolveAnimatedProps(object, previous, phaseLocalFrame, object.easing);
+    const props = resolveAnimatedProps(object, previous, phaseLocalFrame, glideEasing(object.easing));
 
     const entranceActive = phaseIndex === 0 || isNew;
     const entranceStart = phaseIndex === 0 ? 10 + index * 4 : 0;
@@ -544,9 +691,9 @@ export const Canvas3D: React.FC<{ data: Canvas3DData } & SharedVisualProps> = ({
     let entranceScale = 1;
     let entranceSlideY = 0;
     if (entranceActive && object.enter !== "none") {
-      entranceOpacity = fadeIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
-      if (object.enter === "scale") entranceScale = drawIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
-      if (object.enter === "slide") entranceSlideY = slideIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, SLIDE_DISTANCE_UNITS, object.easing);
+      entranceOpacity = fadeInAny(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
+      if (object.enter === "scale") entranceScale = drawInAny(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
+      if (object.enter === "slide") entranceSlideY = slideInAny(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, SLIDE_DISTANCE_UNITS, object.easing);
     }
 
     return {
@@ -557,6 +704,7 @@ export const Canvas3D: React.FC<{ data: Canvas3DData } & SharedVisualProps> = ({
       radius: props.radius,
       width: props.width,
       height: props.height,
+      depth: props.depth,
       rotation: props.rotation,
       scale: props.scale * entranceScale,
       opacity: props.opacity * entranceOpacity,
@@ -571,7 +719,7 @@ export const Canvas3D: React.FC<{ data: Canvas3DData } & SharedVisualProps> = ({
           .filter((o) => o.exit !== "none" && !currentPhase.objects.some((c) => c.id === o.id))
           .filter(() => phaseLocalFrame < LIFECYCLE_DURATION_FRAMES)
           .map((object) => {
-            const exitProgress = fadeIn(phaseLocalFrame, 0, LIFECYCLE_DURATION_FRAMES, object.easing);
+            const exitProgress = fadeIn(phaseLocalFrame, 0, LIFECYCLE_DURATION_FRAMES, glideEasing(object.easing));
             const baseOpacity = object.opacity;
             let opacity = baseOpacity;
             let scale = object.scale;
@@ -593,6 +741,7 @@ export const Canvas3D: React.FC<{ data: Canvas3DData } & SharedVisualProps> = ({
               radius: object.radius ?? 0,
               width: object.width ?? 0,
               height: object.height ?? 0,
+              depth: object.depth ?? 0,
               rotation: object.rotation,
               scale,
               opacity,

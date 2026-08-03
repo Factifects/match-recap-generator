@@ -161,11 +161,23 @@ All pitch coordinates are `0-100` in both x/y (attacking left-to-right, higher x
 A generic, non-pitch 2D scene — for spatial/systems explanations no pitch or chart visual can
 express (two planes converging, a radar bubble growing until it touches another, a supply chain, a
 network). Coordinates are `0-100` percent of the canvas (not pixel-precise, same convention as
-pitch coordinates elsewhere). Every field below besides `id`/`type`/`x`/`y` is optional with a
-default that reproduces the plainest possible rendering, so a minimal object (`{id, type, x, y}`)
-still works exactly as it always has.
+pitch coordinates elsewhere). Every field below besides `id`/`type`/(`x`+`y`, or `anchor`) is
+optional with a default that reproduces the plainest possible rendering.
 
-**CanvasObject**: `{ id, type: "dot"|"circle"|"label"|"rectangle"|"roundedRectangle"|"ellipse"|"line"|"polygon", x, y, label?, color?, radius?, width?, height?, points?: [{x,y}], rotation?: number (default 0), scale?: number (default 1), opacity?: number 0-1 (default 1), filled?: bool (default true), fillOpacity?: number, strokeWidth?: number, layer?: number (default 0), enter?: "none"|"fade"|"scale"|"slide" (default "fade"), exit?: "none"|"fade"|"scale"|"slide" (default "none"), easing?: "linear"|"easeIn"|"easeOut"|"easeInOut" (default "easeOut"), trail?: bool (default false) }`
+**CanvasObject**: `{ id, type: "dot"|"circle"|"label"|"rectangle"|"roundedRectangle"|"ellipse"|"line"|"polygon", x?, y?, anchor?: <anchor key>, label?, color?, radius?, width?, height?, points?: [{x,y}], rotation?: number (default 0), scale?: number (default 1), opacity?: number 0-1 (default 1), filled?: bool (default true), fillOpacity?: number, strokeWidth?: number, layer?: number (default 0), enter?: "none"|"fade"|"scale"|"slide" (default "fade"), exit?: "none"|"fade"|"scale"|"slide" (default "none"), easing?: "linear"|"easeIn"|"easeOut"|"easeInOut" (default "easeOut"), trail?: bool (default false) }`
+
+- **Position — `x`/`y` OR `anchor`, one of the two is required.** Freehanding `x`/`y` numbers is how
+  Canvas scenes have historically ended up with overlapping or lopsided layouts — nothing checked the
+  math, it was just mental arithmetic against a flat 0-100 plane. `anchor` is the fix: name one of 15
+  positions on a grid spanning the full safe area (spread edge-to-edge, not clustered toward the
+  middle) instead of picking numbers. **Prefer `anchor` by default** for anything that just needs "a
+  zone" — a label, an icon, a static shape. Fall back to explicit numeric `x`/`y` only when you
+  actually need precision `anchor` can't give: an arrow endpoint, a position a `phases` entry glides
+  to/from, or anything camera-relative. If both are somehow given on the same object, explicit `x`/`y`
+  wins.
+  Valid anchor keys (`CANVAS_ANCHOR_KEYS`, row-major top→bottom, left→right): `topFarLeft`, `topLeft`,
+  `topCenter`, `topRight`, `topFarRight`, `middleFarLeft`, `middleLeft`, `middleCenter`, `middleRight`,
+  `middleFarRight`, `bottomFarLeft`, `bottomLeft`, `bottomCenter`, `bottomRight`, `bottomFarRight`.
 
 - `type: "dot"` — a small colored marker + label below it (the generic "thing" in a diagram: a
   plane, a node). `type: "circle"`/`"ellipse"` — a stroked/filled ring sized by `radius` (circle) or
@@ -176,6 +188,11 @@ still works exactly as it always has.
   whole shape still repositions by changing `x`/`y` alone). `type: "label"` — free floating text, no
   marker — for a callout ("Safe"/"Warning") appearing mid-diagram. Every shape's `(x,y)` is its own
   rotation/scale anchor.
+- **Polygons genuinely morph.** `points` glides per-vertex phase-to-phase exactly like `x`/`y`/
+  `rotation` do — give the same-id polygon a different `points` array in a later phase and its shape
+  actually transforms (a triangle becoming a star, an arrow becoming a diamond), it doesn't hard-cut.
+  A phase can even change the vertex COUNT; the shorter side just holds its last point steady for the
+  extra vertices instead of erroring.
 - `rotation`/`scale`/`opacity` (and `width`/`height` where relevant) are animatable exactly like
   `x`/`y`/`radius` — they glide phase-to-phase the same generalized way, so e.g. a shape can rotate
   and grow across a phase transition with no extra syntax.
@@ -184,10 +201,23 @@ still works exactly as it always has.
   behavior is unchanged from before this existed: new objects fade in, and an object that drops out
   of a later phase's list simply disappears with no animation — set `exit` to `"fade"`/`"scale"`/
   `"slide"` to animate it out instead.
-- `easing` picks the curve driving that object's own glide/enter/exit — `"easeOut"` (a gentle,
-  decelerating settle) is the default used everywhere else in this project.
+- `easing` picks the curve driving that object's own `enter` (fade/scale/slide/slideLeft/slideRight
+  specifically). `"easeOut"` (a gentle, decelerating settle) is the default used everywhere else in
+  this project. `"easeOutBack"` (overshoots slightly past its final size/position, then settles back —
+  a punchy, deliberate arrival) and `"anticipate"` (a small backward dip before the real motion, like a
+  wind-up) are also legal here — reach for these on the one focal object an entrance is actually about,
+  not on every object in a scene. Phase-to-phase glide and `idle` motion always stay on the calm
+  original four regardless of what `easing` says, on purpose.
 - `trail: true` leaves a fading trail of recent positions behind an object while it glides between
   phases — off by default.
+- `idle: "none"|"spin"|"pulse"|"glow"|"drift"` (default `"none"`) — continuous ambient motion, layered
+  on top of everything else the object is doing, for a beat that holds for a while and shouldn't sit
+  dead still. `"spin"`/`"pulse"`/`"glow"` are in-place effects (rotation/scale-breathe/opacity-breathe).
+  `"drift"` is the one that's actual MOVEMENT — a small, slow wander in position, not decoration. Use
+  it on the one or two objects a held beat is actually about, not on everything in the scene at once —
+  several objects all drifting independently reads as busy, not cinematic. Independent of `idle`, every
+  Canvas scene's camera now has a small always-on drift of its own, so even a scene that never touches
+  `idle` at all still doesn't sit perfectly frozen for the length of a hold.
 - `layer` controls stacking order (higher draws on top) — useful for keeping a label or connector
   visually above/below markers regardless of the order they're written in `objects`.
 - `arrows` are directional connectors from an object's current (phase-interpolated) position — `to`
@@ -212,9 +242,19 @@ still works exactly as it always has.
 - Deliberately not supported (as of this writing): groups/children, parent/constraint attachment,
   bezier-curve arrows, per-object `start`/`duration` timeline overrides — each is its own subsystem,
   left for a later round if actually needed.
+- A post-parse pass checks every phase's objects for overlap. Two objects placed at the exact same
+  position (a copy-paste mistake, not a deliberate layout) get nudged apart automatically. Anything
+  else that overlaps is only ever logged as a warning, never moved — resolving it safely would require
+  understanding what the diagram is trying to say, so if you see that warning, fix the layout by hand
+  (ideally by switching the crowded objects to different `anchor`s).
 
-Valid icon keys: `goal`, `card`, `save`, `whistle`, `clock`, `star`, `assist`, `sub`, `trophy`,
-`ticket`, `grass`, `case`.
+Valid Canvas icon keys (`CANVAS_ICON_KEYS`): `jet`, `rocket`, `server`, `database`, `cloud`, `globe`,
+`device`, `camera`, `signal`, `wifi`, `shield`, `bolt`, `lock`, `search`, `warning`, `check`, `cross`,
+`chip`, `target`, `scale`, `factory`, `person`, `flask`, `cash`, `wallet`, `chart`, `mic`, `speaker`,
+`mute`, `trash`, `document`, `cursor`, `sparkle`, `scissors`, `envelope`, `key`, `identification`,
+`funnel`, `tag`, `clock`, `refresh`, `laptop`, `githubLogo`, `googleLogo`, `chromeLogo`,
+`javascriptLogo`, `youtubeLogo`, `thumbsUp`, `bell`, `chat`. (The `goal`/`card`/`save`/... list is a
+*different* vocabulary — `ICON_KEYS`, for the football-specific `Icon` scene type above, not Canvas.)
 
 ## TacticalBoard specifics
 

@@ -1,12 +1,14 @@
 import React from "react";
-import { useCurrentFrame, staticFile } from "remotion";
+import { useCurrentFrame, staticFile, interpolate } from "remotion";
 import { Lottie } from "@remotion/lottie";
 import { Gif } from "@remotion/gif";
 import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter, FPS } from "../theme";
 import { SceneFrame } from "./SceneFrame";
-import { fadeIn, drawIn, slideIn, pulse, settleFrom, type EasingName } from "../motion";
+import { fadeIn, drawIn, pulse, settleFrom, type EasingName } from "../motion";
 import { CANVAS_ICON_COMPONENTS } from "../canvasIcons";
 import { LOTTIE_ASSETS } from "../lottieAssets";
+import { resolveObjectPosition } from "../canvasLayout";
+import { resolveEasing } from "../keyframes";
 import type { SharedVisualProps, CanvasData } from "../sharedVisualProps";
 
 // Exported so Canvas3D.tsx reuses the exact same on-screen footprint instead
@@ -30,6 +32,31 @@ const IDLE_PULSE_PERIOD_FRAMES = 90;
 const IDLE_PULSE_RANGE: [number, number] = [0.94, 1.06];
 const GLOW_PERIOD_FRAMES = 75;
 const GLOW_RANGE: [number, number] = [0.55, 1];
+// "drift" (see canvasObjectSchema's `idle` field) is the one idle mode that's
+// genuine MOVEMENT rather than an in-place effect — a small, slow Lissajous
+// wander (independent sine periods on x/y, not a mechanical circle) so a
+// long hold still has something real happening, not just decoration on a
+// frozen object. Percent-of-canvas units, same space x/y are already
+// authored in. Small amplitude and slow, DIFFERENT x/y periods on purpose —
+// same "calm, restrained" lesson as everything else idle in this file (and
+// the camera work): this should read as quietly alive, not as wandering.
+// 1.4 (this constant's original value) turned out to undershoot "alive" all
+// the way into "imperceptible" — confirmed directly against real feedback on
+// a real render, not a guess: a viewer watching at normal speed genuinely
+// couldn't tell the hero shape was animated at all. Restraint that reads as
+// "frozen" isn't restraint, it's a bug. 3.2 is still a wander, not a
+// bounce — nowhere near motion.ts's "no bounce" line — just actually visible.
+const DRIFT_AMPLITUDE_PERCENT = 3.2;
+const DRIFT_PERIOD_FRAMES_X = 260;
+const DRIFT_PERIOD_FRAMES_Y = 340;
+// Whole-frame camera drift — see its own call site below for why this is
+// smaller than the object-level drift constants above. Bumped alongside
+// DRIFT_AMPLITUDE_PERCENT for the same reason (the original was, in
+// practice, too subtle to register), kept smaller than the object-level
+// constant since this moves every object on screen at once, including text.
+const CAMERA_DRIFT_AMPLITUDE_PERCENT = 1.1;
+const CAMERA_DRIFT_PERIOD_FRAMES_X = 300;
+const CAMERA_DRIFT_PERIOD_FRAMES_Y = 380;
 // How fast a `flow` arrow's dash pattern travels (px of dash-offset per
 // frame) — 18 is the "dashed" style's own pattern length (see `dashArray`
 // below), so this cycles the pattern roughly once per second, a clearly
@@ -263,8 +290,20 @@ function resolveAnimatedProps(
   easing: EasingName,
 ): Record<AnimatableKey, number> {
   const t = previous ? drawIn(localFrame, 0, CANVAS_GLIDE_DURATION_FRAMES, easing) : 1;
+  // x/y need resolveObjectPosition (anchor-or-explicit), not the generic
+  // ANIMATABLE_DEFAULTS fallback below — an anchor-authored object has no
+  // `object.x` at all, so the generic path would silently glide it toward
+  // 0,0 instead of its actual anchored position.
+  const targetPos = resolveObjectPosition(object);
+  const entryPos = previous ? resolveObjectPosition(previous) : targetPos;
   const props = {} as Record<AnimatableKey, number>;
   for (const key of ANIMATABLE_KEYS) {
+    if (key === "x" || key === "y") {
+      const targetVal = targetPos[key];
+      const entryVal = entryPos[key];
+      props[key] = entryVal + (targetVal - entryVal) * t;
+      continue;
+    }
     const targetVal = (object[key] as number | undefined) ?? ANIMATABLE_DEFAULTS[key];
     const entryVal = previous ? ((previous[key] as number | undefined) ?? ANIMATABLE_DEFAULTS[key]) : targetVal;
     props[key] = entryVal + (targetVal - entryVal) * t;
@@ -272,8 +311,82 @@ function resolveAnimatedProps(
   return props;
 }
 
+// object.easing now legally includes cinematicEasing.ts's curves (see
+// visualDefinitions.ts), but phase-to-phase glide/idle motion deliberately
+// keeps using only motion.ts's original calm four — those are the only
+// values drawIn()/pulse() etc accept. Anything outside that set (an
+// entrance-only choice) falls back to "easeOut" here rather than widening
+// glide's own type — exact same fix Canvas3D.tsx already needed for the
+// identical reason.
+const GLIDE_EASING_NAMES = new Set<string>(["linear", "easeIn", "easeOut", "easeInOut"]);
+function glideEasing(easing: CanvasObjectT["easing"]): EasingName {
+  return GLIDE_EASING_NAMES.has(easing) ? (easing as EasingName) : "easeOut";
+}
+
+// Entrance-only counterparts of motion.ts's fadeIn/drawIn/slideIn — same
+// clamp/interpolate shape, but resolved through keyframes.ts's resolveEasing
+// so an entrance can actually use easeOutBack/anticipate, which motion.ts's
+// own strictly-typed helpers can't accept. This is the SAME cinematic-easing
+// machinery already built and wired into Canvas3D.tsx's entrances — it just
+// never made it into this (2D) file until now.
+function fadeInAny(frame: number, start: number, duration: number, easing: CanvasObjectT["easing"]): number {
+  return interpolate(frame, [start, start + duration], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: resolveEasing(easing),
+  });
+}
+function drawInAny(frame: number, start: number, duration: number, easing: CanvasObjectT["easing"]): number {
+  return interpolate(frame, [start, start + duration], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: resolveEasing(easing),
+  });
+}
+function slideInAny(frame: number, start: number, duration: number, distance: number, easing: CanvasObjectT["easing"]): number {
+  return interpolate(frame, [start, start + duration], [distance, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: resolveEasing(easing),
+  });
+}
+
 function resolveCamera(phase: ResolvedPhase | undefined): CanvasCameraT {
   return phase?.camera ?? DEFAULT_CAMERA;
+}
+
+/** Real shape morphing: a polygon's `points` glide per-vertex from
+ * `previous`'s array to `object`'s own, the same drawIn-eased glide every
+ * other animatable property already gets — `points` was never in
+ * ANIMATABLE_KEYS (it's an array, not a single number, so it can't just
+ * join that generic loop), which meant a polygon's shape hard-snapped
+ * between phases instead of animating at all. A vertex-COUNT mismatch
+ * between phases (a genuinely different shape, e.g. a triangle becoming a
+ * pentagon) holds the shorter array's last point steady for the extra
+ * vertices rather than throwing — a script can freely change point count
+ * phase to phase. No-op (returns `object`'s own points untouched) for
+ * anything but a polygon with no `previous`, matching every other
+ * animatable property's phase-0 behavior. */
+function resolveAnimatedPoints(
+  object: CanvasObjectT,
+  previous: CanvasObjectT | undefined,
+  localFrame: number,
+  easing: EasingName,
+): { x: number; y: number }[] | undefined {
+  if (object.type !== "polygon") return undefined;
+  const target = object.points ?? [];
+  if (!previous || previous.type !== "polygon") return target;
+  const entry = previous.points ?? [];
+  if (entry.length === 0) return target;
+  const t = drawIn(localFrame, 0, CANVAS_GLIDE_DURATION_FRAMES, easing);
+  const count = Math.max(entry.length, target.length);
+  const points: { x: number; y: number }[] = [];
+  for (let i = 0; i < count; i++) {
+    const entryPoint = entry[i] ?? entry[entry.length - 1];
+    const targetPoint = target[i] ?? target[target.length - 1];
+    points.push({ x: entryPoint.x + (targetPoint.x - entryPoint.x) * t, y: entryPoint.y + (targetPoint.y - entryPoint.y) * t });
+  }
+  return points;
 }
 
 /** A generic 2D diagram: freely positioned objects (dot/circle/label/
@@ -330,14 +443,27 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
 
   // Camera: glides the same generalized way as any object's properties.
   // Absent everywhere (today's only case) resolves to {50,50,1} at every
-  // phase, so Tx/Ty below come out to exactly 0 and scale to exactly 1 —
-  // an identity transform, byte-for-byte the same as having no camera code
-  // at all.
+  // phase, so camX/camY/camZoom below are exactly 50/50/1 PLUS the small
+  // continuous drift below — no longer a hard identity transform, on
+  // purpose (see CAMERA_DRIFT_* below): a scene that never touches `camera`
+  // at all still shouldn't sit perfectly frozen for its whole duration.
   const targetCamera = resolveCamera(currentPhase);
   const entryCamera = phaseIndex === 0 ? targetCamera : resolveCamera(previousPhase);
   const cameraT = phaseIndex === 0 ? 1 : drawIn(phaseLocalFrame, 0, CANVAS_GLIDE_DURATION_FRAMES, "easeInOut");
-  const camX = entryCamera.x + (targetCamera.x - entryCamera.x) * cameraT;
-  const camY = entryCamera.y + (targetCamera.y - entryCamera.y) * cameraT;
+  // A small always-on drift on top of the resolved (authored/glided) camera
+  // — the single highest-leverage "this doesn't feel frozen" fix: once a
+  // phase's own glide finishes (CANVAS_GLIDE_DURATION_FRAMES, well under a
+  // second), the camera used to sit dead still for however long the rest of
+  // the phase holds (often several seconds). Deliberately smaller amplitude
+  // than object-level `idle: "drift"` — this moves the ENTIRE frame, so it
+  // needs to be more restrained, the same "sparingly, subtle" lesson the
+  // 3D cinematic-drift camera work already learned the hard way. Different
+  // periods than the object drift constants (not fighting for attention
+  // with anything using `idle: "drift"` in the same scene).
+  const cameraDriftX = Math.sin(frame / CAMERA_DRIFT_PERIOD_FRAMES_X) * CAMERA_DRIFT_AMPLITUDE_PERCENT;
+  const cameraDriftY = Math.sin(frame / CAMERA_DRIFT_PERIOD_FRAMES_Y + 1.7) * CAMERA_DRIFT_AMPLITUDE_PERCENT;
+  const camX = entryCamera.x + (targetCamera.x - entryCamera.x) * cameraT + cameraDriftX;
+  const camY = entryCamera.y + (targetCamera.y - entryCamera.y) * cameraT + cameraDriftY;
   const camZoom = entryCamera.zoom + (targetCamera.zoom - entryCamera.zoom) * cameraT;
   const cameraTransform = `translate(${canvasWidth / 2 - (insetPercent(camX) / 100) * canvasWidth * camZoom}px, ${
     canvasHeight / 2 - (insetPercent(camY) / 100) * canvasHeight * camZoom
@@ -363,7 +489,8 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
   const resolvedObjects = currentPhase.objects.map((object, index) => {
     const previous = previousPhase?.objects.find((o) => o.id === object.id);
     const isNew = phaseIndex > 0 && !previous;
-    const props = resolveAnimatedProps(object, previous, phaseLocalFrame, object.easing);
+    const props = resolveAnimatedProps(object, previous, phaseLocalFrame, glideEasing(object.easing));
+    const resolvedPoints = resolveAnimatedPoints(object, previous, phaseLocalFrame, glideEasing(object.easing));
 
     // Entrance: phase 0 fades every object in fresh, staggered by index —
     // widened from the original 4 frames/object (imperceptible, everything
@@ -385,14 +512,19 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
     let entranceRotationOffset = 0;
     let entranceBlur = 0;
     if (entranceActive && object.enter !== "none") {
-      entranceOpacity = fadeIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
-      if (object.enter === "scale") entranceScale = drawIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
-      if (object.enter === "slide") entranceSlideY = slideIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, 30, object.easing);
-      if (object.enter === "slideLeft") entranceSlideX = slideIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, -SLIDE_HORIZONTAL_DISTANCE_PX, object.easing);
-      if (object.enter === "slideRight") entranceSlideX = slideIn(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, SLIDE_HORIZONTAL_DISTANCE_PX, object.easing);
-      if (object.enter === "rotate") entranceRotationOffset = settleFrom(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, ROTATE_ENTRANCE_DEG, 0, object.easing);
-      if (object.enter === "blur") entranceBlur = settleFrom(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, BLUR_ENTRANCE_PX, 0, object.easing);
-      if (object.enter === "zoomOut") entranceScale = settleFrom(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, ZOOM_OUT_START_SCALE, 1, object.easing);
+      // fade/scale/slide — the three most-used entrances, and the ones a
+      // cinematic easeOutBack/anticipate choice actually reads on — go
+      // through the broadened "Any" resolver. rotate/blur/zoomOut stay on
+      // motion.ts's strict settleFrom (glideEasing-coerced), same scope
+      // boundary Canvas3D.tsx already drew for the identical reason.
+      entranceOpacity = fadeInAny(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
+      if (object.enter === "scale") entranceScale = drawInAny(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, object.easing);
+      if (object.enter === "slide") entranceSlideY = slideInAny(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, 30, object.easing);
+      if (object.enter === "slideLeft") entranceSlideX = slideInAny(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, -SLIDE_HORIZONTAL_DISTANCE_PX, object.easing);
+      if (object.enter === "slideRight") entranceSlideX = slideInAny(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, SLIDE_HORIZONTAL_DISTANCE_PX, object.easing);
+      if (object.enter === "rotate") entranceRotationOffset = settleFrom(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, ROTATE_ENTRANCE_DEG, 0, glideEasing(object.easing));
+      if (object.enter === "blur") entranceBlur = settleFrom(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, BLUR_ENTRANCE_PX, 0, glideEasing(object.easing));
+      if (object.enter === "zoomOut") entranceScale = settleFrom(entranceFrame, entranceStart, LIFECYCLE_DURATION_FRAMES, ZOOM_OUT_START_SCALE, 1, glideEasing(object.easing));
     } else if (entranceActive) {
       entranceOpacity = 1; // enter: "none" — appears immediately, no animation
     }
@@ -411,7 +543,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
     let displayLabel: string | undefined;
     if (object.countTo !== undefined) {
       const countDurationFrames = (object.countDurationSeconds ?? 2) * FPS;
-      const countValue = settleFrom(frame, 0, countDurationFrames, object.countFrom ?? 0, object.countTo, object.easing);
+      const countValue = settleFrom(frame, 0, countDurationFrames, object.countFrom ?? 0, object.countTo, glideEasing(object.easing));
       displayLabel = Math.round(countValue).toLocaleString("en-US");
     }
 
@@ -429,6 +561,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
       slideYOffset: entranceSlideY,
       slideXOffset: entranceSlideX,
       blurPx: entranceBlur,
+      resolvedPoints,
       isExiting: false,
     };
   });
@@ -444,7 +577,8 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
           .filter((o) => o.exit !== "none" && !currentPhase.objects.some((c) => c.id === o.id))
           .filter(() => phaseLocalFrame < LIFECYCLE_DURATION_FRAMES)
           .map((object) => {
-            const exitProgress = fadeIn(phaseLocalFrame, 0, LIFECYCLE_DURATION_FRAMES, object.easing);
+            const exitPosition = resolveObjectPosition(object);
+            const exitProgress = fadeIn(phaseLocalFrame, 0, LIFECYCLE_DURATION_FRAMES, glideEasing(object.easing));
             const baseOpacity = object.opacity ?? 1;
             let opacity = baseOpacity;
             let scale = object.scale ?? 1;
@@ -480,8 +614,8 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
             return {
               object,
               displayLabel: undefined as string | undefined,
-              x: object.x,
-              y: object.y,
+              x: exitPosition.x,
+              y: exitPosition.y,
               radius: object.radius ?? 0,
               width: object.width ?? 0,
               height: object.height ?? 0,
@@ -491,6 +625,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               slideYOffset,
               slideXOffset,
               blurPx,
+              resolvedPoints: object.points,
               isExiting: true,
             };
           })
@@ -681,16 +816,23 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               );
             })}
 
-            {cameraObjects.map(({ object, x, y, radius, width, height, rotation: baseRotation, scale: baseScale, opacity: baseOpacity, slideYOffset, slideXOffset, blurPx }) => {
-              const [rawPx, rawPy] = project(x, y);
-              const px = rawPx + slideXOffset;
-              const py = rawPy + slideYOffset;
-              const color = object.color ?? colorForCharacter(object.label ?? object.id);
+            {cameraObjects.map(({ object, x, y, radius, width, height, rotation: baseRotation, scale: baseScale, opacity: baseOpacity, slideYOffset, slideXOffset, blurPx, resolvedPoints }) => {
               // Continuous ambient motion (see canvasObjectSchema's `idle`
               // field) — layered on top of the authored/glided base values,
               // not a replacement for them, so idle motion composes cleanly
-              // with everything else an object is already doing.
+              // with everything else an object is already doing. Computed
+              // before project() specifically for "drift": it nudges the
+              // logical x/y themselves (in the same percent space project()
+              // expects), not just a post-projection pixel offset, so it
+              // correctly follows the same inset/size scaling every other
+              // position does.
               const idlePhase = idlePhaseOffset(object.id);
+              const driftX = object.idle === "drift" ? Math.sin(frame / DRIFT_PERIOD_FRAMES_X + idlePhase) * DRIFT_AMPLITUDE_PERCENT : 0;
+              const driftY = object.idle === "drift" ? Math.sin(frame / DRIFT_PERIOD_FRAMES_Y + idlePhase * 1.3) * DRIFT_AMPLITUDE_PERCENT : 0;
+              const [rawPx, rawPy] = project(x + driftX, y + driftY);
+              const px = rawPx + slideXOffset;
+              const py = rawPy + slideYOffset;
+              const color = object.color ?? colorForCharacter(object.label ?? object.id);
               const rotation = object.idle === "spin" ? baseRotation + ((frame * (360 / SPIN_PERIOD_FRAMES)) % 360) : baseRotation;
               const scale = object.idle === "pulse" ? baseScale * pulse(frame, IDLE_PULSE_PERIOD_FRAMES, ...IDLE_PULSE_RANGE, idlePhase) : baseScale;
               const opacity = object.idle === "glow" ? baseOpacity * pulse(frame, GLOW_PERIOD_FRAMES, ...GLOW_RANGE, idlePhase) : baseOpacity;
@@ -714,7 +856,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                   ? GHOST_TRAIL.map(({ lag, opacity: trailOpacity }, trailIndex) => {
                       const ghostLocalFrame = phaseLocalFrame - Math.round(lag * CANVAS_GLIDE_DURATION_FRAMES);
                       if (ghostLocalFrame <= 0) return null;
-                      const ghostProps = resolveAnimatedProps(object, previous, ghostLocalFrame, object.easing);
+                      const ghostProps = resolveAnimatedProps(object, previous, ghostLocalFrame, glideEasing(object.easing));
                       const [gx, gy] = project(ghostProps.x, ghostProps.y);
                       return <circle key={trailIndex} cx={gx} cy={gy} r={DOT_RADIUS * 0.6} fill={color} opacity={trailOpacity * opacity} />;
                     })
@@ -881,7 +1023,12 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               }
 
               if (object.type === "polygon") {
-                const offsets = object.points ?? [];
+                // resolvedPoints (not object.points directly) is what
+                // actually glides per-vertex between phases — see
+                // resolveAnimatedPoints above. Falls back to the object's
+                // own authored points if something upstream ever left it
+                // unset (defensive only; every code path above sets it).
+                const offsets = resolvedPoints ?? object.points ?? [];
                 const points = offsets
                   .map((p) => {
                     const [ox, oy] = project(x + p.x, y + p.y);

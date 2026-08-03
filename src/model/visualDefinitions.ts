@@ -142,6 +142,64 @@ export const CANVAS_ICON_KEYS = [
 ] as const;
 export type CanvasIconKey = (typeof CANVAS_ICON_KEYS)[number];
 
+// A named alternative to authoring raw x/y numbers — the root cause behind
+// Canvas scenes shipping with overlapping/off-balance layouts was that every
+// object's position was freehand mental arithmetic on a flat 0-100 plane,
+// with zero tooling and zero feedback loop (confirmed by reading the actual
+// script-authoring pipeline: there's no layout helper anywhere, an author
+// just picks numbers). A 5-column x 3-row grid spanning the full safe area
+// (matching Canvas.tsx's own EDGE_MARGIN_PERCENT inset — these anchors are
+// pre-spread across the true usable frame, not clustered toward the middle,
+// which is what actually addresses "wasted real estate") gives an author a
+// discrete, well-separated set of positions to choose from instead of
+// freehanding a number. Deliberately NOT a forced replacement for x/y —
+// arrow endpoints, phase-to-phase glide paths, and anything needing exact
+// placement still need real numbers; `anchor` is sugar for the common "put
+// this in a zone" case (see canvasObjectSchema's refine below).
+export const CANVAS_ANCHOR_KEYS = [
+  "topFarLeft",
+  "topLeft",
+  "topCenter",
+  "topRight",
+  "topFarRight",
+  "middleFarLeft",
+  "middleLeft",
+  "middleCenter",
+  "middleRight",
+  "middleFarRight",
+  "bottomFarLeft",
+  "bottomLeft",
+  "bottomCenter",
+  "bottomRight",
+  "bottomFarRight",
+] as const;
+export type CanvasAnchorKey = (typeof CANVAS_ANCHOR_KEYS)[number];
+
+// The lookup table itself — plain numbers, no React/video import (same
+// model-layer-only rule CanvasIconKey follows). Columns spread edge-to-edge
+// across the same inset safe area Canvas.tsx's EDGE_MARGIN_PERCENT (8) already
+// reserves, so an anchor never needs its own separate clamping — it's already
+// guaranteed inside the safe area by construction.
+const ANCHOR_COLUMNS = { farLeft: 8, left: 29, center: 50, right: 71, farRight: 92 };
+const ANCHOR_ROWS = { top: 12, middle: 50, bottom: 88 };
+export const CANVAS_ANCHOR_POSITIONS: Record<CanvasAnchorKey, { x: number; y: number }> = {
+  topFarLeft: { x: ANCHOR_COLUMNS.farLeft, y: ANCHOR_ROWS.top },
+  topLeft: { x: ANCHOR_COLUMNS.left, y: ANCHOR_ROWS.top },
+  topCenter: { x: ANCHOR_COLUMNS.center, y: ANCHOR_ROWS.top },
+  topRight: { x: ANCHOR_COLUMNS.right, y: ANCHOR_ROWS.top },
+  topFarRight: { x: ANCHOR_COLUMNS.farRight, y: ANCHOR_ROWS.top },
+  middleFarLeft: { x: ANCHOR_COLUMNS.farLeft, y: ANCHOR_ROWS.middle },
+  middleLeft: { x: ANCHOR_COLUMNS.left, y: ANCHOR_ROWS.middle },
+  middleCenter: { x: ANCHOR_COLUMNS.center, y: ANCHOR_ROWS.middle },
+  middleRight: { x: ANCHOR_COLUMNS.right, y: ANCHOR_ROWS.middle },
+  middleFarRight: { x: ANCHOR_COLUMNS.farRight, y: ANCHOR_ROWS.middle },
+  bottomFarLeft: { x: ANCHOR_COLUMNS.farLeft, y: ANCHOR_ROWS.bottom },
+  bottomLeft: { x: ANCHOR_COLUMNS.left, y: ANCHOR_ROWS.bottom },
+  bottomCenter: { x: ANCHOR_COLUMNS.center, y: ANCHOR_ROWS.bottom },
+  bottomRight: { x: ANCHOR_COLUMNS.right, y: ANCHOR_ROWS.bottom },
+  bottomFarRight: { x: ANCHOR_COLUMNS.farRight, y: ANCHOR_ROWS.bottom },
+};
+
 // Canvas's Lottie vocabulary — same curated-allow-list convention as
 // CANVAS_ICON_KEYS, for motion Canvas's static icon/shape primitives can't
 // express: small hand-authored motifs (a loading spinner, a checkmark
@@ -446,7 +504,14 @@ const tacticalPhaseSchema = z.object({
 // labels stay legible instead of a single wide shot trying to fit all 22
 // players (see feedback_formation3d_camera_too_wide memory for why that
 // wide shot doesn't work).
-const cameraStyle3DSchema = z.enum(["sway", "orbit", "sideline-pan", "dolly-in", "two-team-reveal"]).default("sway");
+// "cinematic-drift" (added alongside camera3D.ts's own addition of the same
+// name — a forward-looking dolly/truck rather than an orbit around a fixed
+// target) is legal on every 3D kind sharing this schema, not just
+// canvas-3d — the pose function itself is generic, no reason to scope the
+// schema narrower than it.
+const cameraStyle3DSchema = z
+  .enum(["sway", "orbit", "sideline-pan", "dolly-in", "two-team-reveal", "cinematic-drift"])
+  .default("sway");
 
 const shotSchema = z.object({
   x: z.number().min(0).max(100),
@@ -525,11 +590,19 @@ const codeLinesSchema = z
 // id/type/x/y is optional with a default that reproduces v1's exact
 // behavior, so a v1 script (no rotation/scale/enter/exit/etc.) renders
 // byte-for-byte identically.
-const canvasObjectSchema = z.object({
+const canvasObjectSchema = z
+  .object({
   id: z.string(),
   type: z.enum(["dot", "circle", "label", "rectangle", "roundedRectangle", "ellipse", "line", "polygon", "icon", "lottie", "gif"]),
-  x: z.number().min(0).max(100),
-  y: z.number().min(0).max(100),
+  // Either give exact x/y, or name an `anchor` (see CANVAS_ANCHOR_KEYS above)
+  // and let it resolve the position — enforced below by .refine(), since
+  // Zod has no native "one of these two shapes" for optional siblings.
+  // Numeric x/y still wins if BOTH are somehow given (an anchor with an
+  // explicit override), matching the general "specific beats general"
+  // convention used elsewhere in this schema.
+  x: z.number().min(0).max(100).optional(),
+  y: z.number().min(0).max(100).optional(),
+  anchor: z.enum(CANVAS_ANCHOR_KEYS).optional(),
   label: z.string().optional(),
   color: z.string().optional(),
   // "icon" type only — which Heroicon (or curated brand SVG) to render.
@@ -594,6 +667,16 @@ const canvasObjectSchema = z.object({
   // array-order rendering exactly, since a stable sort of equal keys is a
   // no-op.
   layer: z.number().default(0),
+  // Without this, an object's entrance timing is purely array-index-driven
+  // (10 frames apart, ~0.33s) — fine for a diagram that just needs to build
+  // itself, wrong for "this node should appear the instant the narration
+  // says its name." Set to seconds from the START OF THE SCENE (not the
+  // phase) and this object's entrance fires exactly then instead of on the
+  // automatic stagger — the actual fix for a real complaint: components
+  // appearing all at once (or on a fixed fast stagger) instead of
+  // progressively, in step with what's being said. Omit for the old
+  // automatic-stagger behavior, unchanged.
+  revealAtSeconds: z.number().min(0).optional(),
   // How this object animates in when it first appears (phase 0, or a later
   // phase it's newly present in) / out (present in the previous phase but
   // absent from this one). "fade" (today's only enter behavior) and "none"
@@ -611,7 +694,12 @@ const canvasObjectSchema = z.object({
   // same calm-broadcast rule as the original three.
   enter: z.enum(["none", "fade", "scale", "slide", "slideLeft", "slideRight", "rotate", "blur", "zoomOut"]).default("fade"),
   exit: z.enum(["none", "fade", "scale", "slide", "slideLeft", "slideRight", "rotate", "blur"]).default("none"),
-  easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut"]).default("easeOut"),
+  // easeOutBack/anticipate (src/video/cinematicEasing.ts) are legal here on
+  // top of motion.ts's original four, same as canvas-3d already allows —
+  // resolved through keyframes.ts's exported resolveEasing. Only meaningful
+  // on entrance (see Canvas.tsx); phase-to-phase glide/idle motion still
+  // uses the original four via motion.ts directly, unchanged.
+  easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut", "easeOutBack", "anticipate"]).default("easeOut"),
   // A fading ghost trail behind this object while it glides — same
   // technique as TacticalBoard's GHOST_TRAIL, opt-in per object.
   trail: z.boolean().default(false),
@@ -631,11 +719,18 @@ const canvasObjectSchema = z.object({
   // sits fully still once its entrance settles. "spin" = continuous full
   // rotation (a processor/loading motif). "pulse" = gentle continuous scale
   // breathing (something "active"). "glow" = continuous opacity breathing
-  // (a status indicator, a live connection). Each object's own `id` seeds a
-  // phase offset so multiple idle objects in the same scene don't breathe in
+  // (a status indicator, a live connection). "drift" = genuine (small,
+  // slow) POSITION movement rather than an in-place effect — a real "this
+  // is alive" object for a long hold, not decoration; use it on the one or
+  // two focal objects a beat is actually about, not blanket-applied to
+  // everything on screen. Each object's own `id` seeds a phase offset so
+  // multiple idle objects in the same scene don't breathe/drift in
   // lockstep.
-  idle: z.enum(["none", "spin", "pulse", "glow"]).default("none"),
-});
+  idle: z.enum(["none", "spin", "pulse", "glow", "drift"]).default("none"),
+  })
+  .refine((object) => object.anchor !== undefined || (object.x !== undefined && object.y !== undefined), {
+    message: "CanvasObject needs either an `anchor` or both `x` and `y`",
+  });
 
 const canvasArrowSchema = z.object({
   from: z.string(),
@@ -655,6 +750,12 @@ const canvasArrowSchema = z.object({
   // "double" rather than an error, since a script author toggling `flow` on
   // an arrow while iterating on its style shouldn't hit a validation error.
   flow: z.boolean().default(false),
+  // Same fix as canvasObjectSchema's own revealAtSeconds, for the connector
+  // itself — seconds from the start of the scene at which this arrow starts
+  // drawing in, instead of the automatic array-index stagger. Author it to
+  // land at or after whichever of `from`/`to` appears later, or the arrow
+  // will visibly draw toward/from a node that hasn't appeared yet.
+  revealAtSeconds: z.number().min(0).optional(),
 });
 
 // Optional camera framing over Canvas's flat plane — absent (the default)
@@ -704,6 +805,13 @@ const canvasObject3DSchema = z.object({
   radius: z.number().min(0).max(100).optional(),
   width: z.number().min(0).max(100).optional(),
   height: z.number().min(0).max(100).optional(),
+  // Opts a dot/circle/roundedRectangle into REAL volumetric geometry (a
+  // sphere/puck/extruded block, not billboarded flat) instead of the
+  // camera-facing cutout every object without this renders as — see
+  // Canvas3D.tsx's rendering branch. Absent (the default) reproduces
+  // today's exact flat-billboard rendering; icons/labels ignore this
+  // entirely, they're legitimately flat content.
+  depth: z.number().min(0).max(100).optional(),
   rotation: z.number().default(0),
   scale: z.number().default(1),
   opacity: z.number().min(0).max(1).default(1),
@@ -713,7 +821,12 @@ const canvasObject3DSchema = z.object({
   layer: z.number().default(0),
   enter: z.enum(["none", "fade", "scale", "slide"]).default("fade"),
   exit: z.enum(["none", "fade", "scale", "slide"]).default("none"),
-  easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut"]).default("easeOut"),
+  // easeOutBack/anticipate (src/video/cinematicEasing.ts) are legal here on
+  // top of motion.ts's original four — resolved through keyframes.ts's
+  // exported resolveEasing, which already knows both sets. Only meaningful
+  // on entrance (see Canvas3D.tsx) — idle/glide motion still uses the
+  // original four via motion.ts directly, unchanged.
+  easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut", "easeOutBack", "anticipate"]).default("easeOut"),
   trail: z.boolean().default(false),
   // "orbit" is 3D-only (not added to Canvas's 2D idle enum) — continuously
   // revolves the object around its OWN authored (x,y) in the camera-facing

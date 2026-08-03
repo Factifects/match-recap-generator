@@ -1,6 +1,7 @@
 import "./index.css";
 import { Composition } from "remotion";
 import { AnalysisVideo, transitionFramesFor } from "./compositions/AnalysisVideo";
+import { InfiniteRoadBenchmark, BENCHMARK_DURATION_FRAMES, BENCHMARK_WIDTH, BENCHMARK_HEIGHT } from "./compositions/InfiniteRoadBenchmark";
 import { FPS } from "./theme";
 import type { TimedSegment, AspectRatio, AudioClipPlacement } from "../model/Segment";
 
@@ -49,6 +50,18 @@ export const RemotionRoot: React.FC = () => {
             ...DIMENSIONS[aspectRatio ?? "16:9"],
           };
         }}
+      />
+      {/* Standalone proof scene — isolated from the segment/script pipeline
+          above on purpose (see InfiniteRoadBenchmark.tsx's own header
+          comment). Fixed props, nothing to pass in. */}
+      <Composition
+        id="InfiniteRoadBenchmark"
+        component={InfiniteRoadBenchmark}
+        fps={FPS}
+        width={BENCHMARK_WIDTH}
+        height={BENCHMARK_HEIGHT}
+        durationInFrames={BENCHMARK_DURATION_FRAMES}
+        defaultProps={{}}
       />
     </>
   );
