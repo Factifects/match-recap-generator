@@ -49,6 +49,20 @@ export const SceneFrame: React.FC<{
     >
       <MotionBackdrop />
       <BackgroundArt src={backgroundImage} mode={backgroundImageMode} side={backgroundImageSide} orientation={orientation} />
+      {/* Ambient depth pass, under the content: a faint light source above
+          center plus a corner vignette. A dead-flat panel color is the
+          single clearest "slide deck, not film" tell next to professionally
+          graded motion graphics — this stays deliberately far below
+          noticeable-as-an-effect level (a viewer should feel the frame has
+          depth, not see a gradient). Rendered UNDER children so text/labels
+          keep their exact current contrast. */}
+      <AbsoluteFill
+        style={{
+          background:
+            "radial-gradient(ellipse 90% 70% at 50% 30%, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0) 60%)," +
+            "radial-gradient(ellipse 120% 110% at 50% 50%, rgba(0,0,0,0) 58%, rgba(0,0,0,0.30) 100%)",
+        }}
+      />
       {children}
     </AbsoluteFill>
   );

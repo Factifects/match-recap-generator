@@ -136,6 +136,8 @@ export const CANVAS_ICON_KEYS = [
   "chromeLogo",
   "javascriptLogo",
   "youtubeLogo",
+  "openaiLogo",
+  "huggingfaceLogo",
   "thumbsUp",
   "bell",
   "chat",
@@ -699,10 +701,15 @@ const canvasObjectSchema = z
   // resolved through keyframes.ts's exported resolveEasing. Only meaningful
   // on entrance (see Canvas.tsx); phase-to-phase glide/idle motion still
   // uses the original four via motion.ts directly, unchanged.
-  easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut", "easeOutBack", "anticipate"]).default("easeOut"),
+  easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut", "easeOutBack", "anticipate", "emphasized", "spring"]).default("easeOut"),
   // A fading ghost trail behind this object while it glides — same
   // technique as TacticalBoard's GHOST_TRAIL, opt-in per object.
   trail: z.boolean().default(false),
+  // "line" type only — the segment draws itself from its start point to its
+  // full length over its entrance (a self-drawing connector/underline, the
+  // classic motion-graphics line reveal) instead of appearing at full
+  // length. No-op on every other type.
+  draw: z.boolean().default(false),
   // Frosted-glass styling instead of the object's normal flat fill — a
   // translucent tint, blurred backdrop, and a soft light-catching border.
   // For "rectangle"/"roundedRectangle"/"circle"/"ellipse" this replaces the
@@ -787,6 +794,87 @@ const canvasPhaseSchema = z.object({
   startSeconds: z.number().min(0).optional(),
 });
 
+// Easing vocabulary for Canvas timeline actions — motion.ts's calm four plus
+// cinematicEasing.ts's full set. Timeline moves DEFAULT to "emphasized"
+// (Material's fast-launch/long-settle feel) rather than easeOut: the whole
+// point of authoring an evented timeline is choreographed, weighted motion,
+// so the cinematic curve is the right baseline there — phase-based scenes
+// keep their calm easeOut default untouched.
+const canvasTimelineEasingSchema = z
+  .enum(["linear", "easeIn", "easeOut", "easeInOut", "emphasized", "easeOutBack", "anticipate", "spring"])
+  .optional();
+
+// Canvas's evented timeline — the same "per-actor timing instead of a shared
+// per-phase clock" idea TacticalBoard's `timeline` already proved out, ported
+// to the generic diagram canvas. Each action carries its own startSeconds
+// (absolute, from the scene's start); any number can overlap or stagger, so a
+// scene reads as choreography (this moves WHILE that fades WHILE the camera
+// pushes in) rather than everyone re-arranging together. If both `phases`
+// and `timeline` are present, `timeline` wins — mirroring TacticalBoard's
+// own precedence convention.
+const canvasTimelineActionSchema = z.discriminatedUnion("type", [
+  // Glides any combination of an object's animatable properties to new
+  // values. `path: "arc"` bends the position glide along a quadratic curve
+  // (control point offset perpendicular to the straight line by `bow`
+  // percent, sign picks the side — same convention as arrow bows elsewhere);
+  // "line" (the default) is a straight glide.
+  z.object({
+    type: z.literal("move"),
+    id: z.string(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(0.8),
+    to: z.object({ x: z.number().min(0).max(100).optional(), y: z.number().min(0).max(100).optional() }).optional(),
+    scale: z.number().optional(),
+    rotation: z.number().optional(),
+    opacity: z.number().min(0).max(1).optional(),
+    radius: z.number().min(0).max(100).optional(),
+    path: z.enum(["line", "arc"]).default("line"),
+    bow: z.number().optional(),
+    easing: canvasTimelineEasingSchema,
+  }),
+  // Tweens an object's color (real interpolation, not a hard swap) and/or
+  // swaps its label text at `startSeconds`. Label swaps are instant by
+  // design — text can't meaningfully interpolate.
+  z.object({
+    type: z.literal("style"),
+    id: z.string(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.5),
+    color: z.string().optional(),
+    label: z.string().optional(),
+    easing: canvasTimelineEasingSchema,
+  }),
+  // The object stays hidden until `startSeconds`, then plays its own `enter`
+  // animation — the working (timeline-scoped) version of what the per-object
+  // `revealAtSeconds` field promises.
+  z.object({
+    type: z.literal("appear"),
+    id: z.string(),
+    startSeconds: z.number().min(0),
+  }),
+  // Fades the object out over `durationSeconds` and stops rendering it —
+  // the exit-mid-scene that phase mode can only express by dropping the
+  // object from a later phase's list.
+  z.object({
+    type: z.literal("disappear"),
+    id: z.string(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(0.4),
+  }),
+  // Pans/zooms the camera from wherever it currently is — any number of
+  // these can fire across the scene, same as TacticalBoard's timeline
+  // camera actions.
+  z.object({
+    type: z.literal("camera"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.2),
+    x: z.number().min(0).max(100).optional(),
+    y: z.number().min(0).max(100).optional(),
+    zoom: z.number().min(0.5).max(6).optional(),
+    easing: canvasTimelineEasingSchema,
+  }),
+]);
+
 // canvas-3d's object schema, restricted to the "core 6" v1 types (dot/
 // circle/roundedRectangle/line/icon/label) — ellipse/polygon/sharp
 // rectangle are deferred, see Canvas3D.tsx's docstring for the full scope-cut
@@ -826,7 +914,7 @@ const canvasObject3DSchema = z.object({
   // exported resolveEasing, which already knows both sets. Only meaningful
   // on entrance (see Canvas3D.tsx) — idle/glide motion still uses the
   // original four via motion.ts directly, unchanged.
-  easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut", "easeOutBack", "anticipate"]).default("easeOut"),
+  easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut", "easeOutBack", "anticipate", "emphasized", "spring"]).default("easeOut"),
   trail: z.boolean().default(false),
   // "orbit" is 3D-only (not added to Canvas's 2D idle enum) — continuously
   // revolves the object around its OWN authored (x,y) in the camera-facing
@@ -1629,7 +1717,7 @@ export const VISUAL_DEFINITIONS = [
     category: "generic-diagrams",
     label: "Canvas",
     description:
-      "A generic 2D scene: freely positioned objects (dot/circle/label/rectangle/roundedRectangle/ellipse/line/polygon), connected by arrows or object-tracking connectors, optionally rearranging across phases (every animatable property glides id-matched from one phase's value to the next) with per-object enter/exit animations, layering, trails, and an optional pan/zoom camera — the general-purpose diagram for anything a pitch/chart visual can't express (systems, physics, spatial relationships).",
+      "A generic 2D scene: freely positioned objects (dot/circle/label/rectangle/roundedRectangle/ellipse/line/polygon), connected by arrows or object-tracking connectors, optionally rearranging across phases (every animatable property glides id-matched from one phase's value to the next) with per-object enter/exit animations, layering, trails, and an optional pan/zoom camera — the general-purpose diagram for anything a pitch/chart visual can't express (systems, physics, spatial relationships). For choreographed, cinematic motion (each element moving on its own clock, curved paths, mid-scene color shifts, multiple camera moves), prefer the evented `timeline` over `phases` — see canvasTimelineActionSchema; `timeline` wins when both are present.",
     sceneTypeKey: "canvas",
     schema: z.object({
       kind: z.literal("canvas"),
@@ -1637,6 +1725,7 @@ export const VISUAL_DEFINITIONS = [
       objects: z.array(canvasObjectSchema).min(1),
       arrows: z.array(canvasArrowSchema).optional(),
       phases: z.array(canvasPhaseSchema).min(1).optional(),
+      timeline: z.array(canvasTimelineActionSchema).min(1).optional(),
       snap: z.number().optional(),
       camera: canvasCameraSchema.optional(),
     }),

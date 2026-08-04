@@ -76,6 +76,19 @@ export function computeVisualMinDurationSeconds(visual: Visual | undefined): num
     const phaseCount = 1 + visual.phases.length;
     return (phaseCount * PHASE_DURATION_FRAMES) / FPS;
   }
+  // A timeline-authored Canvas scene's floor comes straight from its own
+  // authored timing, same reasoning as the tactical-board branch above —
+  // and it wins over `phases` (which the renderer ignores when a timeline
+  // is present). Canvas timelines have no freeze concept, so no compressed-
+  // end bookkeeping is needed: every action's real end is just
+  // startSeconds (+ durationSeconds where the action has one — `appear`
+  // is instantaneous-entry, contributing only its own start).
+  if (visual?.kind === "canvas" && visual.timeline && visual.timeline.length > 0) {
+    const timelineEnd = Math.max(
+      ...visual.timeline.map((action) => action.startSeconds + ("durationSeconds" in action ? action.durationSeconds : 0)),
+    );
+    return timelineEnd + TIMELINE_SETTLE_BUFFER_SECONDS;
+  }
   if (visual?.kind === "canvas" && visual.phases && visual.phases.length > 0) {
     const phaseCount = 1 + visual.phases.length;
     return (phaseCount * CANVAS_PHASE_DURATION_FRAMES) / FPS;

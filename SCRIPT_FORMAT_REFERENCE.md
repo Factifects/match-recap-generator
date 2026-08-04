@@ -239,9 +239,33 @@ optional with a default that reproduces the plainest possible rendering.
   above) for on-screen captions during a multi-phase diagram. Since `Phases:`'s captions divide the
   scene's real duration while Canvas's own `phases` are fixed ~3s slots, give a caption an explicit
   `startSeconds` if you want it to land on a specific Canvas phase rather than an even split.
-- Deliberately not supported (as of this writing): groups/children, parent/constraint attachment,
-  bezier-curve arrows, per-object `start`/`duration` timeline overrides — each is its own subsystem,
-  left for a later round if actually needed.
+- **Canvas evented `timeline`** (added 2026-08-03 — supersedes the old "per-object start/duration
+  timeline overrides aren't supported" note): for choreographed, cinematic motion, add `timeline`
+  (an array of actions, each with its own absolute `startSeconds`) instead of `phases` — `timeline`
+  wins when both are present, mirroring TacticalBoard's convention. Actions:
+  - `{"type": "move", "id", "startSeconds", "durationSeconds"?: 0.8, "to"?: {x?, y?}, "scale"?,
+    "rotation"?, "opacity"?, "radius"?, "path"?: "line"|"arc", "bow"?, "easing"?}` — glides any
+    combination of properties; `path: "arc"` bends position travel along a curve (control point
+    perpendicular at `bow` percent, sign picks the side, default a quarter of the distance).
+    Sequential actions on the same object chain (each starts from where the last landed).
+  - `{"type": "style", "id", "startSeconds", "durationSeconds"?: 0.5, "color"?, "label"?}` — REAL
+    color interpolation (not a hard swap) and/or an instant label-text swap.
+  - `{"type": "appear", "id", "startSeconds"}` — object hidden until then, then plays its own
+    `enter` animation. `{"type": "disappear", "id", "startSeconds", "durationSeconds"?: 0.4}` —
+    fades out and stops rendering.
+  - `{"type": "camera", "startSeconds", "durationSeconds"?: 1.2, "x"?, "y"?, "zoom"?}` — any number
+    of camera moves across the scene.
+  Timeline moves default to a cinematic `emphasized` easing (fast launch, long soft settle —
+  Material's motion feel); `easing` also accepts `linear`/`easeIn`/`easeOut`/`easeInOut`/
+  `easeOutBack`/`anticipate`/`spring` (damped-spring arrival — overshoots and settles with one
+  faint oscillation, the Figma-Motion-style springy feel; also legal on a per-object `easing` for
+  entrances). The scene's minimum duration floor derives from the last action's
+  end + a settle buffer, same as TacticalBoard timelines. Per-object/per-arrow `revealAtSeconds`
+  is also genuinely wired now (absolute seconds from scene start, wins over the automatic entrance
+  stagger), and `line` objects accept `"draw": true` to draw themselves out from their start point.
+- Still deliberately not supported: groups/children, parent/constraint attachment, bezier-curve
+  arrows, masks/clip reveals — each is its own subsystem, left for a later round if actually
+  needed.
 - A post-parse pass checks every phase's objects for overlap. Two objects placed at the exact same
   position (a copy-paste mistake, not a deliberate layout) get nudged apart automatically. Anything
   else that overlaps is only ever logged as a warning, never moved — resolving it safely would require

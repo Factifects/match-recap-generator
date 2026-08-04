@@ -17,7 +17,7 @@ const DIMENSIONS: Record<AspectRatio, { width: number; height: number }> = {
  * dissolve, so this has to be computed per segment, not a flat rate. Each
  * segment's own padding (added in AnalysisVideo.tsx) is exactly its own
  * transitionFramesFor, so the same call is reused here to stay in sync. */
-function totalDurationInFrames(segments: TimedSegment[]): number {
+export function totalDurationInFrames(segments: TimedSegment[]): number {
   const rawSum = segments.reduce(
     (sum, segment) =>
       sum + Math.ceil(Math.max(segment.durationSeconds, segment.visualMinDurationSeconds ?? 0) * FPS) + transitionFramesFor(segment),

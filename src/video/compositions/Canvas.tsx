@@ -1,5 +1,5 @@
 import React from "react";
-import { useCurrentFrame, staticFile, interpolate } from "remotion";
+import { useCurrentFrame, staticFile, interpolate, interpolateColors } from "remotion";
 import { Lottie } from "@remotion/lottie";
 import { Gif } from "@remotion/gif";
 import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter, FPS } from "../theme";
@@ -128,6 +128,19 @@ function fitText(text: string, maxFontSize: number, maxWidthPx: number): FitText
 // from this). A white wash (not the object's own color) reads as glass far
 // more convincingly than a tinted one — real frosted glass is closer to
 // colorless than to "glass dyed the icon's brand color."
+// Soft elevation shadow under the "thing" objects (icons/dots) — the depth
+// cue that separates an element from the backdrop in polished motion
+// graphics; a flat SVG fill on a flat panel reads as a slide, the same
+// element with a soft contact shadow reads as staged. Composed INTO an
+// existing style's filter (entrance blur) rather than replacing it. Applied
+// to icons and dots only — structural shapes (frames, windows, lines) are
+// part of the diagram's "paper" and casting shadows from them reads wrong.
+const ELEVATION_SHADOW = "drop-shadow(0 10px 22px rgba(0,0,0,0.38))";
+function withElevation(style: React.CSSProperties): React.CSSProperties {
+  const existing = typeof style.filter === "string" ? `${style.filter} ` : "";
+  return { ...style, filter: `${existing}${ELEVATION_SHADOW}` };
+}
+
 const GLASS_BORDER = "rgba(255,255,255,0.55)";
 function withGlassBackdrop(style: React.CSSProperties): React.CSSProperties {
   return { ...style, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" } as React.CSSProperties;
@@ -389,6 +402,126 @@ function resolveAnimatedPoints(
   return points;
 }
 
+type CanvasTimelineActionT = NonNullable<CanvasData["timeline"]>[number];
+
+// Timeline moves default to the cinematic "emphasized" curve (fast launch,
+// long soft settle) rather than phase mode's calm easeOut — an evented
+// timeline exists specifically for choreographed, weighted motion, so the
+// Material-style curve is the right baseline THERE without touching any
+// phase-authored scene's feel.
+const TIMELINE_DEFAULT_EASING = "emphasized" as const;
+
+interface TimelineObjectState {
+  x: number;
+  y: number;
+  radius: number;
+  rotation: number;
+  scale: number;
+  opacity: number;
+  color: string | undefined;
+  labelOverride: string | undefined;
+  visible: boolean;
+  appearFrame: number | undefined;
+}
+
+/** Folds every timeline action targeting `object` (sorted by startSeconds)
+ * into its current animated state at `frame` — the Canvas counterpart of
+ * TacticalBoard's evented resolution. Each action interpolates FROM the
+ * accumulated result of everything before it, so sequential actions chain
+ * naturally (move right, then arc up-left from wherever that landed). A
+ * `move` with `path: "arc"` follows a quadratic bezier whose control point
+ * sits perpendicular to the straight line at `bow` percent (defaulting to a
+ * quarter of the travel distance) — the Material "arc motion" principle,
+ * straight-line travel being the single most mechanical-reading thing about
+ * interpolated motion. Overlapping actions on the SAME object technically
+ * compose (pure function of frame) but read as mush — author them
+ * sequentially. */
+function resolveTimelineObject(object: CanvasObjectT, actions: CanvasTimelineActionT[], frame: number): TimelineObjectState {
+  const basePos = resolveObjectPosition(object);
+  const state: TimelineObjectState = {
+    x: basePos.x,
+    y: basePos.y,
+    radius: object.radius ?? 0,
+    rotation: object.rotation,
+    scale: object.scale,
+    opacity: object.opacity,
+    color: object.color,
+    labelOverride: undefined,
+    visible: true,
+    appearFrame: undefined,
+  };
+  for (const action of actions) {
+    if (action.type === "camera" || action.id !== object.id) continue;
+    const start = action.startSeconds * FPS;
+    if (action.type === "appear") {
+      state.appearFrame = start;
+      if (frame < start) state.visible = false;
+      continue;
+    }
+    if (frame < start) continue;
+    if (action.type === "move") {
+      const durationFrames = Math.max(1, action.durationSeconds * FPS);
+      const t = resolveEasing(action.easing ?? TIMELINE_DEFAULT_EASING)(Math.min(1, (frame - start) / durationFrames));
+      const fromX = state.x;
+      const fromY = state.y;
+      const toX = action.to?.x ?? fromX;
+      const toY = action.to?.y ?? fromY;
+      const dx = toX - fromX;
+      const dy = toY - fromY;
+      if (action.path === "arc" && (dx !== 0 || dy !== 0)) {
+        const dist = Math.hypot(dx, dy);
+        const bow = action.bow ?? dist * 0.25;
+        const cx = fromX + dx / 2 + (-dy / dist) * bow;
+        const cy = fromY + dy / 2 + (dx / dist) * bow;
+        const u = 1 - t;
+        state.x = u * u * fromX + 2 * u * t * cx + t * t * toX;
+        state.y = u * u * fromY + 2 * u * t * cy + t * t * toY;
+      } else {
+        state.x = fromX + dx * t;
+        state.y = fromY + dy * t;
+      }
+      if (action.scale !== undefined) state.scale = state.scale + (action.scale - state.scale) * t;
+      if (action.rotation !== undefined) state.rotation = state.rotation + (action.rotation - state.rotation) * t;
+      if (action.opacity !== undefined) state.opacity = state.opacity + (action.opacity - state.opacity) * t;
+      if (action.radius !== undefined) state.radius = state.radius + (action.radius - state.radius) * t;
+    } else if (action.type === "style") {
+      const durationFrames = Math.max(1, action.durationSeconds * FPS);
+      const t = resolveEasing(action.easing ?? "easeInOut")(Math.min(1, (frame - start) / durationFrames));
+      if (action.color) {
+        // A real color tween when there's a from-color to tween FROM; an
+        // object relying on the colorForCharacter fallback just hard-sets
+        // (there's no stable from-value to interpolate against).
+        state.color = state.color ? interpolateColors(t, [0, 1], [state.color, action.color]) : action.color;
+      }
+      if (action.label !== undefined) state.labelOverride = action.label;
+    } else if (action.type === "disappear") {
+      const durationFrames = Math.max(1, action.durationSeconds * FPS);
+      const t = Math.min(1, (frame - start) / durationFrames);
+      state.opacity = state.opacity * (1 - t);
+      if (t >= 1) state.visible = false;
+    }
+  }
+  return state;
+}
+
+/** Camera counterpart of resolveTimelineObject — folds every `camera` action
+ * from the base framing forward, each panning/zooming from wherever the
+ * previous one landed. */
+function resolveTimelineCamera(base: CanvasCameraT, actions: CanvasTimelineActionT[], frame: number): CanvasCameraT {
+  const cam = { ...base };
+  for (const action of actions) {
+    if (action.type !== "camera") continue;
+    const start = action.startSeconds * FPS;
+    if (frame < start) continue;
+    const durationFrames = Math.max(1, action.durationSeconds * FPS);
+    const t = resolveEasing(action.easing ?? TIMELINE_DEFAULT_EASING)(Math.min(1, (frame - start) / durationFrames));
+    if (action.x !== undefined) cam.x = cam.x + (action.x - cam.x) * t;
+    if (action.y !== undefined) cam.y = cam.y + (action.y - cam.y) * t;
+    if (action.zoom !== undefined) cam.zoom = cam.zoom + (action.zoom - cam.zoom) * t;
+  }
+  return cam;
+}
+
 /** A generic 2D diagram: freely positioned objects (dot/circle/label/
  * rectangle/roundedRectangle/ellipse/line/polygon) connected by arrows or
  * object-tracking connectors, for spatial/systems explanations a pitch or
@@ -410,7 +543,7 @@ function resolveAnimatedPoints(
  * independent of the scene's real duration, give a caption an explicit
  * `startSeconds` to align it to a specific phase. */
 export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
-  data: { title, objects, arrows = [], phases: dataPhases, camera: topCamera, snap },
+  data: { title, objects, arrows = [], phases: dataPhases, camera: topCamera, snap, timeline },
   backgroundColor,
   backgroundImage,
   backgroundImageMode,
@@ -421,9 +554,16 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
   const isPortrait = orientation === "portrait";
   const { width: canvasWidth, height: canvasHeight } = isPortrait ? CANVAS_SIZE.portrait : CANVAS_SIZE.landscape;
 
+  // Evented-timeline mode: the top-level objects/arrows/camera are the whole
+  // (single) phase, and all motion comes from timeline actions resolved at
+  // the scene's absolute frame — `phases` is ignored entirely when both are
+  // present, mirroring TacticalBoard's timeline-wins precedence.
+  const timelineMode = !!(timeline && timeline.length > 0);
+  const timelineSorted = timelineMode ? [...timeline!].sort((a, b) => a.startSeconds - b.startSeconds) : [];
+
   const allPhases: ResolvedPhase[] = [
     { objects, arrows, camera: topCamera },
-    ...(dataPhases ?? []).map((phase) => ({
+    ...(timelineMode ? [] : (dataPhases ?? [])).map((phase) => ({
       objects: phase.objects,
       arrows: phase.arrows ?? [],
       camera: phase.camera,
@@ -462,9 +602,12 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
   // with anything using `idle: "drift"` in the same scene).
   const cameraDriftX = Math.sin(frame / CAMERA_DRIFT_PERIOD_FRAMES_X) * CAMERA_DRIFT_AMPLITUDE_PERCENT;
   const cameraDriftY = Math.sin(frame / CAMERA_DRIFT_PERIOD_FRAMES_Y + 1.7) * CAMERA_DRIFT_AMPLITUDE_PERCENT;
-  const camX = entryCamera.x + (targetCamera.x - entryCamera.x) * cameraT + cameraDriftX;
-  const camY = entryCamera.y + (targetCamera.y - entryCamera.y) * cameraT + cameraDriftY;
-  const camZoom = entryCamera.zoom + (targetCamera.zoom - entryCamera.zoom) * cameraT;
+  // Timeline mode folds `camera` actions from the base framing instead of
+  // phase-gliding; the always-on drift layers on top either way.
+  const timelineCamera = timelineMode ? resolveTimelineCamera(topCamera ?? DEFAULT_CAMERA, timelineSorted, frame) : undefined;
+  const camX = (timelineCamera ? timelineCamera.x : entryCamera.x + (targetCamera.x - entryCamera.x) * cameraT) + cameraDriftX;
+  const camY = (timelineCamera ? timelineCamera.y : entryCamera.y + (targetCamera.y - entryCamera.y) * cameraT) + cameraDriftY;
+  const camZoom = timelineCamera ? timelineCamera.zoom : entryCamera.zoom + (targetCamera.zoom - entryCamera.zoom) * cameraT;
   const cameraTransform = `translate(${canvasWidth / 2 - (insetPercent(camX) / 100) * canvasWidth * camZoom}px, ${
     canvasHeight / 2 - (insetPercent(camY) / 100) * canvasHeight * camZoom
   }px) scale(${camZoom})`;
@@ -486,11 +629,16 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
   // looking radius overflow top/bottom even when perfectly centered.
   const projectRadius = (radius: number) => (radius / 100) * Math.min(canvasWidth, canvasHeight) * SIZE_SCALE;
 
-  const resolvedObjects = currentPhase.objects.map((object, index) => {
+  const resolvedObjects = currentPhase.objects
+    .map((object, index) => {
     const previous = previousPhase?.objects.find((o) => o.id === object.id);
     const isNew = phaseIndex > 0 && !previous;
     const props = resolveAnimatedProps(object, previous, phaseLocalFrame, glideEasing(object.easing));
     const resolvedPoints = resolveAnimatedPoints(object, previous, phaseLocalFrame, glideEasing(object.easing));
+    const timelineState = timelineMode ? resolveTimelineObject(object, timelineSorted, frame) : undefined;
+    // Fully disappeared (or not yet appeared, for enter:"none" objects that
+    // would otherwise render early) — skip entirely.
+    if (timelineState && !timelineState.visible) return null;
 
     // Entrance: phase 0 fades every object in fresh, staggered by index —
     // widened from the original 4 frames/object (imperceptible, everything
@@ -503,8 +651,14 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
     // 0: every new-in-this-phase object popped in at the exact same
     // instant) rather than all landing together.
     const entranceActive = phaseIndex === 0 || isNew;
-    const entranceStart = phaseIndex === 0 ? 10 + index * 10 : index * 8;
-    const entranceFrame = phaseIndex === 0 ? frame : phaseLocalFrame;
+    // An absolute-frame anchor — a timeline `appear` action, or the
+    // per-object `revealAtSeconds` field (schema-documented all along but
+    // never actually wired into this renderer until now) — wins over the
+    // automatic array-index stagger, so an object can land exactly when the
+    // narration names it.
+    const revealFrame = timelineState?.appearFrame ?? (object.revealAtSeconds !== undefined ? object.revealAtSeconds * FPS : undefined);
+    const entranceStart = revealFrame !== undefined ? revealFrame : phaseIndex === 0 ? 10 + index * 10 : index * 8;
+    const entranceFrame = revealFrame !== undefined || phaseIndex === 0 ? frame : phaseLocalFrame;
     let entranceOpacity = 1;
     let entranceScale = 1;
     let entranceSlideY = 0;
@@ -543,28 +697,35 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
     let displayLabel: string | undefined;
     if (object.countTo !== undefined) {
       const countDurationFrames = (object.countDurationSeconds ?? 2) * FPS;
-      const countValue = settleFrom(frame, 0, countDurationFrames, object.countFrom ?? 0, object.countTo, glideEasing(object.easing));
+      // Anchored to the object's own reveal moment when one exists — a
+      // counter that appears at 8s should start counting AT 8s, not have
+      // silently finished at 2s.
+      const countValue = settleFrom(frame, revealFrame ?? 0, countDurationFrames, object.countFrom ?? 0, object.countTo, glideEasing(object.easing));
       displayLabel = Math.round(countValue).toLocaleString("en-US");
     }
+    if (displayLabel === undefined && timelineState?.labelOverride !== undefined) displayLabel = timelineState.labelOverride;
 
     return {
       object,
       displayLabel,
-      x: props.x,
-      y: props.y,
-      radius: props.radius,
+      colorOverride: timelineState?.color,
+      entranceStartFrame: entranceStart,
+      x: timelineState?.x ?? props.x,
+      y: timelineState?.y ?? props.y,
+      radius: timelineState?.radius ?? props.radius,
       width: props.width,
       height: props.height,
-      rotation: props.rotation + entranceRotationOffset,
-      scale: props.scale * entranceScale,
-      opacity: props.opacity * entranceOpacity,
+      rotation: (timelineState?.rotation ?? props.rotation) + entranceRotationOffset,
+      scale: (timelineState?.scale ?? props.scale) * entranceScale,
+      opacity: (timelineState?.opacity ?? props.opacity) * entranceOpacity,
       slideYOffset: entranceSlideY,
       slideXOffset: entranceSlideX,
       blurPx: entranceBlur,
       resolvedPoints,
       isExiting: false,
     };
-  });
+  })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
   // Objects present in the previous phase but absent from this one — v1
   // simply stopped rendering these the instant the phase changed. `exit:
@@ -614,6 +775,8 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
             return {
               object,
               displayLabel: undefined as string | undefined,
+              colorOverride: undefined as string | undefined,
+              entranceStartFrame: 0,
               x: exitPosition.x,
               y: exitPosition.y,
               radius: object.radius ?? 0,
@@ -740,7 +903,13 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               const to = typeof arrow.to === "string" ? objectPosition(arrow.to) : project(arrow.to.x, arrow.to.y);
               if (!to) return null;
               const [toX, toY] = to;
-              const progress = drawIn(phaseLocalFrame, 10 + index * 6, 18);
+              // An arrow's own `revealAtSeconds` (absolute, from the scene's
+              // start — schema-documented but previously unwired, same story
+              // as the object-level field) wins over the index stagger.
+              const progress =
+                arrow.revealAtSeconds !== undefined
+                  ? drawIn(frame, arrow.revealAtSeconds * FPS, 18)
+                  : drawIn(phaseLocalFrame, 10 + index * 6, 18);
               const [fromX, fromY] = from;
               const currentX = fromX + (toX - fromX) * progress;
               const currentY = fromY + (toY - fromY) * progress;
@@ -816,7 +985,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               );
             })}
 
-            {cameraObjects.map(({ object, x, y, radius, width, height, rotation: baseRotation, scale: baseScale, opacity: baseOpacity, slideYOffset, slideXOffset, blurPx, resolvedPoints }) => {
+            {cameraObjects.map(({ object, displayLabel, x, y, radius, width, height, rotation: baseRotation, scale: baseScale, opacity: baseOpacity, slideYOffset, slideXOffset, blurPx, resolvedPoints, colorOverride, entranceStartFrame }) => {
               // Continuous ambient motion (see canvasObjectSchema's `idle`
               // field) — layered on top of the authored/glided base values,
               // not a replacement for them, so idle motion composes cleanly
@@ -832,7 +1001,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               const [rawPx, rawPy] = project(x + driftX, y + driftY);
               const px = rawPx + slideXOffset;
               const py = rawPy + slideYOffset;
-              const color = object.color ?? colorForCharacter(object.label ?? object.id);
+              const color = colorOverride ?? object.color ?? colorForCharacter(object.label ?? object.id);
               const rotation = object.idle === "spin" ? baseRotation + ((frame * (360 / SPIN_PERIOD_FRAMES)) % 360) : baseRotation;
               const scale = object.idle === "pulse" ? baseScale * pulse(frame, IDLE_PULSE_PERIOD_FRAMES, ...IDLE_PULSE_RANGE, idlePhase) : baseScale;
               const opacity = object.idle === "glow" ? baseOpacity * pulse(frame, GLOW_PERIOD_FRAMES, ...GLOW_RANGE, idlePhase) : baseOpacity;
@@ -866,20 +1035,23 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               // scene background, not on top of the shape's own fill — so
               // plain white text (matching dot/label's own convention)
               // always has enough contrast regardless of the shape's color.
+              // A timeline `style` label swap must reach shape/icon
+              // sublabels too, not just label-type objects.
+              const effectiveLabel = displayLabel ?? object.label;
               const belowLabel = (offsetPx: number) =>
-                object.label && (
+                effectiveLabel && (
                   <text
                     x={px}
                     y={py + offsetPx}
                     textAnchor="middle"
                     fontFamily={FONT_FAMILY}
                     fontWeight={700}
-                    {...fitText(object.label ?? "", 36, (canvasWidth * 0.85) / camZoom)}
+                    {...fitText(effectiveLabel ?? "", 36, (canvasWidth * 0.85) / camZoom)}
                     fill={COLORS.text}
                     opacity={opacity}
                     style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
                   >
-                    {object.label}
+                    {effectiveLabel}
                   </text>
                 );
 
@@ -987,7 +1159,12 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               }
 
               if (object.type === "line") {
-                const lengthPx = (width / 100) * canvasWidth * SIZE_SCALE;
+                // `draw: true` — the segment draws itself out from its start
+                // point over its entrance instead of appearing at full
+                // length (the classic self-drawing connector reveal).
+                const lineFrame = phaseIndex === 0 ? frame : phaseLocalFrame;
+                const drawT = object.draw ? drawInAny(lineFrame, entranceStartFrame, 24, object.easing) : 1;
+                const lengthPx = (width / 100) * canvasWidth * SIZE_SCALE * drawT;
                 const rad = (rotation * Math.PI) / 180;
                 const x2 = px + lengthPx * Math.cos(rad);
                 const y2 = py + lengthPx * Math.sin(rad);
@@ -1103,7 +1280,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       height={size}
                       fill={color}
                       opacity={opacity}
-                      style={transformStyle}
+                      style={withElevation(transformStyle)}
                     />
                     {belowLabel((object.glass ? tileSize : size) / 2 + 24)}
                   </React.Fragment>
@@ -1198,11 +1375,11 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               return (
                 <React.Fragment key={object.id}>
                   {trailNodes}
-                  <g opacity={opacity} style={transformStyle}>
+                  <g opacity={opacity} style={withElevation(transformStyle)}>
                     <circle cx={px} cy={py} r={DOT_RADIUS} fill={color} />
-                    {object.label &&
+                    {effectiveLabel &&
                       (() => {
-                        const fit = fitText(object.label, CANVAS_DOT_LABEL_STYLE.fontSize, (canvasWidth * 0.85) / camZoom);
+                        const fit = fitText(effectiveLabel, CANVAS_DOT_LABEL_STYLE.fontSize, (canvasWidth * 0.85) / camZoom);
                         return (
                           <text
                             x={px}
@@ -1213,7 +1390,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                             lengthAdjust={fit.lengthAdjust}
                             style={{ ...CANVAS_DOT_LABEL_STYLE, fontSize: fit.fontSize }}
                           >
-                            {object.label}
+                            {effectiveLabel}
                           </text>
                         );
                       })()}

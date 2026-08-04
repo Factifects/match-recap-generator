@@ -33,8 +33,32 @@ export function anticipate(t: number): number {
   return t * t * ((ANTICIPATE_TENSION + 1) * t - ANTICIPATE_TENSION);
 }
 
+/** Material Design's "emphasized decelerate" feel — launches near-instantly,
+ * then spends most of its time settling (a much longer tail than easeOut's
+ * cubic). This is the curve that makes big-studio motion graphics read as
+ * weighted/intentional: the element is already moving by the time you notice
+ * it, and the arrival is soft. Approximated as a quartic-out-plus rather
+ * than solving Material's cubic-bezier(0.05, 0.7, 0.1, 1) numerically —
+ * the visual read is equivalent at 30fps, and a closed-form polynomial keeps
+ * this file's "hand-tuned curve, not a physics engine" philosophy. */
+export function emphasized(t: number): number {
+  return 1 - Math.pow(1 - t, 3.6);
+}
+
+/** A damped spring settle — overshoots ~12% then oscillates once, very
+ * faintly, before resting. This is Figma Motion's signature "springy
+ * arrival" feel, expressed closed-form (decaying cosine) rather than as a
+ * physics sim, same philosophy as everything else in this file. Distinct
+ * from easeOutBack: back overshoots once and settles monotonically; spring
+ * crosses the target twice, which is what actually reads as springy. */
+export function spring(t: number): number {
+  return 1 - Math.exp(-6 * t) * Math.cos(9 * t);
+}
+
 export const CINEMATIC_EASING_CURVES = {
   easeOutBack,
   anticipate,
+  emphasized,
+  spring,
 } as const;
 export type CinematicEasingName = keyof typeof CINEMATIC_EASING_CURVES;
