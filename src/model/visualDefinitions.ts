@@ -141,6 +141,8 @@ export const CANVAS_ICON_KEYS = [
   "thumbsUp",
   "bell",
   "chat",
+  "heart",
+  "cart",
 ] as const;
 export type CanvasIconKey = (typeof CANVAS_ICON_KEYS)[number];
 
@@ -595,7 +597,7 @@ const codeLinesSchema = z
 const canvasObjectSchema = z
   .object({
   id: z.string(),
-  type: z.enum(["dot", "circle", "label", "rectangle", "roundedRectangle", "ellipse", "line", "polygon", "icon", "lottie", "gif"]),
+  type: z.enum(["dot", "circle", "label", "rectangle", "roundedRectangle", "ellipse", "line", "polygon", "icon", "lottie", "gif", "image"]),
   // Either give exact x/y, or name an `anchor` (see CANVAS_ANCHOR_KEYS above)
   // and let it resolve the position — enforced below by .refine(), since
   // Zod has no native "one of these two shapes" for optional siblings.
@@ -627,6 +629,12 @@ const canvasObjectSchema = z
   // `icon`/`lottie`'s stricter enum safety; worth it for not needing a code
   // change every time a new GIF is dropped in.
   gifFile: z.string().optional(),
+  // "image" type only — the filename of a static image sitting in
+  // public/assets/logos/ (e.g. "techijest-logo.png"). For a fixed brand
+  // asset (a channel logo) rather than a sourced illustration — free string
+  // like `gifFile`, same tradeoff (typo fails silently at render time, not
+  // schema-validation time).
+  imageFile: z.string().optional(),
   // "label" type only — tweens the DISPLAYED NUMBER smoothly from
   // `countFrom` to `countTo` over `countDurationSeconds` once this object
   // appears, instead of `label` sitting static or hard-swapping text at
@@ -734,6 +742,22 @@ const canvasObjectSchema = z
   // multiple idle objects in the same scene don't breathe/drift in
   // lockstep.
   idle: z.enum(["none", "spin", "pulse", "glow", "drift"]).default("none"),
+  // "label" type only — opt into a different text treatment than this
+  // project's normal bold body/caption style, still the same Montserrat
+  // family (no second display font — reverted after a real render showed
+  // Anton's condensed letterforms reading cramped/wrong for a wordmark).
+  // "wordmark" is heavier (800) with real letter-spacing, for an actual
+  // brand-name moment (e.g. "TECHIJEST" on the channel intro card);
+  // "subtitle" (`SUBTITLE_FONT_FAMILY`, Poppins 300) is a thin companion
+  // weight for a tagline sitting under one. No-op on every other type;
+  // "default" (the default) reproduces today's exact rendering.
+  // "detail" — smaller than the default 46px body/caption size, same
+  // weight/family, no uppercasing. For a subordinate line that needs to
+  // read as SUBORDINATE to a nearby header/value rather than competing
+  // with it for visual weight (e.g. a section header like "PAYMENT" vs. a
+  // field value sitting under it) — composeSelect.ts's staged rebuild is
+  // the first real user of this.
+  fontStyle: z.enum(["default", "wordmark", "subtitle", "detail"]).default("default"),
   })
   .refine((object) => object.anchor !== undefined || (object.x !== undefined && object.y !== undefined), {
     message: "CanvasObject needs either an `anchor` or both `x` and `y`",
@@ -804,6 +828,16 @@ const canvasTimelineEasingSchema = z
   .enum(["linear", "easeIn", "easeOut", "easeInOut", "emphasized", "easeOutBack", "anticipate", "spring"])
   .optional();
 
+// The Canvas sound-event vocabulary (src/cadence/canvasCadences.ts) reused
+// here so a timeline action can request its OWN short cue at its OWN
+// startSeconds, instead of the scene falling back to one generic whoosh
+// stretched under its entire duration. `success`/`alert` cover a
+// confirmation (a checkmark landing, a charge going through) and a
+// warning/danger beat (a connection dropping, a TTL expiring) — distinct
+// from the neutral `entrance`/`click`, since a checkmark shouldn't sound
+// like a button press.
+const canvasTimelineSoundEventSchema = z.enum(["entrance", "move", "zoom", "click", "highlight", "success", "alert", "typing"]).optional();
+
 // Canvas's evented timeline — the same "per-actor timing instead of a shared
 // per-phase clock" idea TacticalBoard's `timeline` already proved out, ported
 // to the generic diagram canvas. Each action carries its own startSeconds
@@ -831,6 +865,7 @@ const canvasTimelineActionSchema = z.discriminatedUnion("type", [
     path: z.enum(["line", "arc"]).default("line"),
     bow: z.number().optional(),
     easing: canvasTimelineEasingSchema,
+    sound: canvasTimelineSoundEventSchema,
   }),
   // Tweens an object's color (real interpolation, not a hard swap) and/or
   // swaps its label text at `startSeconds`. Label swaps are instant by
@@ -843,6 +878,7 @@ const canvasTimelineActionSchema = z.discriminatedUnion("type", [
     color: z.string().optional(),
     label: z.string().optional(),
     easing: canvasTimelineEasingSchema,
+    sound: canvasTimelineSoundEventSchema,
   }),
   // The object stays hidden until `startSeconds`, then plays its own `enter`
   // animation — the working (timeline-scoped) version of what the per-object
@@ -851,6 +887,7 @@ const canvasTimelineActionSchema = z.discriminatedUnion("type", [
     type: z.literal("appear"),
     id: z.string(),
     startSeconds: z.number().min(0),
+    sound: canvasTimelineSoundEventSchema,
   }),
   // Fades the object out over `durationSeconds` and stops rendering it —
   // the exit-mid-scene that phase mode can only express by dropping the
@@ -860,6 +897,7 @@ const canvasTimelineActionSchema = z.discriminatedUnion("type", [
     id: z.string(),
     startSeconds: z.number().min(0),
     durationSeconds: z.number().min(0.1).default(0.4),
+    sound: canvasTimelineSoundEventSchema,
   }),
   // Pans/zooms the camera from wherever it currently is — any number of
   // these can fire across the scene, same as TacticalBoard's timeline
@@ -872,6 +910,24 @@ const canvasTimelineActionSchema = z.discriminatedUnion("type", [
     y: z.number().min(0).max(100).optional(),
     zoom: z.number().min(0.5).max(6).optional(),
     easing: canvasTimelineEasingSchema,
+    sound: canvasTimelineSoundEventSchema,
+  }),
+  // Directs attention WITHOUT moving the camera: the listed objects stay at
+  // full strength while everything else recedes but stays visible for
+  // context. This is the primary focus mechanic for a diagram that is being
+  // built up cumulatively — reach for it before a camera zoom, which loses
+  // the surrounding structure the viewer is meant to be placing things into.
+  // An empty `ids` clears the focus and restores every object.
+  z.object({
+    type: z.literal("focus"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.4),
+    ids: z.array(z.string()),
+    /** How far unfocused objects recede. 0.3 is a strong subordination that
+     * still leaves shapes readable; raise it toward 1 for a gentler pass. */
+    dimOpacity: z.number().min(0).max(1).default(0.28),
+    easing: canvasTimelineEasingSchema,
+    sound: canvasTimelineSoundEventSchema,
   }),
 ]);
 
@@ -990,6 +1046,43 @@ export interface VisualDefinition<Schema extends z.ZodTypeAny = z.ZodTypeAny> {
 // beat. It never carries its own timing — the beat's real narration audio (or,
 // pre-audio, its word-count estimate) always drives how long it's on screen, so
 // swapping the caption for a graphic never silently drops narration content.
+// The `diagram` medium's node shape. Nesting is spelled out to three explicit
+// levels rather than expressed with `z.lazy`: `Visual` is derived from these
+// schemas via `z.infer`, and a recursive schema infers as `any` there, which
+// would silently switch off type-checking for every consumer of a diagram
+// visual. Three levels covers the real cases in this register (region > cluster
+// > node, or VPC > subnet > instance) — deepen it only when a script needs it.
+const diagramNodeBase = {
+  id: z.string().min(1),
+  label: z.string().optional(),
+  sublabel: z.string().optional(),
+  shape: z.enum(["box", "service", "database", "queue", "user", "cloud", "gateway", "balancer", "group"]).optional(),
+  icon: z.string().optional(),
+  /** A real technology's name — "redis", "postgresql", "kafka", "Node.js".
+   * Resolved during generation to the actual brand mark (Simple Icons, cached
+   * locally); falls back to this node's `shape` glyph if it can't be fetched,
+   * so an offline run still renders. Use it whenever a node IS a named
+   * technology rather than a generic role. */
+  brand: z.string().optional(),
+  /** Filled in by the brand resolver — path relative to public/. Not authored
+   * by hand. */
+  logoPath: z.string().optional(),
+  /** The brand's own colour, filled in by the resolver — tints the tile. */
+  logoHex: z.string().optional(),
+  /** Filled in by the resolver: false for a full-colour mark, which is drawn
+   * as-is rather than tinted. */
+  logoMonochrome: z.boolean().optional(),
+  accent: z.enum(["neutral", "primary", "warn", "success", "danger"]).optional(),
+  childDirection: z.enum(["horizontal", "vertical"]).optional(),
+  /** N identical copies, drawn as one stacked node so they cannot drift apart
+   * visually the way N hand-placed icons did. */
+  replicas: z.number().int().min(1).max(12).optional(),
+};
+
+const diagramLeafSchema = z.object(diagramNodeBase);
+const diagramMidSchema = z.object({ ...diagramNodeBase, children: z.array(diagramLeafSchema).optional() });
+const diagramNodeSchema = z.object({ ...diagramNodeBase, children: z.array(diagramMidSchema).optional() });
+
 export const VISUAL_DEFINITIONS = [
   {
     kind: "tactical-board",
@@ -1667,6 +1760,277 @@ export const VISUAL_DEFINITIONS = [
               .optional(),
             highlightIndex: z.number().optional(),
           }),
+        )
+        .optional(),
+    }),
+  },
+  {
+    kind: "diagram",
+    category: "narrative-callouts",
+    label: "Diagram",
+    description:
+      "A structural architecture diagram — the medium for system design. You declare NODES (optionally nested inside each other) and EDGES between them; the engine computes every coordinate, sizes each box to its own label, and routes real connectors between box boundaries. Prefer this over `Canvas` for anything shaped like an architecture: clients, load balancers, gateways, services, databases, queues. Because relationships are declared as `edges`, a diagram can never render as disconnected floating icons — the failure Canvas allowed. Use `children` for containment (a node holding pods, a pool holding replicas) and `replicas` for N identical copies, which are drawn identically by construction. `direction` is \"horizontal\" (default) or \"vertical\"; use vertical for 9:16, which is a genuine recomposition rather than a squeeze. The `timeline` builds the diagram progressively in ABSOLUTE seconds: `addNode`/`addEdge` reveal structure as the narration introduces it, `flow` sends a token travelling along real edges, `focus` brightens some nodes and dims the rest, `setState` recolours a node to show a state change, and `annotate` pins a short callout beside a node.",
+    sceneTypeKey: "diagram",
+    schema: z.object({
+      kind: z.literal("diagram"),
+      title: z.string().optional(),
+      direction: z.enum(["horizontal", "vertical"]).optional(),
+      nodes: z.array(diagramNodeSchema).min(1),
+      edges: z
+        .array(
+          z.object({
+            from: z.string().min(1),
+            to: z.string().min(1),
+            label: z.string().optional(),
+            style: z.enum(["solid", "dashed"]).default("solid"),
+            kind: z.enum(["request", "response", "data", "dependency"]).default("request"),
+          }),
+        )
+        .default([]),
+      timeline: z
+        .array(
+          z.discriminatedUnion("type", [
+            z.object({ type: z.literal("addNode"), id: z.string().min(1), startSeconds: z.number().min(0), durationSeconds: z.number().min(0).default(0.5) }),
+            z.object({
+              type: z.literal("addEdge"),
+              from: z.string().min(1),
+              to: z.string().min(1),
+              startSeconds: z.number().min(0),
+              /** The connector draws itself over this long. */
+              durationSeconds: z.number().min(0).default(0.7),
+            }),
+            z.object({
+              type: z.literal("flow"),
+              /** Node ids to travel through, in order — the token follows the
+               * real routed edges between them, so it can never drift off the
+               * line or stop inside a box. */
+              path: z.array(z.string().min(1)).min(2),
+              startSeconds: z.number().min(0),
+              durationSeconds: z.number().min(0.1).default(2),
+              label: z.string().optional(),
+              color: z.string().optional(),
+            }),
+            z.object({ type: z.literal("focus"), ids: z.array(z.string()), startSeconds: z.number().min(0), durationSeconds: z.number().min(0).default(0.4) }),
+            z.object({
+              type: z.literal("setState"),
+              id: z.string().min(1),
+              accent: z.enum(["neutral", "primary", "warn", "success", "danger"]),
+              startSeconds: z.number().min(0),
+              durationSeconds: z.number().min(0).default(0.4),
+            }),
+            z.object({
+              type: z.literal("annotate"),
+              target: z.string().min(1),
+              text: z.string().min(1),
+              startSeconds: z.number().min(0),
+              durationSeconds: z.number().min(0).default(0.4),
+            }),
+            /** Removes a node — an evicted cache entry, a terminated instance.
+             * The counterpart to `addNode`: without it a diagram can only ever
+             * accumulate, which cannot express expiry. */
+            z.object({
+              type: z.literal("removeNode"),
+              id: z.string().min(1),
+              startSeconds: z.number().min(0),
+              durationSeconds: z.number().min(0).default(0.5),
+            }),
+            /** Replaces a node's sublabel — a changing value, not just a
+             * changing colour. */
+            z.object({
+              type: z.literal("setValue"),
+              id: z.string().min(1),
+              text: z.string(),
+              startSeconds: z.number().min(0),
+            }),
+            /** A depleting (or filling) bar across the bottom of a node. This
+             * is how a TTL is actually taught: the viewer watches the budget
+             * run out, rather than reading three static labels claiming it
+             * did. `from`/`to` are 0-1. */
+            z.object({
+              type: z.literal("meter"),
+              id: z.string().min(1),
+              from: z.number().min(0).max(1).default(1),
+              to: z.number().min(0).max(1).default(0),
+              startSeconds: z.number().min(0),
+              durationSeconds: z.number().min(0.1).default(3),
+              label: z.string().optional(),
+            }),
+          ]),
+        )
+        .optional(),
+    }),
+  },
+  {
+    kind: "workspace",
+    category: "narrative-callouts",
+    label: "Workspace",
+    description:
+      "A real developer environment — one or more panes (a code editor with line numbers, and/or a terminal), choreographed against narration. This is the medium for teaching code: use it instead of `Code`/`TerminalMock` whenever the narration walks through a file line by line, runs a command and reads its output, or relates a config field to something else on screen. Panes are laid out `single` (one pane), `split` (side by side, 16:9) or `stacked` (one above the other, and the automatic choice in 9:16). The `timeline` drives everything in ABSOLUTE seconds, exactly like Canvas's: `reveal` shows lines up to `throughLine`; `highlight` brightens specific `lines` and dims the rest of that pane (the core teaching move — highlight the line while the narrator explains it); `clear` removes the highlight; `scroll` brings `toLine` into view in a long file; `focusPane` brightens one pane and dims the others. Because those times are absolute, the narration fitter re-times them onto the real spoken audio — never author a timing as a fraction of the scene.",
+    sceneTypeKey: "workspace",
+    schema: z.object({
+      kind: z.literal("workspace"),
+      title: z.string().optional(),
+      layout: z.enum(["single", "split", "stacked"]).optional(),
+      panes: z
+        .array(
+          z.discriminatedUnion("type", [
+            z.object({
+              type: z.literal("editor"),
+              /** Referenced by every timeline action's `pane`. */
+              id: z.string().min(1),
+              filename: z.string().optional(),
+              language: z.string().optional(),
+              /** Same token model as the `Code` visual, so an author who can
+               * write one can write the other — tag a token's ROLE and the
+               * renderer owns what that role looks like. */
+              lines: z.array(
+                z.array(
+                  z.object({
+                    text: z.string(),
+                    token: z.enum(["keyword", "string", "function", "variable", "comment", "number", "plain"]).default("plain"),
+                  }),
+                ),
+              ),
+              showLineNumbers: z.boolean().default(true),
+              /** Line number of the FIRST line, for showing an excerpt from
+               * partway down a real file rather than pretending it starts at 1. */
+              startLine: z.number().int().min(1).default(1),
+              // --- VS Code furniture. All optional, all derived when omitted,
+              // because the point is that a lesson LOOKS like a real editor
+              // without the author hand-dressing a set every scene.
+              /** Other open tabs, shown inactive beside the active file. */
+              tabs: z.array(z.string()).optional(),
+              /** Explorer file tree. Prefix with "/" for a folder. Omit to hide
+               * the sidebar entirely — on a narrow frame the code matters more. */
+              files: z.array(z.string()).optional(),
+              /** Status-bar branch name. */
+              branch: z.string().optional(),
+              /** Status-bar problem counts. */
+              problems: z.object({ errors: z.number().int().min(0), warnings: z.number().int().min(0) }).optional(),
+              showMinimap: z.boolean().default(true),
+              /** How many lines are visible before the pane scrolls. Omit to
+               * size the pane to its content. */
+              visibleLines: z.number().int().min(1).optional(),
+              flex: z.number().optional(),
+            }),
+            z.object({
+              type: z.literal("terminal"),
+              id: z.string().min(1),
+              title: z.string().optional(),
+              lines: z.array(
+                z.object({
+                  text: z.string(),
+                  kind: z.enum(["command", "output", "success", "error", "comment"]).default("output"),
+                }),
+              ),
+              showLineNumbers: z.boolean().default(false),
+              visibleLines: z.number().int().min(1).optional(),
+              flex: z.number().optional(),
+            }),
+            // A real browser window, not a code panel wearing a different
+            // label. The page is DECLARED as semantic blocks and the renderer
+            // owns what each one looks like — the same bargain the diagram
+            // medium makes for nodes. Freeform HTML in a script would render
+            // beautifully once and then be unreviewable and unfittable; a
+            // screenshot cannot animate a button press or a form filling in.
+            z.object({
+              type: z.literal("browser"),
+              id: z.string().min(1),
+              /** Shown in the tab. */
+              title: z.string().optional(),
+              url: z.string().optional(),
+              /** Real pages are light far more often than dark, and a light
+               * page next to a dark editor is what sells it as a browser. */
+              theme: z.enum(["light", "dark"]).default("light"),
+              blocks: z.array(
+                z.discriminatedUnion("kind", [
+                  z.object({ kind: z.literal("nav"), brand: z.string().optional(), links: z.array(z.string()).default([]) }),
+                  z.object({ kind: z.literal("heading"), text: z.string(), level: z.number().int().min(1).max(3).default(1) }),
+                  z.object({ kind: z.literal("text"), text: z.string().optional(), lines: z.number().int().min(1).max(6).default(2) }),
+                  z.object({ kind: z.literal("button"), text: z.string(), variant: z.enum(["primary", "secondary"]).default("primary") }),
+                  z.object({ kind: z.literal("input"), label: z.string().optional(), placeholder: z.string().optional(), value: z.string().optional() }),
+                  z.object({
+                    kind: z.literal("cards"),
+                    items: z.array(z.object({ title: z.string(), text: z.string().optional() })).min(1),
+                  }),
+                  z.object({ kind: z.literal("image"), label: z.string().optional(), heightRatio: z.number().min(0.1).max(3).default(0.5) }),
+                  z.object({ kind: z.literal("list"), items: z.array(z.string()).min(1) }),
+                  z.object({ kind: z.literal("spinner"), label: z.string().optional() }),
+                  /** An API response rendered the way a browser shows JSON —
+                   * the single most common "browser" shot in a backend lesson. */
+                  z.object({ kind: z.literal("json"), lines: z.array(z.string()).min(1) }),
+                ]),
+              ),
+              flex: z.number().optional(),
+            }),
+          ]),
+        )
+        .min(1),
+      timeline: z
+        .array(
+          z.discriminatedUnion("type", [
+            z.object({
+              type: z.literal("reveal"),
+              pane: z.string().min(1),
+              /** 1-based, inclusive, counted within the pane's own `lines`
+               * array (NOT affected by `startLine`, which is display only). */
+              throughLine: z.number().int().min(0),
+              startSeconds: z.number().min(0),
+              durationSeconds: z.number().min(0).optional(),
+            }),
+            z.object({
+              type: z.literal("highlight"),
+              pane: z.string().min(1),
+              lines: z.array(z.number().int().min(1)).min(1),
+              startSeconds: z.number().min(0),
+              durationSeconds: z.number().min(0).optional(),
+            }),
+            // Keystroke-by-keystroke reveal, with the keyboard sound attached
+            // automatically. USE SPARINGLY — it is the "let me walk you through
+            // writing this" move, and it stops meaning anything if every block
+            // of code arrives this way. `reveal` (instant) stays the default.
+            z.object({
+              type: z.literal("type"),
+              pane: z.string().min(1),
+              /** 1-based, inclusive. Types from wherever the pane is currently
+               * revealed through, up to and including this line. */
+              throughLine: z.number().int().min(1),
+              startSeconds: z.number().min(0),
+              /** Omit to type at the default fast speed; set it to make the run
+               * land exactly on a narration beat. */
+              durationSeconds: z.number().min(0).optional(),
+              charsPerSecond: z.number().min(1).optional(),
+            }),
+            z.object({
+              type: z.literal("clear"),
+              pane: z.string().min(1),
+              startSeconds: z.number().min(0),
+            }),
+            z.object({
+              type: z.literal("scroll"),
+              pane: z.string().min(1),
+              toLine: z.number().int().min(1),
+              startSeconds: z.number().min(0),
+              durationSeconds: z.number().min(0).optional(),
+            }),
+            z.object({
+              type: z.literal("focusPane"),
+              pane: z.string().min(1),
+              startSeconds: z.number().min(0),
+              durationSeconds: z.number().min(0).optional(),
+            }),
+            // A real pointer landing on a browser block and pressing it. The
+            // one interaction a mocked page needs in order to demonstrate
+            // anything, rather than just sitting there being a picture.
+            z.object({
+              type: z.literal("click"),
+              pane: z.string().min(1),
+              /** 1-based index into the browser pane's `blocks`. */
+              block: z.number().int().min(1),
+              startSeconds: z.number().min(0),
+              durationSeconds: z.number().min(0).optional(),
+            }),
+          ]),
         )
         .optional(),
     }),

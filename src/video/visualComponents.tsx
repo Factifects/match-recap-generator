@@ -34,6 +34,8 @@ import { QuoteCard } from "./compositions/QuoteCard";
 import { CodeSnippetCard } from "./compositions/CodeSnippetCard";
 import { BrowserMockCard } from "./compositions/BrowserMockCard";
 import { TerminalMockCard } from "./compositions/TerminalMockCard";
+import { WorkspaceCard } from "./compositions/WorkspaceCard";
+import { DiagramCard } from "./compositions/DiagramCard";
 import { CareerPathCard } from "./compositions/CareerPathCard";
 import { GridCard } from "./compositions/GridCard";
 import { IconInfographicCard } from "./compositions/IconInfographicCard";
@@ -82,6 +84,8 @@ export const VISUAL_COMPONENTS: { [K in Visual["kind"]]: React.FC<{ data: DataFo
   code: CodeSnippetCard,
   "browser-mock": BrowserMockCard,
   "terminal-mock": TerminalMockCard,
+  workspace: WorkspaceCard,
+  diagram: DiagramCard,
   "career-path": CareerPathCard,
   grid: GridCard,
   icon: IconInfographicCard,

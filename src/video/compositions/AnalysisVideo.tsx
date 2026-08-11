@@ -245,8 +245,20 @@ export const AnalysisVideo: React.FC<{
                 );
               })}
               {segment.sfxStaticPath && (
-                <Html5Audio src={staticFile(segment.sfxStaticPath)} volume={fadeOutVolume(0.5, durationInFrames)} />
+                <Html5Audio src={staticFile(segment.sfxStaticPath)} volume={fadeOutVolume(0.35, durationInFrames)} />
               )}
+              {segment.sfxClips?.map((clip, clipIndex) => {
+                const clipDurationInFrames = Math.max(1, Math.round(clip.durationSeconds * fps));
+                return (
+                  <Sequence key={clipIndex} from={Math.round(clip.startSeconds * fps)} durationInFrames={clipDurationInFrames}>
+                    <Html5Audio
+                      src={staticFile(clip.staticPath)}
+                      trimBefore={clip.trimStartSeconds ? Math.round(clip.trimStartSeconds * fps) : undefined}
+                      volume={fadeOutVolume(clip.volume ?? 0.35, clipDurationInFrames)}
+                    />
+                  </Sequence>
+                );
+              })}
             </TransitionSeries.Sequence>
             {index < segments.length - 1 && (
               <TransitionSeries.Transition

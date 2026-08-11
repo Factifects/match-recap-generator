@@ -116,3 +116,4 @@ describe("parseSceneScript — Continue Canvas", () => {
     expect(segments[0].continuesCanvasFrom).toBeUndefined();
   });
 });
+

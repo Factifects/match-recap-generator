@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { VISUAL_DEFINITIONS } from "./visualDefinitions";
+import type { SceneContract } from "../script/sceneContract";
 
 /** Whole-video render option (not per-segment data) — lives here since this
  * model file is already the one shared import point for both the node-side
@@ -122,6 +123,23 @@ export type TimedSegment = Segment & {
   manualDurationOverride?: boolean;
   /** Set once ElevenLabs generation has run; absent means duration is still a word-count estimate. */
   audioStaticPath?: string;
+  /** The REAL spoken length of this segment's narration, as measured from the
+   * generated TTS audio — the narration temporal spine (see CLAUDE.md). Kept
+   * separate from `durationSeconds` on purpose: `durationSeconds` is the
+   * segment's on-screen length, which can legitimately exceed narration by a
+   * DECLARED hold (see `tailHoldSeconds`), whereas this is the ground truth
+   * every visual beat must be scheduled against. For a merged Canvas passage
+   * this is the sum of every `narrationClips` entry's real duration.
+   *
+   * Absent means narration audio was never generated (an estimate-only render,
+   * i.e. no `--audio`) — the fitting and narration-sync checks both no-op in
+   * that case rather than fitting a real timeline to a word-count guess. */
+  narrationSeconds?: number;
+  /** Deliberate, declared on-screen time AFTER narration ends — a final-result
+   * hold, an outro beat. This is the ONLY legitimate reason for a segment to
+   * outlast its narration; anything else is the dead-tail failure the spine
+   * exists to eliminate, and validateNarrationSync.ts reports it as such. */
+  tailHoldSeconds?: number;
   /** What actually gets synthesized into narration audio, when it needs to
    * differ from `text` (the on-screen content). Chapter scenes are the one
    * case today: `text` is deliberately kept short (the giant on-screen
@@ -137,8 +155,29 @@ export type TimedSegment = Segment & {
    * not literal browser playback), so amplifying narration past its
    * original level actually takes effect in the rendered mp4. */
   narrationVolume?: number;
-  /** Chapter beats only: a short whoosh layered under the swoosh-wipe transition. */
+  /** Chapter beats only: a short whoosh layered under the swoosh-wipe transition.
+   * Canvas scenes fall back to this same field ONLY when their timeline has no
+   * per-action `sound` cues (see `sfxClips` below) — one generic whoosh
+   * stretched under the whole scene, today's only Canvas SFX behavior. */
   sfxStaticPath?: string;
+  /** Canvas timeline scenes only: discrete SFX hits, one per timeline action
+   * that requested a `sound` cue, each playing at that action's own
+   * `startSeconds` within the segment — the fix for a single generic whoosh
+   * getting stretched under an entire multi-beat choreographed scene. Takes
+   * over from `sfxStaticPath` entirely when present (resolveSegmentAudio
+   * never sets both on the same segment), since layering a whole-scene
+   * whoosh under precise per-beat hits would just reintroduce the mismatch
+   * this exists to fix. */
+  sfxClips?: {
+    staticPath: string;
+    startSeconds: number;
+    durationSeconds: number;
+    volume?: number;
+    /** Offset into the SOURCE file. A cue that fires many times in a row (the
+     * keyboard under a typing run) replays a different slice each time, so it
+     * does not turn into one sample looping audibly. */
+    trimStartSeconds?: number;
+  }[];
   /** Pitch-based visuals only; ignored by non-pitch components. */
   camera?: CameraStage[];
   /** How this segment transitions OUT to the next one. Defaults to "dissolve". */
@@ -187,7 +226,7 @@ export type TimedSegment = Segment & {
    * duplicated rather than imported so this model layer stays independent of
    * the video/rendering layer. Absent means today's exact neutral
    * background, unchanged for every existing script. */
-  panelColor?: "neutral" | "red" | "blue" | "yellow";
+  panelColor?: "neutral" | "red" | "blue" | "yellow" | "light";
   /** Formation scenes only: a resolved jersey image per side, keyed by
    * "home"/"away" — same parse-time resolution as backgroundImage. A side
    * with no jersey asset falls back to the plain colored disc. */
@@ -264,4 +303,16 @@ export type TimedSegment = Segment & {
    * every event in its range once real TTS duration is known (mirrors
    * `_canvasCaptionRanges`'s role for Canvas captions). */
   _boardClipRanges?: { from: number; to: number }[];
+  /** Scene-spec scripts only: parsed from optional `**Thesis:**`/
+   * `**Entities:**`/`**Flow:**` fields (see src/script/sceneContract.ts) —
+   * the author's DECLARED intent for what this scene demonstrates,
+   * independent of whatever Canvas Data actually realizes it. Absent for
+   * every scene that doesn't declare Entities/Flow (i.e. every script
+   * written before this existed) — validateScene.ts reports "semantic
+   * fidelity: not declared" for those rather than silently treating them as
+   * passing. A `Scene Type: Flow` scene always has one (composeFlow.ts
+   * derives its Canvas Data FROM this contract, so the two can't drift);
+   * a `Scene Type: Canvas` scene may declare one purely for validation
+   * against hand-authored Data. */
+  contract?: SceneContract;
 };

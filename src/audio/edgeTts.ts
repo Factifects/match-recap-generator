@@ -33,15 +33,37 @@ export async function generateSpeechEdge(text: string, voice: string = DEFAULT_V
   const audioFilePath = path.join(CACHE_DIR, `${cacheKey}.mp3`);
 
   if (!fs.existsSync(audioFilePath)) {
+    // Streamed to a unique temp path and renamed into place. EdgeTTS writes
+    // progressively, so writing straight to the cache path lets a concurrent
+    // reader (the UI server, another render) open a half-written file — which
+    // is what produced "Exceeded maximum byte length": parseMedia sized its
+    // buffer from the length at open, then the file kept growing underneath it.
+    // rename() is atomic within a filesystem, so a reader sees all or nothing.
+    const temporary = `${audioFilePath}.tmp-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
     const tts = new EdgeTTS({ voice, outputFormat: "audio-24khz-48kbitrate-mono-mp3" });
-    await tts.ttsPromise(text, audioFilePath);
+    await tts.ttsPromise(text, temporary);
+    fs.renameSync(temporary, audioFilePath);
   }
 
-  const { durationInSeconds } = await parseMedia({
-    src: audioFilePath,
-    fields: { durationInSeconds: true },
-    reader: nodeReader,
-  });
+  let durationInSeconds: number | null = null;
+  try {
+    ({ durationInSeconds = null } = await parseMedia({
+      src: audioFilePath,
+      fields: { durationInSeconds: true },
+      reader: nodeReader,
+    }));
+  } catch (err) {
+    // An unreadable cached file would otherwise fail identically forever, since
+    // the existsSync check above skips regeneration. Drop it and say so.
+    try {
+      fs.unlinkSync(audioFilePath);
+    } catch {
+      // Already gone — the rethrow is the point.
+    }
+    throw new Error(
+      `Could not read generated audio at ${audioFilePath} — the cached copy has been deleted, so re-running will regenerate it. Cause: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 
   if (!durationInSeconds) {
     throw new Error(`Could not determine duration for generated audio: ${audioFilePath}`);

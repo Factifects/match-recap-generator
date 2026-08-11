@@ -44,6 +44,8 @@ import ComputerDesktopIcon from "@heroicons/react/24/solid/ComputerDesktopIcon";
 import HandThumbUpIcon from "@heroicons/react/24/solid/HandThumbUpIcon";
 import BellIcon from "@heroicons/react/24/solid/BellIcon";
 import ChatBubbleLeftRightIcon from "@heroicons/react/24/solid/ChatBubbleLeftRightIcon";
+import HeartIcon from "@heroicons/react/24/solid/HeartIcon";
+import ShoppingCartIcon from "@heroicons/react/24/solid/ShoppingCartIcon";
 import type { CanvasIconKey } from "../model/visualDefinitions";
 
 // Real brand marks, not Heroicons — the same single-color monochrome SVG
@@ -158,4 +160,6 @@ export const CANVAS_ICON_COMPONENTS: Record<CanvasIconKey, ComponentType<SVGProp
   thumbsUp: HandThumbUpIcon,
   bell: BellIcon,
   chat: ChatBubbleLeftRightIcon,
+  heart: HeartIcon,
+  cart: ShoppingCartIcon,
 };

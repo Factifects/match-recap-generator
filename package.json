@@ -53,6 +53,7 @@
     "ui:dev": "vite",
     "ui:build": "vite build",
     "studio": "remotion studio src/video/index.ts",
+    "sfx:audition": "tsx scripts/auditionSfx.ts",
     "build": "remotion bundle src/video/index.ts",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",

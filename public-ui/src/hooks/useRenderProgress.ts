@@ -1,11 +1,19 @@
 import { useRef, useState } from "react";
 
+// segmentCount/usedSceneFormat/totalSeconds are optional (not part of a
+// scene-preview job's "complete" payload — see previewScene/
+// startScenePreviewJob in server.ts) while sceneLabel/totalScenes are the
+// scene-preview-only counterpart, so this one shared shape covers both a
+// full-video job and a single-scene preview job without a second copy of
+// this hook's EventSource wiring.
 export interface CompleteEvent {
-  segmentCount: number;
-  usedSceneFormat: boolean;
-  totalSeconds: number;
+  segmentCount?: number;
+  usedSceneFormat?: boolean;
+  totalSeconds?: number;
   videoUrl: string;
   outputName: string;
+  sceneLabel?: string;
+  totalScenes?: number;
 }
 
 interface ProgressEvent {
@@ -51,8 +59,10 @@ export function useRenderProgress() {
       const data: CompleteEvent = JSON.parse(e.data);
       setProgressPercent(100);
       setStatus(
-        `Done — ${data.segmentCount} segments (${data.usedSceneFormat ? "scene-spec" : "prose+tags"} format), ` +
-          `${(data.totalSeconds / 60).toFixed(1)} minutes.`,
+        data.sceneLabel
+          ? `Done — ${data.sceneLabel} of ${data.totalScenes} rendered.`
+          : `Done — ${data.segmentCount} segments (${data.usedSceneFormat ? "scene-spec" : "prose+tags"} format), ` +
+              `${((data.totalSeconds ?? 0) / 60).toFixed(1)} minutes.`,
       );
       setResult(data);
       setGenerating(false);

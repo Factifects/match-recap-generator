@@ -3,6 +3,11 @@ import path from "node:path";
 import { parseAnalysisScript } from "./script/parseAnalysisScript";
 import { parseSceneScript, isSceneScript } from "./script/parseSceneScript";
 import { autoFixGeometry } from "./script/validateGeometry";
+import { diagnoseScenes } from "./script/validateScene";
+import { diagnoseNarrationSync } from "./script/validateNarrationSync";
+import { fitSegmentsToNarration, describeFitOutcomes } from "./script/fitSegmentsToNarration";
+import { resolveDiagramBrands } from "./script/resolveDiagramBrands";
+import { hasHardFailures, sortDiagnostics, type SceneDiagnostic } from "./script/sceneDiagnostics";
 import { mergeCanvasContinuity } from "./script/mergeCanvasContinuity";
 import { mergeTacticalContinuity } from "./script/mergeTacticalContinuity";
 import { resolveSegmentAudio, generateBackgroundMusic, type TtsProvider } from "./audio/resolveAudio";
@@ -37,6 +42,13 @@ export interface GenerateOptions {
   /** Sound-effect/music clips placed in the pre-generation timeline preview
    * — carried straight through into the render's TimelinePayload. */
   audioClips?: AudioClipPlacement[];
+  /** Opts INTO aborting the run when a hard scene issue is found. Off by
+   * default: diagnostics are reported but never block, so an author can always
+   * render and look at the result. The CLI exposes it as `--strict`. */
+  strict?: boolean;
+  /** Deprecated no-op, kept so older callers/sidecars don't break. Blocking is
+   * now opt-in via `strict` rather than opt-out via `force`. */
+  force?: boolean;
 }
 
 export interface GenerateResult {
@@ -47,6 +59,12 @@ export interface GenerateResult {
   segmentCount: number;
   totalSeconds: number;
   usedSceneFormat: boolean;
+  /** The final (post-audio, authoritative) diagnostics report — present even
+   * on a successful render (soft findings never block, but are still worth
+   * surfacing). Empty for renderEditedTimeline, which skips validation
+   * entirely (its segments already went through this once, in the
+   * generateVideo run that produced them). */
+  diagnostics: SceneDiagnostic[];
 }
 
 /** Everything a render pass (and its sidecar JSON) needs — the exact shape
@@ -191,27 +209,87 @@ export interface RenderTimelineOptions {
  * etc.) straight to video, skipping script parsing and narration/audio
  * generation entirely since that already happened for these segments in an
  * earlier generateVideo run. Always writes to a new outputName so the
- * original render + its sidecar JSON are left intact. */
+ * original render + its sidecar JSON are left intact. No validation gate
+ * here — these segments already passed through generateVideo once to reach
+ * this point, and re-validating an already-edited timeline (whose durations
+ * a user may have deliberately overridden) risks flagging edits the user
+ * made on purpose. */
 export async function renderEditedTimeline(
   timeline: TimelinePayload,
   options: RenderTimelineOptions = {},
 ): Promise<GenerateResult> {
   const outputName = options.outputName ?? outputNameFor(timeline.aspectRatio, "edited");
   const { outputPath, totalSeconds } = await renderAndPersist(timeline, outputName, options.onProgress, options.concurrency);
-  return { outputPath, outputName, segmentCount: timeline.segments.length, totalSeconds, usedSceneFormat: true };
+  return { outputPath, outputName, segmentCount: timeline.segments.length, totalSeconds, usedSceneFormat: true, diagnostics: [] };
 }
 
-/** The one shared pipeline (parse -> optional real narration audio -> render)
- * behind both the CLI and the local generator UI, so the two entry points
- * can never drift out of sync with each other. */
-export async function generateVideo(scriptText: string, options: GenerateOptions): Promise<GenerateResult> {
-  const log = options.onLog ?? (() => {});
+/** Human-readable report, same convention as every other `log()` call in
+ * this pipeline — reuses each SceneDiagnostic's own `message` (already
+ * scene-numbered and self-explanatory), just tags severity/level so the
+ * hard failures that actually block generation are easy to pick out of a
+ * longer soft-warning list. */
+function logDiagnostics(log: (message: string) => void, diagnostics: SceneDiagnostic[], heading: string): void {
+  if (diagnostics.length === 0) {
+    log(`${heading} none.`);
+    return;
+  }
+  log(heading);
+  for (const d of sortDiagnostics(diagnostics)) {
+    log(`  [${d.severity === "hard" ? "HARD" : "soft"} L${d.level} ${d.category}] ${d.message}`);
+  }
+}
+
+/** Aborts generation before further cost is spent, UNLESS `force` is set —
+ * the gate sits at two points in generateVideo: right after parsing/merging
+ * (before any audio is generated at all) and again after real narration
+ * resolves (before the render itself, since real duration can newly cross
+ * the low-richness scene-length threshold an estimate didn't). Both calls
+ * share this one function so the error format and force-override behavior
+ * can never drift between them. */
+export function runEnforcementGate(diagnostics: SceneDiagnostic[], strict: boolean | undefined, stage: string): void {
+  // ADVISORY BY DEFAULT. Findings are always reported; they only abort the run
+  // when a caller explicitly opts into `strict`.
+  //
+  // This started as a hard gate, which was right when every scene was
+  // hand-placed Canvas coordinates and a bad script reliably produced a broken
+  // render. It stopped being right for two reasons. First, the structural media
+  // (`diagram`, `workspace`) make the geometry failures it guards against
+  // unrepresentable rather than merely detectable — there is nothing left for
+  // it to catch there. Second, and more importantly, it was blocking the author
+  // from looking at their own render, which is the single most valuable thing
+  // they can do; a checker that prevents you from seeing the thing it is
+  // complaining about costs more than it saves.
+  if (!strict || !hasHardFailures(diagnostics)) return;
+  const hard = sortDiagnostics(diagnostics).filter((d) => d.severity === "hard");
+  const lines = hard.map((d) => `  - ${d.message}`).join("\n");
+  throw new Error(
+    `Generation blocked ${stage} by --strict — ${hard.length} scene issue${hard.length > 1 ? "s" : ""}:\n${lines}`,
+  );
+}
+
+interface ResolvedSegments {
+  segments: TimedSegment[];
+  usedSceneFormat: boolean;
+  /** Geometry-layer findings (overlaps, unconnected entities, low density —
+   * see validateGeometry.ts) — independent of narration duration, so
+   * computed once here rather than re-run pre- and post-audio the way
+   * validateScene.ts's duration-dependent checks are. */
+  geometryDiagnostics: SceneDiagnostic[];
+}
+
+/** The parse -> auto-fix -> merge sequence shared by generateVideo AND
+ * previewScene — extracted so scene-level preview can never drift from what
+ * a full render actually does. Selecting a scene by index AFTER this
+ * resolves (not against the raw `### SCENE N` markers) is deliberate: a
+ * merged Canvas/TacticalBoard continuity passage is one segment in the
+ * array that actually renders, so "preview scene 5" means exactly what
+ * full-render's scene 5 will look like. */
+function resolveSegments(scriptText: string, presetSegments: TimedSegment[] | undefined, log: (message: string) => void): ResolvedSegments {
   const usedSceneFormat = isSceneScript(scriptText);
-  let segments: TimedSegment[] =
-    options.segments ?? (usedSceneFormat ? parseSceneScript(scriptText) : parseAnalysisScript(scriptText));
+  let segments: TimedSegment[] = presetSegments ?? (usedSceneFormat ? parseSceneScript(scriptText) : parseAnalysisScript(scriptText));
 
   log(
-    options.segments
+    presetSegments
       ? `Using ${segments.length} segments from the timeline preview (already reordered/trimmed).`
       : `Parsed ${segments.length} segments as ${usedSceneFormat ? "scene-spec" : "prose+tags"} format.`,
   );
@@ -220,7 +298,7 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   // mistake instead of blocking generation on it — see validateGeometry.ts.
   // Applied unconditionally (including pre-parsed timeline-preview segments)
   // since it's a no-op when everything's already correct.
-  const { segments: geometryFixedSegments, fixes } = autoFixGeometry(segments);
+  const { segments: geometryFixedSegments, fixes, diagnostics: geometryDiagnostics } = autoFixGeometry(segments);
   segments = geometryFixedSegments;
   if (fixes.length > 0) {
     log(`Auto-corrected ${fixes.length} left/right position mistake${fixes.length > 1 ? "s" : ""}:`);
@@ -228,10 +306,10 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   }
 
   // Folds any `**Continue Canvas:** true` scenes into the continuous camera
-  // passage they belong to — must run before the preAudioSegments snapshot
-  // below, since resyncAudioClipsToRealDurations requires segment count to
-  // already match between the pre- and post-audio arrays (see its own
-  // comment). No-op when no script uses the feature.
+  // passage they belong to — must run before generateVideo's own
+  // preAudioSegments snapshot, since resyncAudioClipsToRealDurations
+  // requires segment count to already match between the pre- and post-audio
+  // arrays (see its own comment). No-op when no script uses the feature.
   const { segments: canvasMergedSegments, notes: canvasMergeNotes } = mergeCanvasContinuity(segments);
   segments = canvasMergedSegments;
   if (canvasMergeNotes.length > 0) {
@@ -249,6 +327,31 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
     boardMergeNotes.forEach((note) => log(`  - ${note}`));
   }
 
+  return { segments, usedSceneFormat, geometryDiagnostics };
+}
+
+/** The one shared pipeline (parse -> optional real narration audio -> render)
+ * behind both the CLI and the local generator UI, so the two entry points
+ * can never drift out of sync with each other. */
+export async function generateVideo(scriptText: string, options: GenerateOptions): Promise<GenerateResult> {
+  const log = options.onLog ?? (() => {});
+  const resolved = resolveSegments(scriptText, options.segments, log);
+  let segments = resolved.segments;
+  const { usedSceneFormat, geometryDiagnostics } = resolved;
+
+  // Pull real brand marks for any technology a diagram names. The only
+  // network step besides TTS, done once here and cached to disk — see
+  // brandRegistry.ts. Anything that can't be fetched simply keeps no logo and
+  // that node falls back to its shape, so this can never fail generation.
+  const brands = await resolveDiagramBrands(segments);
+  segments = brands.segments;
+  if (brands.resolved.length > 0) log(`Resolved ${brands.resolved.length} brand mark(s): ${brands.resolved.map((b) => b.title).join(", ")}.`);
+  if (brands.unresolved.length > 0) log(`No brand mark for ${brands.unresolved.join(", ")} — those nodes fall back to their shape.`);
+
+  const preAudioDiagnostics = [...geometryDiagnostics, ...diagnoseScenes(segments)];
+  logDiagnostics(log, preAudioDiagnostics, "Scene diagnostics (pre-audio estimate):");
+  runEnforcementGate(preAudioDiagnostics, options.strict, "before narration/audio generation");
+
   let audioClips = options.audioClips;
   let backgroundMusicPath = options.backgroundMusicPath;
   if (options.withAudio) {
@@ -260,6 +363,20 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
     );
     const preAudioSegments = segments;
     segments = await resolveSegmentAudio(segments, { provider, edgeVoice: options.edgeVoice });
+
+    // Narration is the clock (see CLAUDE.md). Every compiler authored its
+    // choreography against the script's ESTIMATED `Duration:`; now that real
+    // TTS durations exist, re-time each scene's visual beats onto them. Runs
+    // BEFORE the audio-clip resync below, so that resync sees each segment's
+    // final on-screen length rather than the pre-fit one.
+    const { segments: fittedSegments, outcomes } = fitSegmentsToNarration(segments);
+    segments = fittedSegments;
+    const fitNotes = describeFitOutcomes(outcomes);
+    if (fitNotes.length > 0) {
+      log(`Fitted visual choreography to real narration timing (${fitNotes.length} scene${fitNotes.length > 1 ? "s" : ""} re-timed):`);
+      fitNotes.forEach((note) => log(note));
+    }
+
     if (audioClips && audioClips.length > 0) {
       audioClips = resyncAudioClipsToRealDurations(preAudioSegments, segments, audioClips);
       log("Re-synced sound effect/music placements to the real narration timing.");
@@ -274,6 +391,20 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
       backgroundMusicPath = await generateBackgroundMusic("elevenlabs");
     }
   }
+
+  // Re-run the duration-dependent checks (dead-time, richness's length
+  // threshold) now that real narration length is known instead of an
+  // estimate — geometry findings don't need re-checking, positions/overlaps
+  // never change here. A scene whose ESTIMATED duration ducked under the
+  // low-richness length threshold but whose REAL narration runs longer can
+  // newly hard-fail here even after passing the pre-audio gate; this is the
+  // authoritative pass, and it's still before the render itself.
+  // diagnoseNarrationSync only reports for segments carrying a measured
+  // `narrationSeconds`, so it self-skips entirely on an estimate-only
+  // (no --audio) run rather than judging a real timeline against a guess.
+  const finalDiagnostics = [...geometryDiagnostics, ...diagnoseScenes(segments), ...diagnoseNarrationSync(segments)];
+  logDiagnostics(log, finalDiagnostics, "Final scene diagnostics (real narration timing):");
+  runEnforcementGate(finalDiagnostics, options.strict, "before render");
 
   const totalSeconds = segments.reduce((sum, s) => sum + s.durationSeconds, 0);
   log(
@@ -293,5 +424,94 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   );
   log("Render complete.");
 
-  return { outputPath, outputName, segmentCount: segments.length, totalSeconds: renderedTotalSeconds, usedSceneFormat };
+  return {
+    outputPath,
+    outputName,
+    segmentCount: segments.length,
+    totalSeconds: renderedTotalSeconds,
+    usedSceneFormat,
+    diagnostics: finalDiagnostics,
+  };
+}
+
+export interface PreviewSceneOptions {
+  /** 0-based index into the fully-resolved segment array (post-merge) —
+   * matches array position, the same convention SceneDiagnostic.sceneIndex
+   * uses, NOT the script's raw `### SCENE N` numbering (see resolveSegments'
+   * own comment on why). Callers presenting a 1-based scene list to a human
+   * should subtract 1 before calling this. */
+  sceneIndex: number;
+  withAudio: boolean;
+  ttsProvider?: TtsProvider;
+  edgeVoice?: string;
+  aspectRatio?: AspectRatio;
+  outputName?: string;
+  /** Same purpose as GenerateOptions.segments — a caller that already has
+   * pre-generation timeline-preview edits (reordered/trimmed segments, see
+   * GeneratePage.tsx's preTimeline state) should pass those through so
+   * `sceneIndex` means the same scene the UI is actually showing, instead
+   * of index-ing into a fresh re-parse of `scriptText` in its original
+   * order. Falls back to parsing `scriptText` when absent, same as
+   * GenerateOptions.segments does. */
+  segments?: TimedSegment[];
+  onLog?: (message: string) => void;
+  onProgress?: (progress: RenderProgress) => void;
+}
+
+export interface PreviewSceneResult {
+  outputPath: string;
+  outputName: string;
+  sceneLabel: string;
+  /** How many scenes the FULL script resolves to — lets a caller validate
+   * `sceneIndex` was in range, or build a "scene N of M" label. */
+  totalScenes: number;
+}
+
+/** Renders exactly ONE scene (by index, after the same parse/merge pipeline
+ * generateVideo uses — see resolveSegments) instead of the whole video —
+ * the actual "Scene 03, click, see just that scene in seconds" loop this
+ * whole validation pass exists to enable. Reuses the existing AnalysisVideo
+ * composition and renderAndPersist call unchanged: that composition already
+ * handles a 1-length segment array correctly (a TransitionSeries with one
+ * Sequence and no Transition), so no new Remotion composition or render path
+ * was needed for this.
+ *
+ * Deliberately runs NO validation/enforcement gate — the entire point of a
+ * scene preview is the fast iteration loop for FIXING whatever validation
+ * flagged, so it must never itself be blocked by the same checks. Skips
+ * background-music generation and audioClips entirely (irrelevant to
+ * previewing one scene in isolation). */
+export async function previewScene(scriptText: string, options: PreviewSceneOptions): Promise<PreviewSceneResult> {
+  const log = options.onLog ?? (() => {});
+  const { segments } = resolveSegments(scriptText, options.segments, log);
+  if (options.sceneIndex < 0 || options.sceneIndex >= segments.length) {
+    throw new Error(`Scene ${options.sceneIndex + 1} doesn't exist — this script resolves to ${segments.length} scene(s) after merges.`);
+  }
+
+  // Brand marks resolve here too. Without this a scene preview renders every
+  // branded node as an empty box, which makes the preview lie about the thing
+  // it exists to show.
+  const previewBrands = await resolveDiagramBrands([segments[options.sceneIndex]]);
+  if (previewBrands.resolved.length > 0) log(`Resolved ${previewBrands.resolved.length} brand mark(s).`);
+  if (previewBrands.unresolved.length > 0) log(`No brand mark for ${previewBrands.unresolved.join(", ")} — falling back to shape.`);
+
+  let segment = previewBrands.segments[0];
+  if (options.withAudio) {
+    const provider = options.ttsProvider ?? "elevenlabs";
+    log(provider === "edge" ? `Generating narration audio via Edge TTS (voice: ${options.edgeVoice ?? "default"})...` : "Generating narration audio via ElevenLabs...");
+    const [resolvedSegment] = await resolveSegmentAudio([segment], { provider, edgeVoice: options.edgeVoice });
+    // Same narration-fit pass as the full render — a scene preview that skipped
+    // it would show timing the real render will not reproduce, which defeats
+    // the point of previewing.
+    const [fittedSegment] = fitSegmentsToNarration([resolvedSegment]).segments;
+    segment = fittedSegment;
+  }
+
+  const aspectRatio: AspectRatio = options.aspectRatio ?? "16:9";
+  const outputName = options.outputName ?? outputNameFor(aspectRatio, `scene-${options.sceneIndex + 1}-preview`);
+  log(`Rendering scene ${options.sceneIndex + 1} of ${segments.length} to output/${outputName}.mp4...`);
+  const { outputPath } = await renderAndPersist({ segments: [segment], aspectRatio }, outputName, options.onProgress);
+  log("Scene preview complete.");
+
+  return { outputPath, outputName, sceneLabel: `Scene ${options.sceneIndex + 1}`, totalScenes: segments.length };
 }

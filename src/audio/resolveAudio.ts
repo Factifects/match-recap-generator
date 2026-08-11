@@ -1,8 +1,13 @@
+import path from "node:path";
+import { parseMedia } from "@remotion/media-parser";
+import { nodeReader } from "@remotion/media-parser/node";
 import { generateSoundEffect, generateSpeech, type GeneratedSpeech } from "./elevenLabs";
 import { generateSpeechEdge } from "./edgeTts";
-import type { TimedSegment } from "../model/Segment";
+import type { TimedSegment, Visual } from "../model/Segment";
+import { getCanvasSoundCue, type CanvasSoundEvent } from "../cadence/canvasCadences";
+import { findSfxAsset } from "../video/assets";
 
-const CHAPTER_WHOOSH_PROMPT = "short sharp whoosh transition sound effect, cinematic, punchy";
+const CHAPTER_TRANSITION_PROMPT = "soft page turn sound, book flip, gentle paper rustle, brief, no whoosh, no music";
 
 const BACKGROUND_MUSIC_PROMPT =
   "very low, sparse, mysterious magical orchestral ambience, soft sustained strings and distant celesta, " +
@@ -43,13 +48,13 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T,
 }
 
 /** Replaces every segment's word-count-estimated duration with its real narration
- * audio length, and attaches a shared whoosh SFX to chapter beats to go with the
+ * audio length, and attaches a shared page-turn SFX to chapter beats to go with the
  * swoosh wipe transition. This is what makes on-screen timing exactly match what
  * gets said out loud, instead of an estimate.
  *
- * The chapter whoosh SFX is always generated via ElevenLabs (edge-tts is speech-only,
+ * The chapter transition SFX is always generated via ElevenLabs (edge-tts is speech-only,
  * it can't produce a sound effect) — when provider is "edge", chapter beats simply
- * play without a whoosh instead of silently requiring an ElevenLabs key just for
+ * play without it instead of silently requiring an ElevenLabs key just for
  * that one sound, which would defeat the point of trying a free provider.
  *
  * Edge-tts narration generation runs with bounded parallelism (see
@@ -65,13 +70,159 @@ function synthesizeOne(text: string, provider: TtsProvider, edgeVoice?: string):
   return provider === "edge" ? generateSpeechEdge(text, edgeVoice) : generateSpeech(text);
 }
 
+// Real, curated files win over ElevenLabs sound-generation for Canvas SFX
+// cues — prompt-generated SFX has repeatedly landed wrong ("sounds like a
+// bounce", "ball dropped in a bucket of water" — see canvasCadences.ts's own
+// history) and re-prompting is a dead end the code there explicitly warns
+// against. A real file's own duration (not the palette's guessed
+// durationSeconds) is what actually gets used once one exists — same
+// parseMedia call generateAndCache already uses for generated audio, so a
+// real file behaves identically to a generated one everywhere downstream
+// (sidecar JSON, Html5Audio Sequence length). Cached per-process (a
+// long-running server/CLI call resolves the same handful of files many
+// times across many segments) rather than per-render, since these never
+// change mid-process.
+const sfxFileCache = new Map<string, Promise<GeneratedSpeech> | null>();
+
+async function resolveCanvasSoundCue(event: CanvasSoundEvent): Promise<GeneratedSpeech> {
+  if (!sfxFileCache.has(event)) {
+    const relativePath = findSfxAsset(event);
+    sfxFileCache.set(
+      event,
+      relativePath
+        ? (async (): Promise<GeneratedSpeech> => {
+            const audioFilePath = path.join(process.cwd(), "public", relativePath);
+            const { durationInSeconds } = await parseMedia({ src: audioFilePath, fields: { durationInSeconds: true }, reader: nodeReader });
+            if (!durationInSeconds) throw new Error(`Could not determine duration for sfx asset: ${audioFilePath}`);
+            return { audioFilePath, staticFilePath: relativePath, durationSeconds: durationInSeconds };
+          })()
+        : null,
+    );
+  }
+  const cached = sfxFileCache.get(event);
+  if (cached) return cached;
+  const cue = getCanvasSoundCue(event);
+  return generateSoundEffect(cue.prompt, cue.durationSeconds);
+}
+
+export interface SegmentSoundCue {
+  prompt: string;
+  durationSeconds: number;
+}
+
+function inferCanvasCueEvent(visual: Visual): CanvasSoundEvent {
+  if (visual.kind !== "canvas") return "entrance";
+
+  const hasTimelineMotion = Array.isArray((visual as { timeline?: unknown[] }).timeline)
+    && (visual as { timeline?: unknown[] }).timeline!.some((action) => typeof action === "object" && action !== null && "type" in action && (action as { type?: string }).type === "move");
+  if (hasTimelineMotion) return "move";
+
+  // Canvas's own top-level `camera` is a single {x,y,zoom} stage, not an
+  // array (that's `phases[].camera` for a per-phase glide target) — this
+  // used to check `Array.isArray(visual.camera)`, which is never true for
+  // that shape and left the "zoom" cue unreachable via this path.
+  const hasCameraZoom = (visual.camera?.zoom ?? 1) > 1.05;
+  const hasMultiplePhases = (visual.phases?.length ?? 0) > 1;
+  if (hasCameraZoom || hasMultiplePhases) return "zoom";
+
+  if ((visual.objects?.length ?? 0) > 0) return "highlight";
+  return "entrance";
+}
+
+export interface SegmentSfxClueCue {
+  event: CanvasSoundEvent;
+  startSeconds: number;
+  /** Trims playback to this long. Without it a clip runs for the whole length
+   * of its source file, which is how a half-second typing cue ended up still
+   * sounding after the typing had visibly finished. */
+  durationSeconds?: number;
+  /** 0-1. Lets a cue that fires many times in a row sit far back in the mix. */
+  volume?: number;
+}
+
+/** Pulls every timeline action that opted into a `sound` cue out of a Canvas
+ * scene's timeline, paired with that action's own `startSeconds` — the
+ * per-beat replacement for `resolveSegmentSfxCue`'s one whole-scene guess.
+ * Returns `undefined` (not an empty array) when the scene has a timeline but
+ * nobody annotated any action with `sound`, so the caller can tell "opted
+ * out" apart from "opted in with zero cues" and fall back to the old
+ * single-cue behavior for scripts that predate this field. */
+export function resolveSegmentSfxClueCues(segment: TimedSegment): SegmentSfxClueCue[] | undefined {
+  if (segment.type !== "statement") return undefined;
+
+  // TYPING SOUND IS DELIBERATELY OFF (2026-08-11, at the user's request:
+  // "remove the keyboard typing sfx, just leave the typing feature").
+  //
+  // The visual typing feature is unaffected — this only stops sound being
+  // attached to it. Nothing here is broken; the machinery is intact and tested
+  // (`typingSoundBursts` in typewriter.ts, with its own tests, plus the clip
+  // trimming/volume/offset plumbing below and the duration remap in
+  // fitSegmentsToNarration). The blocker was never the timing, it was the
+  // SOURCE: with public/assets/sfx/ empty this fell back to ElevenLabs
+  // generation, which kept producing a typewriter rather than a keyboard.
+  //
+  // TO TURN IT BACK ON: drop a real keyboard sample at
+  // public/assets/sfx/typing.mp3 (a curated file always beats generation, see
+  // resolveCanvasSoundCue) and restore the block below, which built one burst
+  // per word from the run's own text:
+  //
+  //   if (segment.visual?.kind === "workspace" && segment.visual.timeline) {
+  //     const cues: SegmentSfxClueCue[] = [];
+  //     for (const action of segment.visual.timeline) {
+  //       if (action.type !== "type") continue;
+  //       const pane = segment.visual.panes.find((p) => p.id === action.pane);
+  //       if (!pane || pane.type !== "editor") continue;
+  //       const lineTexts = pane.lines.map((t) => t.map((tok) => tok.text).join(""));
+  //       const run = { fromLine: 1, throughLine: Math.min(action.throughLine, lineTexts.length),
+  //                     startSeconds: action.startSeconds, durationSeconds: action.durationSeconds,
+  //                     charsPerSecond: action.charsPerSecond };
+  //       for (const burst of typingSoundBursts(lineTexts, run)) {
+  //         cues.push({ event: "typing", startSeconds: burst.startSeconds,
+  //                     durationSeconds: burst.durationSeconds, volume: TYPING_VOLUME });
+  //       }
+  //     }
+  //     return cues.length > 0 ? cues : undefined;
+  //   }
+
+  if (segment.visual?.kind !== "canvas" || !segment.visual.timeline) return undefined;
+
+  const cues: SegmentSfxClueCue[] = [];
+  for (const action of segment.visual.timeline) {
+    const sound = "sound" in action ? action.sound : undefined;
+    if (sound) cues.push({ event: sound, startSeconds: action.startSeconds });
+  }
+  return cues.length > 0 ? cues : undefined;
+}
+
+export function resolveSegmentSfxCue(segment: TimedSegment): SegmentSoundCue | undefined {
+  if (segment.type === "chapter") {
+    return {
+      prompt: CHAPTER_TRANSITION_PROMPT,
+      durationSeconds: 1,
+    };
+  }
+
+  if (segment.type === "statement" && segment.visual?.kind === "canvas") {
+    return getCanvasSoundCue(inferCanvasCueEvent(segment.visual));
+  }
+
+  return undefined;
+}
+
 export async function resolveSegmentAudio(
   segments: TimedSegment[],
   options: ResolveAudioOptions = {},
 ): Promise<TimedSegment[]> {
   const provider = options.provider ?? "elevenlabs";
   const edgeVoice = options.edgeVoice;
-  const sfx = provider === "elevenlabs" ? await generateSoundEffect(CHAPTER_WHOOSH_PROMPT, 1) : null;
+  // Sound effects always come from ElevenLabs even when narration uses Edge TTS,
+  // since the user explicitly asked for 11Labs-powered cadence/ambient cues.
+  // Skipped entirely when the batch has no chapter segment — matters for
+  // scene preview, where resolveSegmentAudio is called on a single
+  // non-chapter segment and would otherwise pay for (and wait on) a chapter
+  // transition SFX it will never use.
+  const hasChapter = segments.some((s) => s.type === "chapter");
+  const chapterSfx = hasChapter ? await generateSoundEffect(CHAPTER_TRANSITION_PROMPT, 1) : null;
 
   // A merged Canvas passage (see mergeCanvasContinuity.ts) carries several
   // sub-scenes' own narration in `narrationClips` instead of one text in
@@ -102,8 +253,78 @@ export async function resolveSegmentAudio(
           return results;
         })();
 
+  const sfxAssets: (GeneratedSpeech | null)[] = [];
+  const sfxClipAssets: (
+    | { staticPath: string; startSeconds: number; durationSeconds: number; volume?: number; trimStartSeconds?: number }[]
+    | null
+  )[] = [];
+  for (const segment of segments) {
+    if (segment.type === "chapter") {
+      sfxAssets.push(chapterSfx);
+      sfxClipAssets.push(null);
+      continue;
+    }
+
+    const clueCues = resolveSegmentSfxClueCues(segment);
+    if (clueCues) {
+      // Per-action cues opted in — generate each distinct event once (cached
+      // by prompt+duration hash inside generateSoundEffect, so a repeated
+      // event across actions costs nothing extra) and place every cue at its
+      // own action's startSeconds instead of one whoosh under the whole scene.
+      const resolvedByEvent = new Map<string, GeneratedSpeech>();
+      const clips: {
+        staticPath: string;
+        startSeconds: number;
+        durationSeconds: number;
+        volume?: number;
+        trimStartSeconds?: number;
+      }[] = [];
+      let clipIndex = 0;
+      for (const clue of clueCues) {
+        let asset = resolvedByEvent.get(clue.event);
+        if (!asset) {
+          asset = await resolveCanvasSoundCue(clue.event);
+          resolvedByEvent.set(clue.event, asset);
+        }
+        const clipDuration =
+          clue.durationSeconds !== undefined ? Math.min(clue.durationSeconds, asset.durationSeconds) : asset.durationSeconds;
+        // Walk through the source file rather than replaying its opening every
+        // time, so a run of keyboard bursts does not audibly loop one sample.
+        const slack = Math.max(0, asset.durationSeconds - clipDuration);
+        const trimStartSeconds = slack > 0 ? (clipIndex * 0.137) % slack : undefined;
+        clipIndex += 1;
+        clips.push({
+          staticPath: asset.staticFilePath,
+          startSeconds: clue.startSeconds,
+          // The cue's own length wins when it asks for one, so playback is
+          // trimmed to the beat rather than running for the whole source file.
+          durationSeconds: clipDuration,
+          volume: clue.volume,
+          trimStartSeconds,
+        });
+      }
+      sfxAssets.push(null);
+      sfxClipAssets.push(clips);
+      continue;
+    }
+
+    // The whole-scene canvas fallback goes through resolveCanvasSoundCue too
+    // (real file first) — resolveSegmentSfxCue itself stays prompt-only
+    // (its return shape is asserted directly in resolveAudio.test.ts), so
+    // this re-derives the event name via inferCanvasCueEvent rather than
+    // routing through it, instead of widening a tested public contract.
+    const sfxAsset =
+      segment.type === "statement" && segment.visual?.kind === "canvas"
+        ? await resolveCanvasSoundCue(inferCanvasCueEvent(segment.visual))
+        : null;
+    sfxAssets.push(sfxAsset);
+    sfxClipAssets.push(null);
+  }
+
   return segments.map((segment, index) => {
     const speech = speeches[index];
+    const sfxAsset = sfxAssets[index];
+    const sfxClips = sfxClipAssets[index] ?? undefined;
 
     if (Array.isArray(speech)) {
       // Only mergeCanvasContinuity.ts ever sets `narrationClips`, and only on
@@ -175,10 +396,16 @@ export async function resolveSegmentAudio(
       return {
         ...segment,
         durationSeconds,
+        // The authoritative clock for this passage — the sum of every
+        // sub-scene's MEASURED narration, kept separate from `durationSeconds`
+        // (which may legitimately exceed it via a visual floor or a declared
+        // hold). See narrationFit.ts.
+        narrationSeconds: totalSpeechSeconds,
         visual,
         phases,
         narrationClips,
-        sfxStaticPath: undefined,
+        sfxStaticPath: sfxAsset?.staticFilePath,
+        sfxClips,
         // Bookkeeping only mergeCanvasContinuity.ts/mergeTacticalContinuity.ts/
         // this branch needed — already fully applied above (boundary phases/
         // timeline events anchored, captions shifted), so cleared rather than
@@ -201,8 +428,14 @@ export async function resolveSegmentAudio(
     return {
       ...segment,
       durationSeconds,
+      // The real spoken length, before any visual floor or manual override is
+      // folded in — this is what narrationFit.ts schedules choreography against.
+      narrationSeconds: speech.durationSeconds,
       audioStaticPath: speech.staticFilePath,
-      sfxStaticPath: segment.type === "chapter" && sfx ? sfx.staticFilePath : undefined,
+      sfxStaticPath: segment.type === "chapter"
+        ? chapterSfx?.staticFilePath
+        : sfxAsset?.staticFilePath,
+      sfxClips,
     };
   });
 }

@@ -43,6 +43,35 @@ function safeConcurrency(): number {
   return Math.max(MIN_CONCURRENCY, Math.min(cpuCount, byMemory));
 }
 
+// Reused across every render call within the same process instead of
+// re-running webpack from scratch each time — matters most for the scene-
+// preview loop (server.ts's long-running `npm run ui` process handles many
+// separate render requests over its lifetime, and each one used to pay a
+// full bundle() before doing any actual rendering, working directly against
+// "previewing a scene should take seconds" being the whole point of scene
+// preview existing). Safe to cache for the process's lifetime: this process
+// already requires a manual restart to pick up ANY source change (tsx runs
+// server.ts once at startup, no --watch flag — see package.json's "ui"
+// script), so a stale bundle was never a risk this introduces, only a cost
+// this removes. The CLI's one-shot invocations get no real benefit from
+// this (a fresh process every run has nothing to reuse), but also lose
+// nothing — it's the same single bundle() call it always made.
+let cachedBundleLocation: Promise<string> | null = null;
+
+function getBundleLocation(): Promise<string> {
+  if (!cachedBundleLocation) {
+    // A failed bundle attempt (a transient fs/network hiccup, not a code
+    // problem) must not poison every later render in this same process —
+    // clear the cache on rejection so the NEXT call gets a fresh attempt
+    // instead of the same permanently-broken promise forever.
+    cachedBundleLocation = bundle({ entryPoint: ENTRY_POINT }).catch((err) => {
+      cachedBundleLocation = null;
+      throw err;
+    });
+  }
+  return cachedBundleLocation;
+}
+
 /** Generic composition renderer with a live terminal progress bar (default)
  * or a caller-supplied progress callback — the UI server passes its own to
  * forward progress to the browser over SSE instead of stdout. */
@@ -66,7 +95,7 @@ export async function renderVideo<T extends Record<string, unknown>>(
     });
 
   reportProgress({ percent: 0, stage: "bundling", renderedFrames: 0, encodedFrames: 0, totalFrames: 0 });
-  const bundleLocation = await bundle({ entryPoint: ENTRY_POINT });
+  const bundleLocation = await getBundleLocation();
 
   const composition = await selectComposition({
     serveUrl: bundleLocation,

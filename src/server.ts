@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
 import { parseMedia } from "@remotion/media-parser";
 import { nodeReader } from "@remotion/media-parser/node";
-import { generateVideo, renderEditedTimeline, type TimelinePayload } from "./generate";
+import { generateVideo, renderEditedTimeline, previewScene, type TimelinePayload } from "./generate";
 import type { RenderProgress } from "./render/renderVideo";
 import type { AspectRatio, TimedSegment, AudioClipPlacement } from "./model/Segment";
 import type { TtsProvider } from "./audio/resolveAudio";
@@ -13,6 +13,9 @@ import { fetchFeedItems } from "./news/fetchFeed";
 import { extractArticleText } from "./news/extractArticle";
 import { parseSceneScript, isSceneScript } from "./script/parseSceneScript";
 import { parseAnalysisScript } from "./script/parseAnalysisScript";
+import { autoFixGeometry } from "./script/validateGeometry";
+import { diagnoseScenes } from "./script/validateScene";
+import { sortDiagnostics, type SceneDiagnostic } from "./script/sceneDiagnostics";
 
 const PORT = Number(process.env.PORT) || 4321;
 const PUBLIC_DIR = path.join(__dirname, "..", "public-ui");
@@ -66,12 +69,25 @@ interface JobResult {
    * `/edit/:outputName` (or POST an edited timeline back to
    * `/timeline/:outputName/render`) after generation finishes. */
   outputName: string;
+  /** The final (post-audio) scene diagnostics report — present even on a
+   * successful render, since soft findings never block but are still worth
+   * showing once the video is done. A hard-failure abort never reaches this
+   * point at all; it surfaces through the job's `error`/"failed" event
+   * instead (generateVideo throws, caught below), not this field. */
+  diagnostics: SceneDiagnostic[];
 }
 
 interface Job {
   emitter: EventEmitter;
   done: boolean;
-  result?: JobResult;
+  // Union, not just JobResult — startScenePreviewJob populates this with a
+  // ScenePreviewJobResult instead (a genuinely different shape: no
+  // segmentCount/totalSeconds/diagnostics). streamProgress's own "already
+  // done by the time the SSE connection opens" fallback just forwards
+  // whatever's here as JSON without caring which shape it is; every other
+  // path (the live emitter events) is shape-agnostic already since it just
+  // relays whatever was emit()ted.
+  result?: JobResult | ScenePreviewJobResult;
   error?: string;
 }
 
@@ -119,6 +135,13 @@ interface StartJobOptions {
   backgroundMusicPath: string | undefined;
   segments: TimedSegment[] | undefined;
   audioClips: AudioClipPlacement[] | undefined;
+  /** Bypasses generateVideo's hard-failure gate — see generate.ts's
+   * runEnforcementGate. Without this, a script with a hard scene issue
+   * (an overlap, a declared-but-unrealized Flow edge, a scene with zero
+   * explanatory motion) throws before any audio/render cost is spent, and
+   * that error surfaces here as a normal "failed" job/SSE event — the
+   * client's existing error-handling path needs no changes to show it. */
+  force: boolean;
 }
 
 /** Starts generation as a background job (rather than blocking the request)
@@ -140,6 +163,7 @@ function startJob(options: StartJobOptions): string {
         backgroundMusicPath: options.backgroundMusicPath,
         segments: options.segments,
         audioClips: options.audioClips,
+        force: options.force,
         onLog: (message) => emitter.emit("log", { message }),
         onProgress: (progress: RenderProgress) =>
           emitter.emit("progress", progress),
@@ -150,11 +174,76 @@ function startJob(options: StartJobOptions): string {
         totalSeconds: result.totalSeconds,
         usedSceneFormat: result.usedSceneFormat,
         outputName: result.outputName,
+        diagnostics: result.diagnostics,
       };
       job.done = true;
       emitter.emit("complete", job.result);
     } catch (err) {
       job.error = err instanceof Error ? err.message : "Generation failed.";
+      job.done = true;
+      emitter.emit("failed", { error: job.error });
+    }
+  })();
+
+  return jobId;
+}
+
+interface StartScenePreviewJobOptions {
+  script: string;
+  sceneIndex: number;
+  withAudio: boolean;
+  ttsProvider: TtsProvider;
+  edgeVoice: string | undefined;
+  aspectRatio: AspectRatio;
+  /** Pre-generation timeline-preview edits (reordered/trimmed segments) —
+   * without this, `sceneIndex` would index into a fresh re-parse of
+   * `script` in its ORIGINAL order, which silently means a different scene
+   * than whichever one the UI is actually showing at that index once the
+   * user has reordered anything. */
+  segments: TimedSegment[] | undefined;
+}
+
+interface ScenePreviewJobResult {
+  videoUrl: string;
+  sceneLabel: string;
+  totalScenes: number;
+  outputName: string;
+}
+
+/** Same background-job/SSE-progress shape as startJob — mirrors it exactly
+ * rather than sharing a generic "job runner," since the two entry points
+ * (generateVideo vs previewScene) have different option shapes and result
+ * shapes; forcing them through one generic function would need more
+ * indirection than the ~15 lines of duplication it'd save. */
+function startScenePreviewJob(options: StartScenePreviewJobOptions): string {
+  const jobId = crypto.randomUUID();
+  const emitter = new EventEmitter();
+  const job: Job = { emitter, done: false };
+  jobs.set(jobId, job);
+
+  (async () => {
+    try {
+      const result = await previewScene(options.script, {
+        sceneIndex: options.sceneIndex,
+        withAudio: options.withAudio,
+        ttsProvider: options.ttsProvider,
+        edgeVoice: options.edgeVoice,
+        aspectRatio: options.aspectRatio,
+        segments: options.segments,
+        onLog: (message) => emitter.emit("log", { message }),
+        onProgress: (progress: RenderProgress) => emitter.emit("progress", progress),
+      });
+      const scenePreviewResult: ScenePreviewJobResult = {
+        videoUrl: `/output/${path.basename(result.outputPath)}`,
+        sceneLabel: result.sceneLabel,
+        totalScenes: result.totalScenes,
+        outputName: result.outputName,
+      };
+      job.result = scenePreviewResult;
+      job.done = true;
+      emitter.emit("complete", scenePreviewResult);
+    } catch (err) {
+      job.error = err instanceof Error ? err.message : "Scene preview failed.";
       job.done = true;
       emitter.emit("failed", { error: job.error });
     }
@@ -184,6 +273,7 @@ function startEditedRenderJob(timeline: TimelinePayload, sourceOutputName: strin
         totalSeconds: result.totalSeconds,
         usedSceneFormat: result.usedSceneFormat,
         outputName: result.outputName,
+        diagnostics: result.diagnostics,
       };
       job.done = true;
       emitter.emit("complete", job.result);
@@ -367,8 +457,18 @@ const server = http.createServer(async (req, res) => {
       }
       const usedSceneFormat = isSceneScript(script);
       const segments = usedSceneFormat ? parseSceneScript(script) : parseAnalysisScript(script);
+      // Diagnostics only — the segments returned to the client stay exactly
+      // as parsed (autoFixGeometry's own CORRECTED segments are discarded
+      // here on purpose, not returned), since this response's `segments`
+      // shape is what the timeline-preview editor already consumes and
+      // Generate itself re-parses/re-fixes the script fresh anyway. This is
+      // purely additive: an early, free ("no narration/render involved")
+      // look at what full generation would also find, so problems surface
+      // before the user ever clicks Generate, not just before it renders.
+      const { diagnostics: geometryDiagnostics } = autoFixGeometry(segments);
+      const diagnostics: SceneDiagnostic[] = sortDiagnostics([...geometryDiagnostics, ...diagnoseScenes(segments)]);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ segments, usedSceneFormat }));
+      res.end(JSON.stringify({ segments, usedSceneFormat, diagnostics }));
     } catch (err) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Could not parse this script." }));
@@ -392,6 +492,7 @@ const server = http.createServer(async (req, res) => {
       const segments =
         Array.isArray(body.segments) && body.segments.length > 0 ? (body.segments as TimedSegment[]) : undefined;
       const audioClips = Array.isArray(body.audioClips) ? (body.audioClips as AudioClipPlacement[]) : undefined;
+      const force = Boolean(body.force);
 
       if (!script.trim()) {
         res.writeHead(400, { "Content-Type": "application/json" });
@@ -408,6 +509,7 @@ const server = http.createServer(async (req, res) => {
         backgroundMusicPath,
         segments,
         audioClips,
+        force,
       });
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ jobId }));
@@ -418,6 +520,47 @@ const server = http.createServer(async (req, res) => {
           error: err instanceof Error ? err.message : "Request failed.",
         }),
       );
+    }
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/preview-scene") {
+    // Renders exactly one scene (see generate.ts's previewScene) instead of
+    // the whole video — the actual "click Scene 03, see just that scene in
+    // seconds" loop the diagnostics report above exists to make useful.
+    // Same background-job/SSE-progress shape as /generate, so the client
+    // reuses its existing progress-streaming hook unchanged.
+    try {
+      const body = await readJsonBody(req);
+      const script = typeof body.script === "string" ? body.script : "";
+      const sceneIndex = typeof body.sceneIndex === "number" ? body.sceneIndex : -1;
+      const withAudio = Boolean(body.withAudio);
+      const aspectRatio: AspectRatio = body.aspectRatio === "9:16" ? "9:16" : "16:9";
+      const ttsProvider: TtsProvider = body.ttsProvider === "edge" ? "edge" : "elevenlabs";
+      const edgeVoice = typeof body.edgeVoice === "string" ? body.edgeVoice : undefined;
+      // Same convention as /generate's own `segments` field — pre-generation
+      // timeline-preview edits (reorder/trim), so `sceneIndex` means the
+      // same scene the UI is actually showing rather than a fresh re-parse
+      // in the script's original order.
+      const segments = Array.isArray(body.segments) && body.segments.length > 0 ? (body.segments as TimedSegment[]) : undefined;
+
+      if (!script.trim()) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Paste a script before previewing a scene." }));
+        return;
+      }
+      if (sceneIndex < 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Missing or invalid sceneIndex." }));
+        return;
+      }
+
+      const jobId = startScenePreviewJob({ script, sceneIndex, withAudio, ttsProvider, edgeVoice, aspectRatio, segments });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ jobId }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Request failed." }));
     }
     return;
   }

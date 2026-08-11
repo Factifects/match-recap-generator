@@ -3,6 +3,9 @@ import path from "node:path";
 
 const ASSETS_ROOT = path.join(process.cwd(), "public", "assets");
 const EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
+// Sound-effect files are looked up the same way images are, just with audio
+// extensions — see findSfxAsset below.
+const AUDIO_EXTENSIONS = ["mp3", "wav", "m4a", "ogg", "aac"];
 
 export type AssetCategory = "flags" | "badges" | "players" | "silhouettes" | "jerseys" | "icons";
 
@@ -59,4 +62,23 @@ function findSilhouette(kind: "player" | "manager" | "fans"): string | undefined
  * matching generic silhouette, falling back to nothing. */
 export function findPersonArt(name: string, silhouette: "player" | "manager" | "fans" = "player"): string | undefined {
   return findAsset("players", name) ?? findSilhouette(silhouette);
+}
+
+/** A real, user-supplied sound-effect file for a given Canvas SFX event name
+ * (see CanvasSoundEvent in src/cadence/canvasCadences.ts), looked up in
+ * public/assets/sfx/<event>.<ext> — same convention as findAsset's image
+ * lookup, just an audio extension list. Exists because prompt-generated SFX
+ * (ElevenLabs sound-generation) has repeatedly landed wrong ("sounds like a
+ * bounce", "ball dropped in a bucket of water") and re-prompting is a dead
+ * end — see canvasCadences.ts's own history. A real curated file is used
+ * verbatim when present; ElevenLabs generation is only ever the fallback for
+ * an event with no file yet, not the default path. Returns a path relative
+ * to public/ (suitable for Remotion's staticFile()), or undefined when no
+ * file exists for this event. */
+export function findSfxAsset(event: string): string | undefined {
+  for (const ext of AUDIO_EXTENSIONS) {
+    const filePath = path.join(ASSETS_ROOT, "sfx", `${event}.${ext}`);
+    if (fs.existsSync(filePath)) return `assets/sfx/${event}.${ext}`;
+  }
+  return undefined;
 }

@@ -1,0 +1,202 @@
+{
+  "carbon-cloud-app": {
+    "slug": "carbon-cloud-app",
+    "title": "cloud-app",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-cloud-app.svg",
+    "source": "https://api.iconify.design/carbon/cloud-app.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T22:40:19.669Z"
+  },
+  "redis": {
+    "slug": "redis",
+    "title": "redis",
+    "hex": "#912626",
+    "monochrome": false,
+    "staticPath": "assets/logos/redis.svg",
+    "source": "https://api.iconify.design/logos/redis.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T22:40:19.689Z"
+  },
+  "postgresql": {
+    "slug": "postgresql",
+    "title": "postgresql",
+    "hex": "#336791",
+    "monochrome": false,
+    "staticPath": "assets/logos/postgresql.svg",
+    "source": "https://api.iconify.design/logos/postgresql.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T22:40:19.691Z"
+  },
+  "carbon-time": {
+    "slug": "carbon-time",
+    "title": "time",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-time.svg",
+    "source": "https://api.iconify.design/carbon/time.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T22:40:19.843Z"
+  },
+  "carbon-chart-line": {
+    "slug": "carbon-chart-line",
+    "title": "chart-line",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-chart-line.svg",
+    "source": "https://api.iconify.design/carbon/chart-line.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T22:40:19.873Z"
+  },
+  "carbon-dashboard": {
+    "slug": "carbon-dashboard",
+    "title": "dashboard",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-dashboard.svg",
+    "source": "https://api.iconify.design/carbon/dashboard.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T22:40:19.880Z"
+  },
+  "carbon-document-add": {
+    "slug": "carbon-document-add",
+    "title": "document-add",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-document-add.svg",
+    "source": "https://api.iconify.design/carbon/document-add.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T22:40:19.988Z"
+  },
+  "carbon-events": {
+    "slug": "carbon-events",
+    "title": "events",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-events.svg",
+    "source": "https://api.iconify.design/carbon/events.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T23:13:03.638Z"
+  },
+  "carbon-purchase": {
+    "slug": "carbon-purchase",
+    "title": "purchase",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-purchase.svg",
+    "source": "https://api.iconify.design/carbon/purchase.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T23:13:03.680Z"
+  },
+  "carbon-user": {
+    "slug": "carbon-user",
+    "title": "user",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-user.svg",
+    "source": "https://api.iconify.design/carbon/user.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T23:13:03.710Z"
+  },
+  "carbon-warning-alt": {
+    "slug": "carbon-warning-alt",
+    "title": "warning-alt",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-warning-alt.svg",
+    "source": "https://api.iconify.design/carbon/warning-alt.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T23:13:03.711Z"
+  },
+  "carbon-data-base": {
+    "slug": "carbon-data-base",
+    "title": "data-base",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-data-base.svg",
+    "source": "https://api.iconify.design/carbon/data-base.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T23:13:03.810Z"
+  },
+  "carbon-locked": {
+    "slug": "carbon-locked",
+    "title": "locked",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-locked.svg",
+    "source": "https://api.iconify.design/carbon/locked.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T23:13:03.879Z"
+  },
+  "carbon-pause": {
+    "slug": "carbon-pause",
+    "title": "pause",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-pause.svg",
+    "source": "https://api.iconify.design/carbon/pause.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-10T23:13:03.893Z"
+  },
+  "anthropic": {
+    "slug": "anthropic",
+    "title": "anthropic",
+    "hex": "#181818",
+    "monochrome": true,
+    "staticPath": "assets/logos/anthropic.svg",
+    "source": "https://api.iconify.design/logos/anthropic.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-11T09:38:26.372Z"
+  },
+  "openai": {
+    "slug": "openai",
+    "title": "openai",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/openai.svg",
+    "source": "https://api.iconify.design/logos/openai.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-11T09:38:26.824Z"
+  },
+  "meta": {
+    "slug": "meta",
+    "title": "meta",
+    "hex": "#0081fb",
+    "monochrome": false,
+    "staticPath": "assets/logos/meta.svg",
+    "source": "https://api.iconify.design/logos/meta.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-11T09:38:26.862Z"
+  },
+  "nvidia": {
+    "slug": "nvidia",
+    "title": "nvidia",
+    "hex": "#76b900",
+    "monochrome": true,
+    "staticPath": "assets/logos/nvidia.svg",
+    "source": "https://api.iconify.design/logos/nvidia.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-11T09:38:27.342Z"
+  },
+  "huggingface": {
+    "slug": "huggingface",
+    "title": "Hugging Face",
+    "hex": "#FFD21E",
+    "monochrome": true,
+    "staticPath": "assets/logos/huggingface.svg",
+    "source": "https://cdn.simpleicons.org/huggingface",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-11T09:38:27.648Z"
+  },
+  "googlegemini": {
+    "slug": "googlegemini",
+    "title": "Google Gemini",
+    "hex": "#8E75B2",
+    "monochrome": true,
+    "staticPath": "assets/logos/googlegemini.svg",
+    "source": "https://cdn.simpleicons.org/googlegemini",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-11T09:38:28.915Z"
+  }
+}

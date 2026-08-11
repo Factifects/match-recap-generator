@@ -37,6 +37,7 @@ export const SceneFrame: React.FC<{
   children,
 }) => {
   const background = backgroundColor ? PANEL_COLORS[backgroundColor] : COLORS.background;
+  const isLightPanel = backgroundColor === "light";
 
   return (
     <AbsoluteFill
@@ -56,11 +57,17 @@ export const SceneFrame: React.FC<{
           noticeable-as-an-effect level (a viewer should feel the frame has
           depth, not see a gradient). Rendered UNDER children so text/labels
           keep their exact current contrast. */}
+      {/* The corner-darkening half of this vignette is tuned for the dark
+          panels used everywhere else — at 0.30 black it reads as subtle depth
+          there, but on a light/cream panel the same strength muddies the
+          corners gray and fights the "close to white" panel color instead of
+          supporting it. Dropped to a much fainter 0.06 on light panels only —
+          every dark panel's vignette is completely unchanged. */}
       <AbsoluteFill
         style={{
           background:
             "radial-gradient(ellipse 90% 70% at 50% 30%, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0) 60%)," +
-            "radial-gradient(ellipse 120% 110% at 50% 50%, rgba(0,0,0,0) 58%, rgba(0,0,0,0.30) 100%)",
+            `radial-gradient(ellipse 120% 110% at 50% 50%, rgba(0,0,0,0) 58%, rgba(0,0,0,${isLightPanel ? 0.06 : 0.3}) 100%)`,
         }}
       />
       {children}

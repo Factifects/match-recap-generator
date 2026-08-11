@@ -1,8 +1,8 @@
 import React from "react";
-import { useCurrentFrame, staticFile, interpolate, interpolateColors } from "remotion";
+import { useCurrentFrame, staticFile, interpolate, interpolateColors, Img } from "remotion";
 import { Lottie } from "@remotion/lottie";
 import { Gif } from "@remotion/gif";
-import { COLORS, FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter, FPS } from "../theme";
+import { COLORS, FONT_FAMILY, SUBTITLE_FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter, FPS } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, drawIn, pulse, settleFrom, type EasingName } from "../motion";
 import { CANVAS_ICON_COMPONENTS } from "../canvasIcons";
@@ -278,13 +278,13 @@ interface ResolvedPhase {
  * PhaseCaptionOverlay.tsx's own `resolvePhaseStartFrames`, just with a fixed-
  * cadence fallback instead of an even split (Canvas phases hold for a fixed
  * beat, not "spread evenly across the segment's total duration"). */
-function resolvePhaseStartFrames(phases: ResolvedPhase[]): number[] {
+function resolvePhaseStartFrames(phases: ResolvedPhase[], phaseDurationFrames: number): number[] {
   const starts: number[] = [];
   for (let i = 0; i < phases.length; i++) {
     const explicit = phases[i].startSeconds;
     if (explicit !== undefined) starts.push(Math.round(explicit * FPS));
     else if (i === 0) starts.push(0);
-    else starts.push(starts[i - 1] + CANVAS_PHASE_DURATION_FRAMES);
+    else starts.push(starts[i - 1] + phaseDurationFrames);
   }
   return starts;
 }
@@ -301,8 +301,9 @@ function resolveAnimatedProps(
   previous: CanvasObjectT | undefined,
   localFrame: number,
   easing: EasingName,
+  glideDurationFrames: number,
 ): Record<AnimatableKey, number> {
-  const t = previous ? drawIn(localFrame, 0, CANVAS_GLIDE_DURATION_FRAMES, easing) : 1;
+  const t = previous ? drawIn(localFrame, 0, glideDurationFrames, easing) : 1;
   // x/y need resolveObjectPosition (anchor-or-explicit), not the generic
   // ANIMATABLE_DEFAULTS fallback below — an anchor-authored object has no
   // `object.x` at all, so the generic path would silently glide it toward
@@ -424,6 +425,29 @@ interface TimelineObjectState {
   appearFrame: number | undefined;
 }
 
+/** Attention without camera movement: how much this object's opacity is scaled
+ * by the focus state at `frame`. Folded across every `focus` action so a later
+ * focus supersedes an earlier one, and an empty `ids` restores everything.
+ *
+ * This is the diagram-side half of the highlight-and-dim mechanic the code
+ * medium uses on individual lines. Unfocused objects are DIMMED, never hidden:
+ * on a cumulatively-built diagram the surrounding structure is the context the
+ * viewer is placing the focused element into, so removing it defeats the point.
+ * Prefer this over a camera zoom for the same reason. */
+function resolveFocusMultiplier(objectId: string, actions: CanvasTimelineActionT[], frame: number): number {
+  let multiplier = 1;
+  for (const action of actions) {
+    if (action.type !== "focus") continue;
+    const start = action.startSeconds * FPS;
+    if (frame < start) continue;
+    const target = action.ids.length === 0 || action.ids.includes(objectId) ? 1 : action.dimOpacity;
+    const durationFrames = Math.max(1, action.durationSeconds * FPS);
+    const t = resolveEasing(action.easing ?? TIMELINE_DEFAULT_EASING)(Math.min(1, (frame - start) / durationFrames));
+    multiplier = multiplier + (target - multiplier) * t;
+  }
+  return multiplier;
+}
+
 /** Folds every timeline action targeting `object` (sorted by startSeconds)
  * into its current animated state at `frame` — the Canvas counterpart of
  * TacticalBoard's evented resolution. Each action interpolates FROM the
@@ -451,7 +475,9 @@ function resolveTimelineObject(object: CanvasObjectT, actions: CanvasTimelineAct
     appearFrame: undefined,
   };
   for (const action of actions) {
-    if (action.type === "camera" || action.id !== object.id) continue;
+    // `camera` and `focus` are scene-level, not object-targeted — focus is
+    // resolved separately by resolveFocusMultiplier below.
+    if (action.type === "camera" || action.type === "focus" || action.id !== object.id) continue;
     const start = action.startSeconds * FPS;
     if (action.type === "appear") {
       state.appearFrame = start;
@@ -551,6 +577,13 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
   orientation,
 }) => {
   const frame = useCurrentFrame();
+  // Every hardcoded `fill={COLORS.text}` text render below switches to
+  // `COLORS.textOnLight` when true — see theme.ts's PANEL_COLORS.light /
+  // COLORS.textOnLight comments. Icons/shapes are unaffected: their `color`
+  // already defaults through `colorForCharacter(...)`, not COLORS.text, so
+  // they stay visible on any panel.
+  const isLightPanel = backgroundColor === "light";
+  const textColor = isLightPanel ? COLORS.textOnLight : COLORS.text;
   const isPortrait = orientation === "portrait";
   const { width: canvasWidth, height: canvasHeight } = isPortrait ? CANVAS_SIZE.portrait : CANVAS_SIZE.landscape;
 
@@ -570,7 +603,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
       startSeconds: phase.startSeconds,
     })),
   ];
-  const phaseStartFrames = resolvePhaseStartFrames(allPhases);
+  const phaseStartFrames = resolvePhaseStartFrames(allPhases, CANVAS_PHASE_DURATION_FRAMES);
   let phaseIndex = 0;
   for (let i = 0; i < phaseStartFrames.length; i++) {
     if (frame >= phaseStartFrames[i]) phaseIndex = i;
@@ -633,7 +666,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
     .map((object, index) => {
     const previous = previousPhase?.objects.find((o) => o.id === object.id);
     const isNew = phaseIndex > 0 && !previous;
-    const props = resolveAnimatedProps(object, previous, phaseLocalFrame, glideEasing(object.easing));
+    const props = resolveAnimatedProps(object, previous, phaseLocalFrame, glideEasing(object.easing), CANVAS_GLIDE_DURATION_FRAMES);
     const resolvedPoints = resolveAnimatedPoints(object, previous, phaseLocalFrame, glideEasing(object.easing));
     const timelineState = timelineMode ? resolveTimelineObject(object, timelineSorted, frame) : undefined;
     // Fully disappeared (or not yet appeared, for enter:"none" objects that
@@ -717,7 +750,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
       height: props.height,
       rotation: (timelineState?.rotation ?? props.rotation) + entranceRotationOffset,
       scale: (timelineState?.scale ?? props.scale) * entranceScale,
-      opacity: (timelineState?.opacity ?? props.opacity) * entranceOpacity,
+      opacity: (timelineState?.opacity ?? props.opacity) * entranceOpacity * (timelineMode ? resolveFocusMultiplier(object.id, timelineSorted, frame) : 1),
       slideYOffset: entranceSlideY,
       slideXOffset: entranceSlideX,
       blurPx: entranceBlur,
@@ -975,8 +1008,8 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       fontFamily={FONT_FAMILY}
                       fontWeight={600}
                       {...fitText(arrow.label, 28, (canvasWidth * 0.85) / camZoom)}
-                      fill={COLORS.text}
-                      style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
+                      fill={textColor}
+                      style={{ filter: isLightPanel ? undefined : `drop-shadow(0 0 6px ${COLORS.background})` }}
                     >
                       {arrow.label}
                     </text>
@@ -1025,7 +1058,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                   ? GHOST_TRAIL.map(({ lag, opacity: trailOpacity }, trailIndex) => {
                       const ghostLocalFrame = phaseLocalFrame - Math.round(lag * CANVAS_GLIDE_DURATION_FRAMES);
                       if (ghostLocalFrame <= 0) return null;
-                      const ghostProps = resolveAnimatedProps(object, previous, ghostLocalFrame, glideEasing(object.easing));
+                      const ghostProps = resolveAnimatedProps(object, previous, ghostLocalFrame, glideEasing(object.easing), CANVAS_GLIDE_DURATION_FRAMES);
                       const [gx, gy] = project(ghostProps.x, ghostProps.y);
                       return <circle key={trailIndex} cx={gx} cy={gy} r={DOT_RADIUS * 0.6} fill={color} opacity={trailOpacity * opacity} />;
                     })
@@ -1047,9 +1080,9 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                     fontFamily={FONT_FAMILY}
                     fontWeight={700}
                     {...fitText(effectiveLabel ?? "", 36, (canvasWidth * 0.85) / camZoom)}
-                    fill={COLORS.text}
+                    fill={textColor}
                     opacity={opacity}
-                    style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
+                    style={{ filter: isLightPanel ? undefined : `drop-shadow(0 0 6px ${COLORS.background})` }}
                   >
                     {effectiveLabel}
                   </text>
@@ -1188,9 +1221,9 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                         fontFamily={FONT_FAMILY}
                         fontWeight={700}
                         {...fitText(object.label ?? "", 30, (canvasWidth * 0.85) / camZoom)}
-                        fill={COLORS.text}
+                        fill={textColor}
                         opacity={opacity}
-                        style={{ filter: `drop-shadow(0 0 6px ${COLORS.background})` }}
+                        style={{ filter: isLightPanel ? undefined : `drop-shadow(0 0 6px ${COLORS.background})` }}
                       >
                         {object.label}
                       </text>
@@ -1366,6 +1399,32 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                 );
               }
 
+              if (object.type === "image") {
+                if (!object.imageFile) return null;
+                // Same box-fit approach as "gif" above, but a plain static
+                // <Img> (no GIF decode/loop machinery needed). The source
+                // export (e.g. this channel's own logo) is a circular mark
+                // flattened onto a plain square canvas with no real alpha
+                // transparency (confirmed: `hasAlpha: no`) — clipped to a
+                // circle here so that square shows nowhere, regardless of
+                // what color it happens to be or what panel it sits on,
+                // rather than depending on the panel background color
+                // happening to match it closely enough to hide the seam.
+                const box = projectRadius(radius) * 2;
+                return (
+                  <React.Fragment key={object.id}>
+                    {trailNodes}
+                    <foreignObject x={px - box / 2} y={py - box / 2} width={box} height={box} opacity={opacity} style={transformStyle}>
+                      <Img
+                        src={staticFile(`assets/logos/${object.imageFile}`)}
+                        style={{ width: box, height: box, objectFit: "contain", borderRadius: "50%", clipPath: "circle(50%)" }}
+                      />
+                    </foreignObject>
+                    {belowLabel(box / 2 + 24)}
+                  </React.Fragment>
+                );
+              }
+
               // "label" is handled entirely by the un-transformed overlay
               // svg below (see fixedLabelObjects) — filtered out of
               // cameraObjects, so this branch is intentionally unreachable
@@ -1385,7 +1444,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                             x={px}
                             y={py + DOT_RADIUS + 18}
                             textAnchor="middle"
-                            fill={COLORS.text}
+                            fill={textColor}
                             textLength={fit.textLength}
                             lengthAdjust={fit.lengthAdjust}
                             style={{ ...CANVAS_DOT_LABEL_STYLE, fontSize: fit.fontSize }}
@@ -1407,9 +1466,20 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
               style={{ overflow: "visible", position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
             >
-              {fixedLabelObjects.map(({ object, displayLabel, x, y, rotation, scale, opacity, slideYOffset, slideXOffset, blurPx }) => {
-                const text = displayLabel ?? object.label;
-                if (!text) return null;
+              {fixedLabelObjects.map(({ object, displayLabel, x, y, rotation, scale, opacity, slideYOffset, slideXOffset, blurPx, colorOverride }) => {
+                const rawText = displayLabel ?? object.label;
+                if (!rawText) return null;
+                const isWordmark = object.fontStyle === "wordmark";
+                const isSubtitle = object.fontStyle === "subtitle";
+                const isDetail = object.fontStyle === "detail";
+                // Uppercased on the actual string, not just a CSS
+                // textTransform, so wrapLabel/fitText measure the same glyphs
+                // that get painted — a CSS-only transform would measure the
+                // authored (lowercase) text's width, then visually swap to
+                // wider uppercase glyphs after the wrap decision was already
+                // made, reopening exactly the kind of wrap-width mismatch
+                // this project has been bitten by before.
+                const text = isSubtitle ? rawText.toUpperCase() : rawText;
                 const [rawPx, rawPy] = project(x, y);
                 const px = rawPx + slideXOffset;
                 const py = rawPy + slideYOffset;
@@ -1421,19 +1491,64 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                         filter: blurPx > 0.5 ? `blur(${blurPx}px)` : undefined,
                       }
                     : {};
-                const wrapped = wrapLabel(text, 46, maxLabelWidthPx(object.id, px, py));
+                const wrapped = wrapLabel(text, isWordmark ? 70 : isDetail ? 28 : 46, maxLabelWidthPx(object.id, px, py));
+
+                // Sticker/stencil wordmark treatment (2026-08-06, explicit
+                // reference: a bold outlined logotype with a hard offset
+                // shadow block behind it, "but use our own theme color") —
+                // three stacked layers instead of the single flat-fill text
+                // every other label uses: a solid offset duplicate for the
+                // hard "extruded" shadow (NOT the soft blur `drop-shadow`
+                // filter used elsewhere — that reads as a glow, not a shadow
+                // block), then an outlined+filled layer on top. `paint-order:
+                // stroke` draws the stroke BEHIND the fill on that same text
+                // node so the outline doesn't eat into the letterforms. Fill
+                // is this project's own accent blue (not the reference
+                // image's yellow/red) so it reads as Techijest, not a clone.
+                if (isWordmark) {
+                  const shadowOffset = wrapped.fontSize * 0.07;
+                  const strokeWidth = wrapped.fontSize * 0.065;
+                  const fillColor = colorOverride ?? object.color ?? COLORS.accent;
+                  const sharedTextProps = {
+                    y: py,
+                    textAnchor: "middle" as const,
+                    dominantBaseline: "middle" as const,
+                    fontFamily: FONT_FAMILY,
+                    fontWeight: 800,
+                    letterSpacing: wrapped.fontSize * 0.09,
+                    fontSize: wrapped.fontSize,
+                  };
+                  return (
+                    <g key={object.id} opacity={opacity} style={transformStyle}>
+                      <text {...sharedTextProps} y={py + shadowOffset} fill={textColor}>
+                        <WrappedTspans wrapped={wrapped} x={px + shadowOffset} />
+                      </text>
+                      <text
+                        {...sharedTextProps}
+                        fill={fillColor}
+                        stroke={textColor}
+                        strokeWidth={strokeWidth}
+                        strokeLinejoin="round"
+                        style={{ paintOrder: "stroke" }}
+                      >
+                        <WrappedTspans wrapped={wrapped} x={px} />
+                      </text>
+                    </g>
+                  );
+                }
+
                 return (
                   <text
                     key={object.id}
                     y={py}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fontFamily={FONT_FAMILY}
-                    fontWeight={700}
+                    fontFamily={isSubtitle ? SUBTITLE_FONT_FAMILY : FONT_FAMILY}
+                    fontWeight={isSubtitle ? 300 : 700}
                     fontSize={wrapped.fontSize}
-                    fill={COLORS.text}
+                    fill={colorOverride ?? object.color ?? textColor}
                     opacity={opacity}
-                    style={{ filter: `drop-shadow(0 0 8px ${COLORS.background})`, ...transformStyle }}
+                    style={{ filter: isLightPanel ? undefined : `drop-shadow(0 0 8px ${COLORS.background})`, ...transformStyle }}
                   >
                     <WrappedTspans wrapped={wrapped} x={px} />
                   </text>

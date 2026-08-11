@@ -16,6 +16,13 @@ export const COLORS = {
   border: "#2a2f33",
   text: "#ffffff",
   textDim: "#b0bec5",
+  // Counterpart to `text` for use on a light `PANEL_COLORS.light` panel —
+  // white text/drop-shadows (this project's default everywhere else) go
+  // illegible on a light background, so anything rendering actual copy
+  // switches to this when `backgroundColor === "light"` (see Canvas.tsx's
+  // `isLightPanel`). Not a general dark-mode toggle — every other panel
+  // color stays on the white-text path unchanged.
+  textOnLight: "#14181c",
   accent: "#4f6bff",
 
   // Dark-grey pitch, not literal grass green (2026-07-22 request) — a flat
@@ -48,11 +55,21 @@ export const COLORS = {
 // request. Every card imports DISPLAY_FONT_FAMILY/FONT_FAMILY from here
 // rather than hardcoding a font, so this one file is the whole swap.
 import { loadFont, fontFamily as montserratFontFamily } from "@remotion/google-fonts/Montserrat";
+import { loadFont as loadPoppinsFont, fontFamily as poppinsFontFamily } from "@remotion/google-fonts/Poppins";
 
 loadFont("normal", { weights: ["500", "600", "700", "800", "900"] });
+loadPoppinsFont("normal", { weights: ["300"] });
 
 export const DISPLAY_FONT_FAMILY = `"${montserratFontFamily}", sans-serif`;
 export const FONT_FAMILY = `"${montserratFontFamily}", sans-serif`;
+
+// Scoped exception to the "one family" rule above — for a subtitle/tagline
+// moment (e.g. under the Techijest wordmark on the channel intro card) —
+// a thin (300) weight reads as intentional editorial contrast against bold
+// headline text, where Montserrat 700 (the normal label weight, tuned for
+// small-diagram legibility) just reads as another bold caption. Opt in via
+// a Canvas label's `fontStyle: "subtitle"`, default path untouched.
+export const SUBTITLE_FONT_FAMILY = `"${poppinsFontFamily}", sans-serif`;
 
 // Shared "eyebrow" title style for every card's small header line (e.g.
 // "INSIDE CHANNEL", "FIRST-HALF SHOT CLUSTER") — bigger/bolder/brighter than
@@ -95,6 +112,12 @@ export const PANEL_COLORS = {
   red: "#3a1f22",
   blue: "#1c2b45",
   yellow: "#3a3320",
+  // Light-white-grey, not pure white — for brand/title-card moments (the
+  // Techijest intro scene) that want to read as a clean logo card rather
+  // than blend into the dark palette used everywhere else. Any scene using
+  // this MUST use dark (`COLORS.textOnLight`) text — Canvas.tsx switches
+  // automatically based on `backgroundColor === "light"`.
+  light: "#f8f3e8",
 };
 
 export type PanelColorKey = keyof typeof PANEL_COLORS;

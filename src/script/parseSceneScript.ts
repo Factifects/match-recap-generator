@@ -3,9 +3,14 @@ import { VISUAL_DEFINITIONS } from "../model/visualDefinitions";
 import { resolvePattern, TACTICAL_PATTERNS, type PatternRole, type PatternRoleTemplate } from "../video/tacticalPatterns";
 import { findAsset, findPersonArt } from "../video/assets";
 import { PHASE_DURATION_FRAMES } from "../video/compositions/TacticalBoard";
-import { CANVAS_PHASE_DURATION_FRAMES } from "../video/compositions/Canvas";
 import { CANVAS3D_PHASE_DURATION_FRAMES } from "../video/compositions/Canvas3D";
 import { FPS } from "../video/theme";
+import { CANVAS_PHASE_TIMING } from "../cadence/canvasCadences";
+import { parseSceneContract } from "./sceneContract";
+import { composeFlow } from "./composeFlow";
+import { selectContractSchema, composeSelect } from "./composeSelect";
+import { queueContractSchema, composeContinuous } from "./composeContinuous";
+import { mechanismContractSchema, composeMechanism } from "./composeMechanism";
 
 const SCENE_MARKER = /^### SCENE \d+/;
 const FIELD_LINE = /^\*\*([^*]+):\*\*\s*(.*)$/;
@@ -89,9 +94,20 @@ export function computeVisualMinDurationSeconds(visual: Visual | undefined): num
     );
     return timelineEnd + TIMELINE_SETTLE_BUFFER_SECONDS;
   }
+  // A `workspace` scene's floor comes from its own timeline for exactly the
+  // same reason as the Canvas branch above — without this, an estimate-only
+  // render would cut a code walkthrough short partway through its highlights.
+  // Every workspace action carries `startSeconds`, and only some carry a
+  // duration (`clear` is instantaneous), matching Canvas's shape.
+  if ((visual?.kind === "workspace" || visual?.kind === "diagram") && visual.timeline && visual.timeline.length > 0) {
+    const timelineEnd = Math.max(
+      ...visual.timeline.map((action) => action.startSeconds + ("durationSeconds" in action ? (action.durationSeconds ?? 0) : 0)),
+    );
+    return timelineEnd + TIMELINE_SETTLE_BUFFER_SECONDS;
+  }
   if (visual?.kind === "canvas" && visual.phases && visual.phases.length > 0) {
     const phaseCount = 1 + visual.phases.length;
-    return (phaseCount * CANVAS_PHASE_DURATION_FRAMES) / FPS;
+    return (phaseCount * CANVAS_PHASE_TIMING.phaseDurationFrames) / FPS;
   }
   if (visual?.kind === "canvas-3d" && visual.phases && visual.phases.length > 0) {
     const phaseCount = 1 + visual.phases.length;
@@ -364,7 +380,12 @@ function resolveDataVisual(kind: string, fields: SceneFields): Visual | null {
     console.warn(`[parseSceneScript] Scene "${fields["Annotation"] ?? kind}": Data block is not valid JSON — falling back to a plain caption. ${err instanceof Error ? err.message : String(err)}`);
     return null;
   }
-  const result = visualSchema.safeParse({ kind, title: stripQuotes(fields["Annotation"]), ...(parsed as Record<string, unknown>) });
+  const dataObject = parsed as Record<string, unknown>;
+  const result = visualSchema.safeParse({
+    kind,
+    title: stripQuotes(fields["Annotation"]),
+    ...dataObject,
+  });
   if (!result.success) {
     console.warn(
       `[parseSceneScript] Scene "${fields["Annotation"] ?? kind}" (${kind}): Data block failed validation — falling back to a plain caption.\n${result.error.issues.map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`).join("\n")}`,
@@ -374,13 +395,184 @@ function resolveDataVisual(kind: string, fields: SceneFields): Visual | null {
   return result.data;
 }
 
+/** `Scene Type: Flow` — no Data block at all; the visual is COMPILED
+ * from the scene's own Entities/Flow fields (see composeFlow.ts)
+ * instead of hand-authored JSON. This is the "make a correctly composed,
+ * genuinely demonstrated scene the default" half of the fix — a Flow scene
+ * cannot ship with zero arrows or zero real transport the way a hand-
+ * authored Canvas scene silently could, since the compiler always draws a
+ * connector for every declared relationship and always moves a token for
+ * every declared transport. Falls back to null (same graceful-degradation
+ * posture as every other scene type) when the fields don't parse into a
+ * contract with at least one edge — an empty Flow scene has nothing to
+ * compile. Reuses composeFlow's output through the SAME visualSchema
+ * validation a hand-authored Data block goes through, so a compiler bug
+ * degrades to a Statement fallback exactly like a malformed Data block
+ * would, never a bad render. */
+function resolveFlowVisual(fields: SceneFields): Visual | null {
+  const contract = parseSceneContract(fields);
+  if (!contract || contract.edges.length === 0) {
+    console.warn(`[parseSceneScript] Scene "${fields["Annotation"] ?? "Flow"}": Scene Type Flow needs at least one **Flow:** edge — falling back to a plain caption.`);
+    return null;
+  }
+  const estimatedDurationSeconds = parseDurationSeconds(fields["Duration"]);
+  const composed = composeFlow(contract, estimatedDurationSeconds);
+  const result = visualSchema.safeParse({ kind: "canvas", title: stripQuotes(fields["Annotation"]) || undefined, ...composed });
+  if (!result.success) {
+    console.warn(
+      `[parseSceneScript] Scene "${fields["Annotation"] ?? "Flow"}": composed Flow visual failed validation — falling back to a plain caption.\n${result.error.issues.map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`).join("\n")}`,
+    );
+    return null;
+  }
+  return result.data;
+}
+
+/** `Scene Type: Select` — a **Select:** JSON block (subject/criteria/
+ * candidates/resultLabel, see composeSelect.ts's selectContractSchema)
+ * compiles to a genuine temporal selection process: criteria visibly
+ * extract out of the subject, real candidates populate, each is inspected
+ * in turn and either survives or is visibly rejected, the survivor gets
+ * linked to the subject, and the result is revealed only at the very end —
+ * it does not exist in the scene at all before that final beat. Supersedes
+ * an earlier `Scene Type: Compare` (removed) that modeled a single subject
+ * checked against one static validator — confirmed directly against a real
+ * render that shape SHOWS a result instead of DEMONSTRATING a process
+ * (everything legible in the first two seconds, static for the rest), and
+ * structurally couldn't represent "checked against several real
+ * candidates, most of which fail" at all. Same graceful-degradation
+ * posture as every other compiled visual: a missing/malformed **Select:**
+ * block or a compiler bug both fall back to a plain caption, never a bad
+ * render. */
+function resolveSelectVisual(fields: SceneFields): Visual | null {
+  const raw = fields["Select"];
+  if (!raw) {
+    console.warn(`[parseSceneScript] Scene "${fields["Annotation"] ?? "Select"}": Scene Type Select needs a **Select:** block — falling back to a plain caption.`);
+    return null;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    console.warn(`[parseSceneScript] Scene "${fields["Annotation"] ?? "Select"}": Select block is not valid JSON — falling back to a plain caption. ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+  const contractResult = selectContractSchema.safeParse(parsed);
+  if (!contractResult.success) {
+    console.warn(
+      `[parseSceneScript] Scene "${fields["Annotation"] ?? "Select"}": Select block failed validation — falling back to a plain caption.\n${contractResult.error.issues.map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`).join("\n")}`,
+    );
+    return null;
+  }
+  const estimatedDurationSeconds = parseDurationSeconds(fields["Duration"]);
+  const composed = composeSelect(contractResult.data, estimatedDurationSeconds);
+  const result = visualSchema.safeParse({ kind: "canvas", title: stripQuotes(fields["Annotation"]) || undefined, ...composed });
+  if (!result.success) {
+    console.warn(
+      `[parseSceneScript] Scene "${fields["Annotation"] ?? "Select"}": composed Select visual failed validation — falling back to a plain caption.\n${result.error.issues.map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`).join("\n")}`,
+    );
+    return null;
+  }
+  return result.data;
+}
+
+/** `Scene Type: Queue` — a **Queue:** JSON block (processor/arrivals/
+ * departures, see composeContinuous.ts's queueContractSchema) compiles to a
+ * genuinely CONTINUOUS process, the second Timeline IR proof point after
+ * Select's resolve-then-reveal shape: a real discrete-event queue simulation
+ * (not hand-placed items) drives who arrives when, how long they wait, and
+ * when they're served — arrivals/departures are pure data, so a different
+ * array in produces a genuinely different simulated, rendered process out.
+ * Same graceful-degradation posture as every other compiled visual: a
+ * missing/malformed **Queue:** block or a compiler bug both fall back to a
+ * plain caption, never a bad render. */
+function resolveQueueVisual(fields: SceneFields): Visual | null {
+  const raw = fields["Queue"];
+  if (!raw) {
+    console.warn(`[parseSceneScript] Scene "${fields["Annotation"] ?? "Queue"}": Scene Type Queue needs a **Queue:** block — falling back to a plain caption.`);
+    return null;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    console.warn(`[parseSceneScript] Scene "${fields["Annotation"] ?? "Queue"}": Queue block is not valid JSON — falling back to a plain caption. ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+  const contractResult = queueContractSchema.safeParse(parsed);
+  if (!contractResult.success) {
+    console.warn(
+      `[parseSceneScript] Scene "${fields["Annotation"] ?? "Queue"}": Queue block failed validation — falling back to a plain caption.\n${contractResult.error.issues.map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`).join("\n")}`,
+    );
+    return null;
+  }
+  const estimatedDurationSeconds = parseDurationSeconds(fields["Duration"]);
+  const composed = composeContinuous(contractResult.data, estimatedDurationSeconds);
+  const result = visualSchema.safeParse({ kind: "canvas", title: stripQuotes(fields["Annotation"]) || undefined, ...composed });
+  if (!result.success) {
+    console.warn(
+      `[parseSceneScript] Scene "${fields["Annotation"] ?? "Queue"}": composed Queue visual failed validation — falling back to a plain caption.\n${result.error.issues.map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`).join("\n")}`,
+    );
+    return null;
+  }
+  return result.data;
+}
+
+/** `Scene Type: Mechanism` — a **Mechanism:** JSON block (entities + steps,
+ * see composeMechanism.ts's mechanismContractSchema) compiles to a
+ * genuinely DEMONSTRATED technical process: every step (a `send`, a
+ * `transform`, ...) is its own real, timed choreography beat, not a line
+ * appearing between two icons. Supersedes `Scene Type: Flow` for anything
+ * beyond "a token walks a chain" — Flow stays for that simpler shape,
+ * Mechanism is for narration like "the client sends a request, the API
+ * validates it, queries the database..." where each verb needs its own
+ * demonstrated visual event. Same graceful-degradation posture as every
+ * other compiled visual: a missing/malformed **Mechanism:** block or a
+ * compiler bug both fall back to a plain caption, never a bad render. */
+function resolveMechanismVisual(fields: SceneFields): Visual | null {
+  const raw = fields["Mechanism"];
+  if (!raw) {
+    console.warn(`[parseSceneScript] Scene "${fields["Annotation"] ?? "Mechanism"}": Scene Type Mechanism needs a **Mechanism:** block — falling back to a plain caption.`);
+    return null;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    console.warn(`[parseSceneScript] Scene "${fields["Annotation"] ?? "Mechanism"}": Mechanism block is not valid JSON — falling back to a plain caption. ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+  const contractResult = mechanismContractSchema.safeParse(parsed);
+  if (!contractResult.success) {
+    console.warn(
+      `[parseSceneScript] Scene "${fields["Annotation"] ?? "Mechanism"}": Mechanism block failed validation — falling back to a plain caption.\n${contractResult.error.issues.map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`).join("\n")}`,
+    );
+    return null;
+  }
+  const estimatedDurationSeconds = parseDurationSeconds(fields["Duration"]);
+  const composed = composeMechanism(contractResult.data, estimatedDurationSeconds);
+  const result = visualSchema.safeParse({ kind: "canvas", title: stripQuotes(fields["Annotation"]) || undefined, ...composed });
+  if (!result.success) {
+    console.warn(
+      `[parseSceneScript] Scene "${fields["Annotation"] ?? "Mechanism"}": composed Mechanism visual failed validation — falling back to a plain caption.\n${result.error.issues.map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`).join("\n")}`,
+    );
+    return null;
+  }
+  return result.data;
+}
+
 /** Looks up a "Scene Type:" string against the visual registry's
  * `sceneTypeKey` instead of a hand-maintained kind-name dictionary — adding
  * a 22nd visual type needs no edit here, just one new entry in
- * src/model/visualDefinitions.ts. */
+ * src/model/visualDefinitions.ts. "flow"/"select"/"queue"/"mechanism" are
+ * the exceptions (like "tacticalboard") — they compile TO a canvas visual
+ * rather than being a registry entry of their own. */
 function resolveVisual(sceneType: string, fields: SceneFields): Visual | null {
   const type = sceneType.trim().toLowerCase().replace(/\s+/g, "");
   if (type === "tacticalboard") return resolveTacticalBoardVisual(fields);
+  if (type === "flow") return resolveFlowVisual(fields);
+  if (type === "select") return resolveSelectVisual(fields);
+  if (type === "queue") return resolveQueueVisual(fields);
+  if (type === "mechanism") return resolveMechanismVisual(fields);
   const definition = VISUAL_DEFINITIONS.find((def) => def.sceneTypeKey === type);
   if (!definition) return null;
   return resolveDataVisual(definition.kind, fields);
@@ -538,14 +730,14 @@ function resolveIconImage(visual: Visual): string | undefined {
   return findAsset("icons", visual.icon);
 }
 
-const PANEL_COLOR_KEYS = new Set(["neutral", "red", "blue", "yellow"]);
+const PANEL_COLOR_KEYS = new Set(["neutral", "red", "blue", "yellow", "light"]);
 
 /** An optional bold background color-block, any Scene Type — defaults to
  * "neutral" (today's exact background) when the field is absent or doesn't
  * match one of the known keys, so no existing script is affected. */
-function resolvePanelColor(fields: SceneFields): "neutral" | "red" | "blue" | "yellow" | undefined {
+function resolvePanelColor(fields: SceneFields): "neutral" | "red" | "blue" | "yellow" | "light" | undefined {
   const value = fields["Panel Color"]?.trim().toLowerCase();
-  return value && PANEL_COLOR_KEYS.has(value) ? (value as "neutral" | "red" | "blue" | "yellow") : undefined;
+  return value && PANEL_COLOR_KEYS.has(value) ? (value as "neutral" | "red" | "blue" | "yellow" | "light") : undefined;
 }
 
 /** An optional **Continue Canvas:** true field, set on the scene AFTER the
@@ -761,6 +953,13 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
       phases: resolvePhases(fields),
       continuesCanvasFrom: resolveContinueCanvas(fields),
       continuesBoardFrom: resolveContinueBoard(fields),
+      // Present for every Flow-type scene (resolveFlowVisual requires a
+      // real contract to have produced a visual at all) and for any other
+      // scene type that additionally declares Entities/Flow purely for
+      // validateScene.ts's realization checker to check hand-authored Data
+      // against — absent (undefined) for every script that declares
+      // neither, which is every script written before this existed.
+      contract: parseSceneContract(fields),
     });
   }
 

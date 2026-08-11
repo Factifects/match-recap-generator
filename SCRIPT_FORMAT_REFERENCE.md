@@ -263,6 +263,31 @@ optional with a default that reproduces the plainest possible rendering.
   end + a settle buffer, same as TacticalBoard timelines. Per-object/per-arrow `revealAtSeconds`
   is also genuinely wired now (absolute seconds from scene start, wins over the automatic entrance
   stagger), and `line` objects accept `"draw": true` to draw themselves out from their start point.
+  `move`/`style`/`appear`/`disappear`/`camera` actions all accept an optional `"sound"` cue — see
+  **Sound effects** below.
+- **Sound effects** (ElevenLabs-generated, cached by prompt+duration hash — never regenerates an
+  identical request; there is no "cadence" concept to pick from anymore — one fixed, techy/
+  futuristic-leaning palette, always on, see `src/cadence/canvasCadences.ts`): add `"sound":
+  "entrance" | "move" | "zoom" | "click" | "highlight" | "success" | "alert" | "typing"` to
+  individual timeline actions. Each cue plays as its own short clip AT that action's own
+  `startSeconds`, not stretched across the whole scene. Match the event to what's actually
+  happening, not just the action TYPE:
+  - `"click"` is a REAL press only — tie it to the moment of CONTACT (a button's own press-down
+    `move`, not the cursor's move toward it, which starts earlier and would make the sound land
+    before the visual click). Never attach it to an icon that's just being emphasized/activated —
+    that reads as a sound with no visible cause ("I kept hearing a click and nothing warranted it").
+  - `"highlight"` is for exactly that instead — a short, distinct ping for "this is the thing the
+    narration is talking about right now" (an icon's own small scale-bump), with no implication a
+    press happened.
+  - `"success"` for a checkmark/confirmation landing (a confirmation shouldn't sound like a button
+    press), `"alert"` for a warning/danger beat (a connection dropping, a TTL expiring).
+  Cue every beat that's actually meaningful — a scene with taps, confirmations, and state changes
+  should have several distinct cues, not one. A `timeline` scene with zero `sound`-tagged actions
+  falls back to one whole-scene cue inferred from its content (has `move` actions → `move`;
+  multi-phase or `camera.zoom > 1.05` → `zoom`; has objects → `highlight`; else → `entrance`) — the
+  older, coarser behavior; always prefer tagging real actions instead. Chapter beats always get a
+  short page-turn/book-flip sound under their swoosh-wipe transition, independent of any of the
+  above.
 - Still deliberately not supported: groups/children, parent/constraint attachment, bezier-curve
   arrows, masks/clip reveals — each is its own subsystem, left for a later round if actually
   needed.

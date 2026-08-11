@@ -3,10 +3,13 @@ import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Timeline, MIN_CLIP_DURATION_SECONDS } from "../components/Timeline";
 import { AudioUploadButton } from "../components/AudioUploadButton";
+import { SceneDiagnosticsPanel } from "../components/SceneDiagnosticsPanel";
+import { ScenePreviewRow } from "../components/ScenePreviewRow";
 import { EDGE_VOICES } from "../../../src/audio/ttsVoices";
 import { useRenderProgress } from "../hooks/useRenderProgress";
 import { uploadAudio } from "../lib/uploadAudio";
 import type { TimedSegment, AspectRatio, AudioClipPlacement } from "../../../src/model/Segment";
+import type { SceneDiagnostic } from "../../../src/script/sceneDiagnostics";
 
 /** Encodes provider + voice as one string so a single <select> drives both —
  * "elevenlabs" or "edge:<voiceId>". Split on submit. */
@@ -32,6 +35,29 @@ interface PreTimelineData {
   segments: TimedSegment[];
   usedSceneFormat: boolean;
   audioClips: AudioClipPlacement[];
+  /** validateGeometry.ts + validateScene.ts's combined report against the
+   * freshly parsed segments — free and instant (no narration/render
+   * involved), so problems surface the moment a script is pasted rather
+   * than after a full generate attempt. See SceneDiagnosticsPanel. */
+  diagnostics: SceneDiagnostic[];
+}
+
+/** A short, human-scannable label for a scene-preview row — the segment's
+ * own text is often a full sentence, too long for a one-line list; this
+ * keeps just enough to recognize which scene it is. */
+function sceneRowLabel(segment: TimedSegment, index: number): string {
+  const kind = segment.type === "chapter" ? "Chapter" : "Scene";
+  const truncated = segment.text.length > 70 ? `${segment.text.slice(0, 70)}…` : segment.text;
+  return `${kind} ${index + 1} — ${truncated}`;
+}
+
+/** Splits the single VOICE_OPTIONS selection back into provider + voice —
+ * shared by handleGenerate and every ScenePreviewRow, so a scene preview
+ * always uses the exact same voice the real Generate would. */
+function splitVoiceSelection(voiceSelection: string): { ttsProvider: "elevenlabs" | "edge"; edgeVoice: string | undefined } {
+  return voiceSelection.startsWith("edge:")
+    ? { ttsProvider: "edge", edgeVoice: voiceSelection.slice(5) }
+    : { ttsProvider: "elevenlabs", edgeVoice: undefined };
 }
 
 function newClipId(): string {
@@ -154,11 +180,16 @@ export const GeneratePage: React.FC = () => {
         .then(async (res) => {
           const body = await res.json();
           if (!res.ok) throw new Error(body.error || "Could not parse this script.");
-          // Segments/format come fresh from the new parse, but audio clips
-          // the user already placed survive a re-parse — losing them on
-          // every keystroke-pause while still drafting the script would be
-          // a bad trade for a feature meant to save a second render.
-          setPreTimeline((p) => ({ segments: body.segments, usedSceneFormat: body.usedSceneFormat, audioClips: p?.audioClips ?? [] }));
+          // Segments/format/diagnostics come fresh from the new parse, but
+          // audio clips the user already placed survive a re-parse — losing
+          // them on every keystroke-pause while still drafting the script
+          // would be a bad trade for a feature meant to save a second render.
+          setPreTimeline((p) => ({
+            segments: body.segments,
+            usedSceneFormat: body.usedSceneFormat,
+            diagnostics: body.diagnostics ?? [],
+            audioClips: p?.audioClips ?? [],
+          }));
           setPreTimelineError("");
         })
         .catch((err) => setPreTimelineError(err instanceof Error ? err.message : String(err)));
@@ -177,9 +208,7 @@ export const GeneratePage: React.FC = () => {
     setTimelineError("");
 
     try {
-      const [ttsProvider, edgeVoice] = voiceSelection.startsWith("edge:")
-        ? ["edge", voiceSelection.slice(5)]
-        : ["elevenlabs", undefined];
+      const { ttsProvider, edgeVoice } = splitVoiceSelection(voiceSelection);
 
       const startRes = await fetch("/generate", {
         method: "POST",
@@ -483,37 +512,68 @@ export const GeneratePage: React.FC = () => {
       )}
 
       {!timeline && preTimeline && (
-        <Card span={12} eyebrow="Timeline preview — before generating">
-          <div className="flex flex-wrap items-center gap-3 mb-3">
-            <AudioUploadButton
-              label="Add background music"
-              icon="🎵"
-              onFile={(file) => handleAddPreAudioClip(file, "music")}
+        <>
+          <Card span={12} eyebrow="Scene diagnostics">
+            <SceneDiagnosticsPanel diagnostics={preTimeline.diagnostics} />
+          </Card>
+
+          <Card span={12} eyebrow="Timeline preview — before generating">
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <AudioUploadButton
+                label="Add background music"
+                icon="🎵"
+                onFile={(file) => handleAddPreAudioClip(file, "music")}
+              />
+              <AudioUploadButton
+                label="Add a sound effect"
+                icon="🔊"
+                onFile={(file) => handleAddPreAudioClip(file, "sfx")}
+              />
+            </div>
+            <Timeline
+              segments={preTimeline.segments}
+              onReorderSegments={reorderPreSegments}
+              onResizeSegment={(index, durationSeconds) => updatePreSegment(index, { durationSeconds, manualDurationOverride: true })}
+              onVolumeChange={updateAllPreNarrationVolume}
+              audioClips={preTimeline.audioClips}
+              onUpdateClip={updatePreAudioClip}
+              onDuplicateClip={duplicatePreAudioClip}
+              onRemoveClip={removePreAudioClip}
             />
-            <AudioUploadButton
-              label="Add a sound effect"
-              icon="🔊"
-              onFile={(file) => handleAddPreAudioClip(file, "sfx")}
-            />
-          </div>
-          <Timeline
-            segments={preTimeline.segments}
-            onReorderSegments={reorderPreSegments}
-            onResizeSegment={(index, durationSeconds) => updatePreSegment(index, { durationSeconds, manualDurationOverride: true })}
-            onVolumeChange={updateAllPreNarrationVolume}
-            audioClips={preTimeline.audioClips}
-            onUpdateClip={updatePreAudioClip}
-            onDuplicateClip={duplicatePreAudioClip}
-            onRemoveClip={removePreAudioClip}
-          />
-          {preTimelineError && <div className="text-danger text-sm mt-3">{preTimelineError}</div>}
-          <p className="text-[11px] text-text-dim mt-3">
-            Estimated from word count — durations you drag here are kept exactly as set once you
-            generate. Anything you don't touch still gets its real length from narration audio (if
-            you're generating that) once it's ready — audio you place here plays at the position
-            you set regardless.
-          </p>
-        </Card>
+            {preTimelineError && <div className="text-danger text-sm mt-3">{preTimelineError}</div>}
+            <p className="text-[11px] text-text-dim mt-3">
+              Estimated from word count — durations you drag here are kept exactly as set once you
+              generate. Anything you don't touch still gets its real length from narration audio (if
+              you're generating that) once it's ready — audio you place here plays at the position
+              you set regardless.
+            </p>
+          </Card>
+
+          <Card span={12} eyebrow="Preview a single scene">
+            <p className="text-[12px] text-text-dim mb-3">
+              Render just one scene instead of the whole video — the fastest way to check a fix
+              before spending a full generate on it.
+            </p>
+            <div className="flex flex-col gap-2">
+              {preTimeline.segments.map((segment, index) => {
+                const { ttsProvider, edgeVoice } = splitVoiceSelection(voiceSelection);
+                return (
+                  <ScenePreviewRow
+                    key={index}
+                    script={script}
+                    sceneIndex={index}
+                    label={sceneRowLabel(segment, index)}
+                    withAudio={withAudio}
+                    ttsProvider={ttsProvider}
+                    edgeVoice={edgeVoice}
+                    aspectRatio={aspectRatio}
+                    segments={preTimeline.segments}
+                  />
+                );
+              })}
+            </div>
+          </Card>
+        </>
       )}
 
       {timeline && (

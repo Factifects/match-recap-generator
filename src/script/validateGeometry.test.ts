@@ -21,6 +21,15 @@ function canvasSegment(objects: CanvasObjectT[], phases?: CanvasData["phases"]):
   };
 }
 
+function timelineCanvasSegment(objects: CanvasObjectT[], timeline: NonNullable<CanvasData["timeline"]>): TimedSegment {
+  return {
+    type: "statement",
+    text: "test",
+    durationSeconds: 5,
+    visual: { kind: "canvas", objects, timeline } as CanvasData,
+  };
+}
+
 describe("canvasLayout — resolveObjectPosition", () => {
   it("resolves from an explicit x/y", () => {
     const object = canvasObject({ id: "a", type: "dot", x: 12, y: 34 });
@@ -117,6 +126,87 @@ describe("autoFixGeometry — Canvas overlap", () => {
     // labeled against phase 2 specifically.
     expect(fixes).toHaveLength(1);
     expect(fixes[0]).toContain("phase 2");
+  });
+});
+
+describe("autoFixGeometry — Canvas timeline-driven checks (regression coverage for real render bugs)", () => {
+  it("flags two objects that overlap once their timeline settles, even though their AUTHORED positions never overlap", () => {
+    // Reproduces composeSelect.ts's real resolvePhase bug: a subject
+    // authored far from a candidate label, but its own `move` action docks
+    // it right on top of that label — a check that only ever looked at
+    // authored (t=0) positions provably cannot catch this.
+    const segments = [
+      timelineCanvasSegment(
+        [
+          canvasObject({ id: "subject", type: "icon", x: 5, y: 50, radius: 10, label: "Subject" }),
+          canvasObject({ id: "candidate", type: "label", x: 50, y: 50, label: "Candidate" }),
+        ],
+        [{ type: "move", id: "subject", startSeconds: 1, durationSeconds: 0.5, path: "line", to: { x: 50, y: 50 } }],
+      ),
+    ];
+    const { diagnostics } = autoFixGeometry(segments);
+    expect(diagnostics.some((d) => d.category === "overlap" && d.message.includes("settles"))).toBe(true);
+  });
+
+  it("does NOT flag two objects whose timeline-resolved positions never overlap", () => {
+    const segments = [
+      timelineCanvasSegment(
+        [
+          canvasObject({ id: "subject", type: "icon", x: 5, y: 50, radius: 10, label: "Subject" }),
+          canvasObject({ id: "candidate", type: "label", x: 90, y: 50, label: "Candidate" }),
+        ],
+        [{ type: "move", id: "subject", startSeconds: 1, durationSeconds: 0.5, path: "line", to: { x: 20, y: 50 } }],
+      ),
+    ];
+    const { diagnostics } = autoFixGeometry(segments);
+    expect(diagnostics.some((d) => d.category === "overlap")).toBe(false);
+  });
+
+  it("flags an object authored at opacity:0 that only ever gets an `appear` action — appear does not restore opacity", () => {
+    // Reproduces composeContinuous.ts's real depth-gauge bug directly.
+    const segments = [
+      timelineCanvasSegment(
+        [canvasObject({ id: "gauge", type: "dot", x: 50, y: 20, opacity: 0, label: "0 waiting" })],
+        [{ type: "appear", id: "gauge", startSeconds: 1 }],
+      ),
+    ];
+    const { diagnostics } = autoFixGeometry(segments);
+    expect(diagnostics.some((d) => d.category === "never-visible" && d.message.includes("gauge"))).toBe(true);
+  });
+
+  it("does NOT flag an opacity:0 object that a `move` action actually reveals", () => {
+    const segments = [
+      timelineCanvasSegment(
+        [canvasObject({ id: "gauge", type: "dot", x: 50, y: 20, opacity: 0, label: "0 waiting" })],
+        [{ type: "move", id: "gauge", startSeconds: 1, durationSeconds: 0.1, path: "line", opacity: 1 }],
+      ),
+    ];
+    const { diagnostics } = autoFixGeometry(segments);
+    expect(diagnostics.some((d) => d.category === "never-visible")).toBe(false);
+  });
+
+  it("flags an icon/dot object with a label that ends up too close to the bottom edge (caption clipping)", () => {
+    // Reproduces composeSelect.ts's real eject-position bug: y:92 clipped
+    // the "Payment" caption off the bottom of a real render.
+    const segments = [
+      timelineCanvasSegment(
+        [canvasObject({ id: "subject", type: "icon", x: 8, y: 50, radius: 10, label: "Payment" })],
+        [{ type: "move", id: "subject", startSeconds: 1, durationSeconds: 0.5, path: "line", to: { x: 8, y: 92 } }],
+      ),
+    ];
+    const { diagnostics } = autoFixGeometry(segments);
+    expect(diagnostics.some((d) => d.category === "caption-clipping")).toBe(true);
+  });
+
+  it("does NOT flag an icon/dot object that stays within safe caption headroom", () => {
+    const segments = [
+      timelineCanvasSegment(
+        [canvasObject({ id: "subject", type: "icon", x: 8, y: 50, radius: 10, label: "Payment" })],
+        [{ type: "move", id: "subject", startSeconds: 1, durationSeconds: 0.5, path: "line", to: { x: 8, y: 78 } }],
+      ),
+    ];
+    const { diagnostics } = autoFixGeometry(segments);
+    expect(diagnostics.some((d) => d.category === "caption-clipping")).toBe(false);
   });
 });
 
