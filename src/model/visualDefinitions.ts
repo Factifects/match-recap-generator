@@ -758,6 +758,20 @@ const canvasObjectSchema = z
   // field value sitting under it) — composeSelect.ts's staged rebuild is
   // the first real user of this.
   fontStyle: z.enum(["default", "wordmark", "subtitle", "detail"]).default("default"),
+  // "rectangle"/"roundedRectangle" only — sizes the box to fit its own
+  // `label` text (a single-line measurement, padded) instead of the author
+  // guessing `width`/`height` by hand. This is Canvas's answer to
+  // diagramLayout.ts's `sizeNode`: a labeled card (a "GET /refund" request
+  // card, a "200 OK" response card, a "SELECT * FROM users" query card) can
+  // never overflow its own box or get clipped by a too-small authored width,
+  // the exact failure class that made hand-placed Canvas text unreliable —
+  // see feedback_canvas_authoring_geometry_gotchas and the doctrine at
+  // project_shorts_visual_direction_doctrine. Authored `width`/`height` are
+  // ignored entirely when this is true (computed fresh from `label` every
+  // frame — cheap, and the box should always exactly fit its current text).
+  // Defaults to false so every existing script's rectangles keep their
+  // author-picked size unchanged.
+  autoSize: z.boolean().default(false),
   })
   .refine((object) => object.anchor !== undefined || (object.x !== undefined && object.y !== undefined), {
     message: "CanvasObject needs either an `anchor` or both `x` and `y`",
@@ -1807,8 +1821,46 @@ export const VISUAL_DEFINITIONS = [
               path: z.array(z.string().min(1)).min(2),
               startSeconds: z.number().min(0),
               durationSeconds: z.number().min(0.1).default(2),
+              /** ALWAYS give the token a real label naming the actual thing
+               * in flight ("GET /users", "200 OK", "AUTH TOKEN", "SELECT
+               * users") — animate the information, not the connection. An
+               * unlabeled flow renders as a bare dot, which is exactly the
+               * generic "something is happening" the renderer's `kind`
+               * styling exists to replace. */
               label: z.string().optional(),
+              /** Explicit override. Leave unset and let `kind` pick a
+               * canonical color instead, so request/response/error read
+               * consistently across every scene rather than depending on
+               * each script author picking hex values by hand. */
               color: z.string().optional(),
+              /** What this token IS, not just what color it happens to be.
+               * The renderer maps each kind to its own canonical color and
+               * visual treatment: `request` (amber, forward motion) and
+               * `response`/`success` (green, must never look like a
+               * `request` going the other way) are the two that matter most
+               * — Part 6/7 of the doctrine this exists for is exactly "a
+               * request and a response must never look identical". `data` is
+               * a neutral payload in transit (a query, a value) that isn't
+               * specifically a request or response. `discover` is a
+               * capabilities/schema query (teal — matches the "what can you
+               * do?" MCP beat). `error` renders with a rejected treatment
+               * (dashed, red) instead of arriving cleanly. `retry` marks a
+               * repeated attempt. Omit entirely for a plain unstyled token
+               * (falls back to `color`, then a neutral default). */
+              kind: z.enum(["request", "response", "data", "success", "error", "discover", "retry"]).optional(),
+              /** The destination REACTS when this token arrives, instead of
+               * just vanishing into the box — Part 8 of the doctrine this
+               * exists for. Pulses the path's last node to `accent` right as
+               * the token lands, then settles back to whatever accent it had
+               * before. Equivalent to hand-authoring a `setState` timed to
+               * this flow's own end, offered here because that pairing is
+               * the common case, not because setState stopped working. */
+              reactsOnArrival: z
+                .object({
+                  accent: z.enum(["neutral", "primary", "warn", "success", "danger"]),
+                  durationSeconds: z.number().min(0).default(0.4),
+                })
+                .optional(),
             }),
             z.object({ type: z.literal("focus"), ids: z.array(z.string()), startSeconds: z.number().min(0), durationSeconds: z.number().min(0).default(0.4) }),
             z.object({

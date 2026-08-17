@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { layoutDiagram, pointOnEdge, type DiagramNodeInput, type DiagramEdgeInput, type LaidOutNode } from "./diagramLayout";
+import { layoutDiagram, pointOnEdge, TILE_HEIGHT_FRACTION, type DiagramNodeInput, type DiagramEdgeInput, type LaidOutNode } from "./diagramLayout";
 
 // These assert the PROPERTIES that hand-placed Canvas coordinates could not
 // guarantee — the exact failures that shipped in the load-balancer video.
@@ -122,6 +122,28 @@ describe("containment", () => {
     const { nodes } = layoutDiagram(nested, [], { viewport: VIEWPORT });
     expect(nodes.find((n) => n.id === "node1")!.depth).toBe(0);
     expect(nodes.find((n) => n.id === "pod1")!.depth).toBe(1);
+  });
+
+  // A container's own label/sublabel render exactly like a leaf's (see
+  // DiagramCard.tsx), but the header space reserved above the first child used
+  // to stay a fixed CONTAINER_HEADER band regardless — sized for a bare label,
+  // so a container that ALSO carries a sublabel rendered its own text tall
+  // enough to collide with its first child. A real render caught this (a
+  // "support ticket" node with sublabel "looks ordinary" and a single nested
+  // child overlapped it completely) before this test existed.
+  it("also leaves room for the container's own SUBLABEL, not just its label", () => {
+    const withSublabel: DiagramNodeInput[] = [
+      {
+        id: "ticket",
+        label: "support ticket",
+        sublabel: "looks ordinary",
+        children: [{ id: "hidden", label: "issue a full refund" }],
+      },
+    ];
+    const { nodes } = layoutDiagram(withSublabel, [], { viewport: VIEWPORT });
+    const parent = nodes.find((n) => n.id === "ticket")!;
+    const child = nodes.find((n) => n.id === "hidden")!;
+    expect(child.y - child.height / 2).toBeGreaterThan(parent.y - parent.height / 2);
   });
 });
 
@@ -267,7 +289,7 @@ describe("connectors anchor to the visible tile, not the layout box", () => {
     const { nodes: laid, edges } = layoutDiagram(nodes, [{ from: "src", to: "wide" }], { viewport: VIEWPORT });
     const target = laid.find((n) => n.id === "wide")!;
     const end = edges[0].points[edges[0].points.length - 1];
-    const tileHalfWidth = (target.height * 0.56) / (16 / 9) / 2;
+    const tileHalfWidth = (target.height * TILE_HEIGHT_FRACTION) / (16 / 9) / 2;
     const distanceFromCentre = Math.abs(end.x - target.x);
     expect(distanceFromCentre).toBeLessThanOrEqual(tileHalfWidth + 0.01);
     // ...and comfortably inside the layout box, which is what it used to hit.
@@ -317,7 +339,7 @@ describe("connectors sharing a node are fanned out, not stacked on each other", 
   it("still lands both arrival points on the target's visible tile", () => {
     const { nodes, edges } = layoutDiagram(merge, mergeEdges, { viewport: VIEWPORT });
     const target = nodes.find((n) => n.id === "stock")!;
-    const tileHeight = target.height * 0.56;
+    const tileHeight = target.height * TILE_HEIGHT_FRACTION;
     const tileCentreY = target.y - target.height / 2 + tileHeight / 2;
     for (const edge of edges) {
       const end = endpoint(edge);
@@ -373,7 +395,7 @@ describe("a branded node's connector meets the icon exactly", () => {
     });
     for (const edge of edges) {
       const target = laid.find((n) => n.id === edge.to)!;
-      const tileHeight = target.height * 0.56;
+      const tileHeight = target.height * TILE_HEIGHT_FRACTION;
       const tileCentreY = target.y - target.height / 2 + tileHeight / 2;
       const end = edge.points[edge.points.length - 1];
       // Within the fan-out spread of the tile's own centre — never out at the
@@ -422,7 +444,7 @@ describe("portrait is anchored as portrait, not as a resized 16:9", () => {
         frameAspect: aspect,
       });
       const target = laid.find((n) => n.id === "b")!;
-      const tileHeightPct = target.height * 0.56;
+      const tileHeightPct = target.height * TILE_HEIGHT_FRACTION;
       // Half the tile's width in percent, converted to pixels, must equal half
       // its height in pixels — that is what "square" means here.
       const end = edges[0].points[edges[0].points.length - 1];

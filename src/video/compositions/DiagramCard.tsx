@@ -57,6 +57,21 @@ const EDGE_KIND_COLORS: Record<string, string> = {
   dependency: "#7c8db5",
 };
 
+/** Canonical styling per `flow` action `kind` — the renderer, not each
+ * script, decides what "this is a response" looks like, so it's consistent
+ * everywhere instead of depending on an author picking the same hex twice.
+ * `request` and `response` are deliberately far apart (amber vs green) —
+ * they must never read as the same thing moving in two directions. */
+const MOTION_KIND_STYLES: Record<string, { color: string; dashed?: boolean; defaultLabel?: string }> = {
+  request: { color: "#f59e0b" },
+  response: { color: "#22c55e" },
+  success: { color: "#22c55e" },
+  data: { color: "#60a5fa" },
+  discover: { color: "#2dd4bf", defaultLabel: "?" },
+  error: { color: "#f87171", dashed: true, defaultLabel: "rejected" },
+  retry: { color: "#fb923c", defaultLabel: "retry" },
+};
+
 // Connector metrics in real pixels at 1080p. A 0.5px hairline read as a faint
 // scratch rather than a wire.
 const EDGE_STROKE_PX = 3;
@@ -114,7 +129,7 @@ interface DiagramState {
   removal: Map<string, number>;
   values: Map<string, string>;
   meters: Map<string, { value: number; label?: string }>;
-  tokens: { x: number; y: number; label?: string; color: string; opacity: number }[];
+  tokens: { x: number; y: number; label?: string; color: string; dashed: boolean; opacity: number }[];
 }
 
 function edgeKey(from: string, to: string): string {
@@ -175,6 +190,14 @@ function foldState(timeline: DiagramAction[], atSeconds: number, edges: LaidOutE
       }
       case "flow": {
         const end = action.startSeconds + action.durationSeconds;
+        // The destination's arrival reaction runs on its own time window
+        // (Part 8: the destination must visibly respond, not just absorb the
+        // token) — independent of the token's own fade-out below, so it must
+        // be evaluated before the early-exit guard that skips the rest of
+        // this case once the token itself is done fading.
+        if (action.reactsOnArrival && atSeconds >= end && atSeconds <= end + action.reactsOnArrival.durationSeconds) {
+          state.accents.set(action.path[action.path.length - 1], action.reactsOnArrival.accent);
+        }
         if (atSeconds < action.startSeconds || atSeconds > end + 0.3) break;
         // The token walks the declared path of nodes by following the real
         // routed edge between each consecutive pair.
@@ -190,10 +213,12 @@ function foldState(timeline: DiagramAction[], atSeconds: number, edges: LaidOutE
         const reversed = edge.from !== from;
         state.activeDirection.set(edgeKey(edge.from, edge.to), reversed ? "reverse" : "forward");
         const point = pointOnEdge(edge, reversed ? 1 - legT : legT);
+        const kindStyle = action.kind ? MOTION_KIND_STYLES[action.kind] : undefined;
         state.tokens.push({
           ...point,
-          label: action.label,
-          color: action.color ?? TOKEN_DEFAULT,
+          label: action.label ?? kindStyle?.defaultLabel,
+          color: action.color ?? kindStyle?.color ?? TOKEN_DEFAULT,
+          dashed: kindStyle?.dashed ?? false,
           opacity: atSeconds > end ? Math.max(0, 1 - (atSeconds - end) / 0.3) : 1,
         });
         break;
@@ -625,35 +650,54 @@ export const DiagramCard: React.FC<SharedVisualProps & { data: DiagramData }> = 
           </div>
         ))}
 
-        {state.tokens.map((token, index) => (
-          <div key={`token-${index}`} style={{ position: "absolute", left: `${token.x}%`, top: `${token.y}%`, opacity: token.opacity }}>
+        {/* A flow token is the actual thing in transit — "GET /users", "200
+            OK", "AUTH TOKEN" — drawn as a flat labelled card, not a glowing
+            anonymous dot: the moving object is the story, not the fact that
+            something moved (doctrine: "animate the communication, not the
+            connection"). No blur/box-shadow glow — a flat fill + stroke reads
+            just as clearly and costs nothing extra per frame. Only a token
+            with no label at all (an older, unlabeled flow) falls back to a
+            small flat dot. */}
+        {state.tokens.map((token, index) =>
+          token.label ? (
             <div
+              key={`token-${index}`}
               style={{
                 position: "absolute",
+                left: `${token.x}%`,
+                top: `${token.y}%`,
                 transform: "translate(-50%, -50%)",
-                width: 22,
-                height: 22,
+                opacity: token.opacity,
+                padding: "7px 14px",
+                borderRadius: 8,
+                background: "rgba(10, 14, 24, 0.92)",
+                border: `2px ${token.dashed ? "dashed" : "solid"} ${token.color}`,
+                color: token.color,
+                fontFamily: DIAGRAM_FONT,
+                fontSize: MIN_EDGE_LABEL_PX * fontScale,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {token.label}
+            </div>
+          ) : (
+            <div
+              key={`token-${index}`}
+              style={{
+                position: "absolute",
+                left: `${token.x}%`,
+                top: `${token.y}%`,
+                transform: "translate(-50%, -50%)",
+                opacity: token.opacity,
+                width: 14,
+                height: 14,
                 borderRadius: "50%",
                 background: token.color,
-                boxShadow: `0 0 22px ${token.color}`,
               }}
             />
-            {token.label && (
-              <div
-                style={{
-                  position: "absolute",
-                  transform: "translate(-50%, -190%)",
-                  fontSize: MIN_EDGE_LABEL_PX * fontScale,
-                  fontWeight: 600,
-                  color: token.color,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {token.label}
-              </div>
-            )}
-          </div>
-        ))}
+          ),
+        )}
       </div>
     </SceneFrame>
   );

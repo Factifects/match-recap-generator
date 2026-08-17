@@ -96,13 +96,20 @@ function isMonochrome(svg: string): boolean {
 }
 
 /** Where to look, in order, for a bare name. Full-colour first: a real Lambda
- * mark beats a monochrome silhouette of one. */
+ * mark beats a monochrome silhouette of one — `logos:` results that turn out
+ * to be a wordmark instead get filtered by looksLikeWordmark() and fall
+ * through to here. Iconify's own `simple-icons:` mirror is the LAST resort,
+ * not the first: confirmed live that cdn.simpleicons.org itself 404s on at
+ * least one real, current brand (`slack`) while Iconify's mirror of the exact
+ * same Simple Icons artwork still serves it — same source, just a second
+ * host to try before giving up and falling back to a plain shape. */
 function candidateUrls(spec: { set?: string; name: string }): string[] {
   if (spec.set === "simpleicons" || spec.set === "simple-icons") return [`${SIMPLE_ICONS_BASE}/${normalizeSlug(spec.name)}`];
   if (spec.set) return [`${ICONIFY_BASE}/${spec.set}/${normalizeIconifyName(spec.name)}.svg`];
   return [
     `${ICONIFY_BASE}/logos/${normalizeIconifyName(spec.name)}.svg`,
     `${SIMPLE_ICONS_BASE}/${normalizeSlug(spec.name)}`,
+    `${ICONIFY_BASE}/simple-icons/${normalizeIconifyName(spec.name)}.svg`,
   ];
 }
 
@@ -138,6 +145,27 @@ function extractTitle(svg: string, fallback: string): string {
 
 function extractHex(svg: string): string {
   return /fill="(#[0-9a-fA-F]{3,8})"/.exec(svg)?.[1] ?? "#94a3b8";
+}
+
+/** True when an SVG's own aspect ratio is far from square — the tell for a
+ * wordmark lockup rather than a compact icon mark. Real incident: Iconify's
+ * `logos:github` resolves to the wide "GitHub" text logotype (viewBox
+ * "0 0 512 139", ratio ~3.7), not the octocat — masked onto this renderer's
+ * small square tile, that reads as blurry, barely-legible text instead of a
+ * recognizable brand. Simple Icons doesn't have this problem (every mark is
+ * authored square by convention), so this only ever needs to filter
+ * Iconify's `logos` collection, which mixes wordmarks and icon-only marks
+ * inconsistently. Threshold is generous (2.2:1) — genuinely square-ish full
+ * logos (a real Lambda glyph, a Redis mark) must still pass through
+ * untouched. */
+function looksLikeWordmark(svg: string): boolean {
+  const viewBox = /viewBox="([^"]+)"/.exec(svg)?.[1];
+  const parts = viewBox?.trim().split(/[\s,]+/).map(Number);
+  if (!parts || parts.length !== 4 || !parts.every((n) => Number.isFinite(n))) return false;
+  const [, , w, h] = parts;
+  if (!w || !h) return false;
+  const ratio = w / h;
+  return ratio > 2.2 || ratio < 1 / 2.2;
 }
 
 // One in-flight promise per slug, negative results included. A script with
@@ -188,6 +216,12 @@ async function fetchAndCache(slug: string, spec: { set?: string; name: string })
       const svg = await response.text();
       // A CDN error page can still be a 200 — only accept real SVG.
       if (!svg.trimStart().startsWith("<svg")) continue;
+      // A wide/short (or tall/thin) mark from Iconify's `logos` collection is
+      // a wordmark lockup, not the compact icon this renderer's tile UI
+      // needs — try the next candidate (Simple Icons) instead of accepting
+      // it. See looksLikeWordmark's own comment for the real incident this
+      // guards against.
+      if (looksLikeWordmark(svg)) continue;
 
       const relativePath = path.join("assets", "logos", `${slug}.svg`);
       fs.mkdirSync(LOGO_DIR, { recursive: true });

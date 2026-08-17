@@ -6,7 +6,7 @@ import { EventEmitter } from "node:events";
 import { parseMedia } from "@remotion/media-parser";
 import { nodeReader } from "@remotion/media-parser/node";
 import { generateVideo, renderEditedTimeline, previewScene, type TimelinePayload } from "./generate";
-import type { RenderProgress } from "./render/renderVideo";
+import { makeCancelSignal, isUserCancelledRender, type RenderProgress, type CancelSignal } from "./render/renderVideo";
 import type { AspectRatio, TimedSegment, AudioClipPlacement } from "./model/Segment";
 import type { TtsProvider } from "./audio/resolveAudio";
 import { fetchFeedItems } from "./news/fetchFeed";
@@ -93,6 +93,54 @@ interface Job {
 
 const jobs = new Map<string, Job>();
 
+// --- Render state machine ---------------------------------------------------
+//
+// There must never be two full Remotion renders (generate / scene-preview /
+// timeline-render — all three spin up their own headless-Chrome workers)
+// running at once: a slow render with no visible progress reads as "stuck",
+// the user clicks Generate again, and now two renders are competing for the
+// same already-scarce RAM — which is what actually produces render crashes,
+// not any single render on its own. So exactly one render is allowed at a
+// time, tracked here as one explicit state instead of an implicit "is
+// something in the jobs map" check, with real cancellation wired through
+// Remotion's own makeCancelSignal() rather than just marking state and
+// leaving the render running underneath.
+export type RenderState = "idle" | "rendering" | "completed" | "failed" | "cancelled";
+
+let renderState: RenderState = "idle";
+let activeJobId: string | null = null;
+let activeLabel: string | null = null;
+let activeCancel: (() => void) | null = null;
+
+function renderBusyError(): string | null {
+  if (renderState !== "rendering") return null;
+  return `A render is already in progress (${activeLabel}, job ${activeJobId}). Wait for it to finish, or POST /render/cancel, before starting another — running two at once is what's been causing render crashes.`;
+}
+
+/** Wraps a render job's async body: marks the state machine busy for its
+ * duration, creates the cancel signal the job itself must thread down into
+ * renderVideo(), and always resolves to a terminal state afterward — success,
+ * a real failure, or a user-triggered cancellation (distinguished via
+ * isUserCancelledRender so a deliberate cancel doesn't get logged/reported
+ * as a crash). */
+async function withRenderState<T>(jobId: string, label: string, run: (cancelSignal: CancelSignal) => Promise<T>): Promise<T> {
+  const { cancelSignal, cancel } = makeCancelSignal();
+  renderState = "rendering";
+  activeJobId = jobId;
+  activeLabel = label;
+  activeCancel = cancel;
+  try {
+    const result = await run(cancelSignal);
+    renderState = "completed";
+    return result;
+  } catch (err) {
+    renderState = isUserCancelledRender(err) ? "cancelled" : "failed";
+    throw err;
+  } finally {
+    activeCancel = null;
+  }
+}
+
 function serveFile(
   res: http.ServerResponse,
   filePath: string,
@@ -153,7 +201,7 @@ function startJob(options: StartJobOptions): string {
   const job: Job = { emitter, done: false };
   jobs.set(jobId, job);
 
-  (async () => {
+  withRenderState(jobId, "full generate", async (cancelSignal) => {
     try {
       const result = await generateVideo(options.script, {
         withAudio: options.withAudio,
@@ -164,6 +212,7 @@ function startJob(options: StartJobOptions): string {
         segments: options.segments,
         audioClips: options.audioClips,
         force: options.force,
+        cancelSignal,
         onLog: (message) => emitter.emit("log", { message }),
         onProgress: (progress: RenderProgress) =>
           emitter.emit("progress", progress),
@@ -182,8 +231,12 @@ function startJob(options: StartJobOptions): string {
       job.error = err instanceof Error ? err.message : "Generation failed.";
       job.done = true;
       emitter.emit("failed", { error: job.error });
+      // Rethrown so withRenderState can classify completed/failed/cancelled —
+      // the job's own error/emitter bookkeeping above is already done, so
+      // the caller below just swallows this to avoid an unhandled rejection.
+      throw err;
     }
-  })();
+  }).catch(() => {});
 
   return jobId;
 }
@@ -221,7 +274,7 @@ function startScenePreviewJob(options: StartScenePreviewJobOptions): string {
   const job: Job = { emitter, done: false };
   jobs.set(jobId, job);
 
-  (async () => {
+  withRenderState(jobId, "scene preview", async (cancelSignal) => {
     try {
       const result = await previewScene(options.script, {
         sceneIndex: options.sceneIndex,
@@ -230,6 +283,7 @@ function startScenePreviewJob(options: StartScenePreviewJobOptions): string {
         edgeVoice: options.edgeVoice,
         aspectRatio: options.aspectRatio,
         segments: options.segments,
+        cancelSignal,
         onLog: (message) => emitter.emit("log", { message }),
         onProgress: (progress: RenderProgress) => emitter.emit("progress", progress),
       });
@@ -246,8 +300,9 @@ function startScenePreviewJob(options: StartScenePreviewJobOptions): string {
       job.error = err instanceof Error ? err.message : "Scene preview failed.";
       job.done = true;
       emitter.emit("failed", { error: job.error });
+      throw err;
     }
-  })();
+  }).catch(() => {});
 
   return jobId;
 }
@@ -261,10 +316,11 @@ function startEditedRenderJob(timeline: TimelinePayload, sourceOutputName: strin
   const job: Job = { emitter, done: false };
   jobs.set(jobId, job);
 
-  (async () => {
+  withRenderState(jobId, "timeline re-render", async (cancelSignal) => {
     try {
       const result = await renderEditedTimeline(timeline, {
         outputName: `${sourceOutputName}-edit-${Date.now()}`,
+        cancelSignal,
         onProgress: (progress: RenderProgress) => emitter.emit("progress", progress),
       });
       job.result = {
@@ -281,8 +337,9 @@ function startEditedRenderJob(timeline: TimelinePayload, sourceOutputName: strin
       job.error = err instanceof Error ? err.message : "Render failed.";
       job.done = true;
       emitter.emit("failed", { error: job.error });
+      throw err;
     }
-  })();
+  }).catch(() => {});
 
   return jobId;
 }
@@ -442,6 +499,24 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && req.url === "/render-state") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ state: renderState, jobId: activeJobId, label: activeLabel }));
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/render/cancel") {
+    if (!activeCancel) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "No render in progress to cancel.", renderState }));
+      return;
+    }
+    activeCancel();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
   if (req.method === "POST" && req.url === "/parse") {
     // Preview-only: parses a script into its segments with word-count-
     // estimated durations, no narration/render involved, so the timeline
@@ -477,6 +552,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && req.url === "/generate") {
+    const busy = renderBusyError();
+    if (busy) {
+      res.writeHead(409, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: busy, renderState }));
+      return;
+    }
     try {
       const body = await readJsonBody(req);
       const script = typeof body.script === "string" ? body.script : "";
@@ -530,6 +611,12 @@ const server = http.createServer(async (req, res) => {
     // seconds" loop the diagnostics report above exists to make useful.
     // Same background-job/SSE-progress shape as /generate, so the client
     // reuses its existing progress-streaming hook unchanged.
+    const busy = renderBusyError();
+    if (busy) {
+      res.writeHead(409, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: busy, renderState }));
+      return;
+    }
     try {
       const body = await readJsonBody(req);
       const script = typeof body.script === "string" ? body.script : "";
@@ -616,6 +703,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && req.url?.startsWith("/timeline/") && req.url.endsWith("/render")) {
+    const busy = renderBusyError();
+    if (busy) {
+      res.writeHead(409, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: busy, renderState }));
+      return;
+    }
     try {
       const outputName = path.basename(decodeURIComponent(req.url.replace("/timeline/", "").replace(/\/render$/, "")));
       const body = await readJsonBody(req);

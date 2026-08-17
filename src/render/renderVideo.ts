@@ -1,7 +1,8 @@
 import os from "node:os";
 import path from "node:path";
 import { bundle } from "@remotion/bundler";
-import { renderMedia, selectComposition } from "@remotion/renderer";
+import { renderMedia, selectComposition, makeCancelSignal, type CancelSignal } from "@remotion/renderer";
+import { config } from "../config";
 
 const ENTRY_POINT = path.join(__dirname, "..", "video", "index.ts");
 
@@ -13,36 +14,59 @@ export interface RenderProgress {
   totalFrames: number;
 }
 
-// Remotion's own default concurrency is one headless-Chrome render worker per
-// CPU core. This project's pitch-diagram/formation/heat-map scenes render real
-// gradients, blur filters and SVG animation per frame, so each worker can hold
-// 200-350MB at a single point in time — but that's a snapshot, not the whole
-// story. Observed in practice: a render that started around ~17 frames/min
-// (sized "safely" against free RAM at the moment it kicked off) degraded to
-// ~4 frames/min over two hours as free RAM kept dropping further than that
-// initial snapshot accounted for, until Windows started paging — CPU stayed
-// at ~20% the whole time, confirming it was RAM-bound, not compute-bound.
-// Two changes from the original version of this function, both aimed at that
-// same failure mode: the per-worker budget is roughly doubled (700MB, not
-// 350MB) to price in growth over a long render instead of just its starting
-// footprint, and a flat 1GB reserve is subtracted before any worker math
-// happens at all, so the rest of the machine (and the OS) always keeps some
-// headroom regardless of how much RAM happens to be free right now. Together
-// these make a low-free-RAM machine (a live example: 1034MB free) correctly
-// resolve to a single worker instead of the 2 the old math allowed, while a
-// genuinely high-RAM machine can still scale up.
-const ESTIMATED_MB_PER_RENDER_WORKER = 700;
-const SAFETY_RESERVE_MB = 1024;
-const MIN_CONCURRENCY = 1;
+export { makeCancelSignal, type CancelSignal };
 
-function safeConcurrency(): number {
-  const freeMb = os.freemem() / 1024 / 1024;
-  const cpuCount = os.cpus().length;
-  const usableMb = Math.max(0, freeMb - SAFETY_RESERVE_MB);
-  const byMemory = Math.floor(usableMb / ESTIMATED_MB_PER_RENDER_WORKER);
-  return Math.max(MIN_CONCURRENCY, Math.min(cpuCount, byMemory));
+/** `@remotion/renderer` implements this at runtime (make-cancel-signal.js)
+ * but doesn't re-export it from its public `.d.ts` index, so it can't be
+ * imported directly without reaching into an internal path that could move
+ * under a version bump. Same check, reproduced locally: a cancelled
+ * renderMedia() call rejects with an Error whose message contains this
+ * exact string. */
+export function isUserCancelledRender(err: unknown): boolean {
+  return err instanceof Error && err.message.includes("renderMedia() got cancelled");
 }
 
+// --- Concurrency ---------------------------------------------------------
+//
+// Remotion's own default is one headless-Chrome render worker per CPU core.
+// This project's diagram/workspace scenes render real gradients, masks and
+// SVG animation per frame, and a live render was observed degrading from
+// ~17 frames/min to ~4 frames/min over two hours as free RAM kept dropping
+// further than the concurrency choice at kickoff accounted for — CPU stayed
+// at ~20% the whole time, confirming it was RAM-bound, not compute-bound.
+//
+// This machine also never has anywhere close to its full RAM available to
+// Remotion: VS Code, several TypeScript language servers, esbuild watchers,
+// browser tabs and the Remotion compositor's own long-running process are
+// all resident at the same time. So the policy here is deliberately blunt
+// rather than a per-worker budget formula: stay at 1 worker until there's
+// real headroom, and even then cap at 2 until benchmarking proves higher is
+// safe. Bands are against FREE memory at the moment a render starts, not
+// total system RAM — a 24GB machine with 900MB free is not "24GB available".
+const GB = 1024 * 1024 * 1024;
+const MIN_CONCURRENCY = 1;
+const MAX_CONCURRENCY_UNTIL_BENCHMARKED = 2;
+
+function tieredConcurrency(freeBytes: number): number {
+  const freeGb = freeBytes / GB;
+  if (freeGb < 12) return MIN_CONCURRENCY;
+  return MAX_CONCURRENCY_UNTIL_BENCHMARKED;
+}
+
+/** Resolves render concurrency: an explicit call-site override wins, then
+ * `RENDER_CONCURRENCY` (see config.ts), then the RAM-tiered default above.
+ * Exported so server.ts can report the value it's about to use before a
+ * render starts, and so tests can call it directly without spinning up a
+ * real render. */
+export function resolveConcurrency(explicit?: number): number {
+  if (explicit !== undefined) return explicit;
+  const envOverride = config.renderConcurrency();
+  if (envOverride !== undefined) return envOverride;
+  return tieredConcurrency(os.freemem());
+}
+
+// --- Bundle caching --------------------------------------------------------
+//
 // Reused across every render call within the same process instead of
 // re-running webpack from scratch each time — matters most for the scene-
 // preview loop (server.ts's long-running `npm run ui` process handles many
@@ -72,6 +96,70 @@ function getBundleLocation(): Promise<string> {
   return cachedBundleLocation;
 }
 
+// --- Memory/frame telemetry ------------------------------------------------
+//
+// Purpose-built to answer one question with evidence instead of a guess:
+// does RSS stabilize over the course of a render, or does it climb without
+// bound? Logged every LOG_EVERY_N_FRAMES frames (not every frame — that
+// would itself be a meaningful amount of I/O over a multi-thousand-frame
+// render) alongside which scene is currently on screen, so a leak can be
+// correlated to a specific composition rather than just "somewhere".
+const LOG_EVERY_N_FRAMES = 200;
+
+/** Best-effort "which segment is this frame in" lookup. `inputProps` is
+ * generic across every composition this renderer serves — only the
+ * AnalysisVideo composition's `segments` shape is recognized; anything else
+ * (the benchmark composition, a future composition with no segments array)
+ * just logs without a scene label rather than guessing. Ignores transition
+ * overlap between segments (a few frames of slop at each boundary) since
+ * this is a diagnostic label, not a frame-accurate cue. */
+function makeSceneLookup(inputProps: unknown, fps: number): (frame: number) => string | undefined {
+  const segments = (inputProps as { segments?: unknown })?.segments;
+  if (!Array.isArray(segments) || segments.length === 0) return () => undefined;
+
+  const boundaries: { endFrame: number; label: string }[] = [];
+  let cursor = 0;
+  segments.forEach((segment: unknown, index: number) => {
+    const duration = typeof (segment as { durationSeconds?: unknown })?.durationSeconds === "number" ? (segment as { durationSeconds: number }).durationSeconds : 0;
+    const text = typeof (segment as { text?: unknown })?.text === "string" ? (segment as { text: string }).text : undefined;
+    cursor += Math.max(0, duration) * fps;
+    const label = text ? `${index + 1}:${text.slice(0, 24).trim()}` : `scene ${index + 1}`;
+    boundaries.push({ endFrame: cursor, label });
+  });
+
+  return (frame: number) => boundaries.find((b) => frame < b.endFrame)?.label ?? boundaries[boundaries.length - 1]?.label;
+}
+
+function logTelemetry(frame: number, totalFrames: number, sceneLabel: string | undefined, concurrency: number, startedAt: number): void {
+  const mem = process.memoryUsage();
+  const rssGb = (mem.rss / GB).toFixed(2);
+  const heapMb = Math.round(mem.heapUsed / 1024 / 1024);
+  const elapsedS = ((Date.now() - startedAt) / 1000).toFixed(1);
+  console.log(
+    `FRAME ${frame} / ${totalFrames}` +
+      (sceneLabel ? `\n  SCENE: ${sceneLabel}` : "") +
+      `\n  RSS: ${rssGb} GB\n  HEAP: ${heapMb} MB\n  CONCURRENCY: ${concurrency}\n  ELAPSED: ${elapsedS}s`,
+  );
+}
+
+export interface RenderVideoOptions {
+  onProgress?: (progress: RenderProgress) => void;
+  /** Overrides the RAM-tiered default — see resolveConcurrency(). */
+  concurrency?: number;
+  /** Lets a caller (server.ts) actually stop an in-progress render instead
+   * of merely marking it cancelled after the fact — created via
+   * `makeCancelSignal()` and passed straight through to `renderMedia`,
+   * which polls it between frames/chunks. */
+  cancelSignal?: CancelSignal;
+  /** Preview-mode rendering (Part 14): a fraction (0-1] of full resolution.
+   * Passed straight to `renderMedia`'s own `scale` — 0.5 renders at half
+   * width/height, which is the single biggest lever on both render time and
+   * per-frame memory for the same reason a smaller browser window is
+   * cheaper to paint. Omit for a full-quality render (the default,
+   * unchanged behavior). */
+  scale?: number;
+}
+
 /** Generic composition renderer with a live terminal progress bar (default)
  * or a caller-supplied progress callback — the UI server passes its own to
  * forward progress to the browser over SSE instead of stdout. */
@@ -79,9 +167,9 @@ export async function renderVideo<T extends Record<string, unknown>>(
   compositionId: string,
   inputProps: T,
   outputPath: string,
-  onProgress?: (progress: RenderProgress) => void,
-  concurrency?: number,
+  options: RenderVideoOptions = {},
 ): Promise<void> {
+  const { onProgress, concurrency: concurrencyOverride, cancelSignal, scale } = options;
   const reportProgress =
     onProgress ??
     (({ percent, stage, renderedFrames, encodedFrames, totalFrames }: RenderProgress) => {
@@ -103,25 +191,42 @@ export async function renderVideo<T extends Record<string, unknown>>(
     inputProps,
   });
 
-  const resolvedConcurrency = concurrency ?? safeConcurrency();
-  console.log(`Rendering with concurrency=${resolvedConcurrency} (free RAM: ${Math.round(os.freemem() / 1024 / 1024)}MB)`);
+  const resolvedConcurrency = resolveConcurrency(concurrencyOverride);
+  console.log(`Rendering with concurrency=${resolvedConcurrency} (free RAM: ${(os.freemem() / GB).toFixed(2)}GB)${scale ? ` scale=${scale}` : ""}`);
 
-  await renderMedia({
-    composition,
-    serveUrl: bundleLocation,
-    codec: "h264",
-    outputLocation: outputPath,
-    inputProps,
-    concurrency: resolvedConcurrency,
-    chromiumOptions: { gl: "swangle" },
-    onProgress: ({ progress, renderedFrames, encodedFrames, stitchStage }) => {
-      reportProgress({
-        percent: Math.round(progress * 100),
-        stage: stitchStage === "muxing" ? "encoding" : "rendering",
-        renderedFrames,
-        encodedFrames,
-        totalFrames: composition.durationInFrames,
-      });
-    },
-  });
+  const sceneAt = makeSceneLookup(inputProps, composition.fps);
+  const startedAt = Date.now();
+  let lastLoggedFrame = -LOG_EVERY_N_FRAMES;
+
+  try {
+    await renderMedia({
+      composition,
+      serveUrl: bundleLocation,
+      codec: "h264",
+      outputLocation: outputPath,
+      inputProps,
+      concurrency: resolvedConcurrency,
+      chromiumOptions: { gl: "swangle" },
+      cancelSignal,
+      scale,
+      onProgress: ({ progress, renderedFrames, encodedFrames, stitchStage }) => {
+        reportProgress({
+          percent: Math.round(progress * 100),
+          stage: stitchStage === "muxing" ? "encoding" : "rendering",
+          renderedFrames,
+          encodedFrames,
+          totalFrames: composition.durationInFrames,
+        });
+        if (renderedFrames - lastLoggedFrame >= LOG_EVERY_N_FRAMES) {
+          lastLoggedFrame = renderedFrames;
+          logTelemetry(renderedFrames, composition.durationInFrames, sceneAt(renderedFrames), resolvedConcurrency, startedAt);
+        }
+      },
+    });
+  } catch (err) {
+    if (isUserCancelledRender(err)) {
+      console.log(`Render cancelled at frame ${lastLoggedFrame < 0 ? 0 : lastLoggedFrame}/${composition.durationInFrames}.`);
+    }
+    throw err;
+  }
 }

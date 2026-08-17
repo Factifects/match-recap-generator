@@ -11,7 +11,7 @@ import { hasHardFailures, sortDiagnostics, type SceneDiagnostic } from "./script
 import { mergeCanvasContinuity } from "./script/mergeCanvasContinuity";
 import { mergeTacticalContinuity } from "./script/mergeTacticalContinuity";
 import { resolveSegmentAudio, generateBackgroundMusic, type TtsProvider } from "./audio/resolveAudio";
-import { renderVideo, type RenderProgress } from "./render/renderVideo";
+import { renderVideo, type RenderProgress, type RenderVideoOptions } from "./render/renderVideo";
 import type { TimedSegment, AspectRatio, AudioClipPlacement } from "./model/Segment";
 
 export interface GenerateOptions {
@@ -20,10 +20,16 @@ export interface GenerateOptions {
   edgeVoice?: string;
   aspectRatio?: AspectRatio;
   outputName?: string;
-  /** Overrides the render's auto-computed (free-RAM-based) concurrency — see
-   * renderVideo.ts's safeConcurrency(). Leave unset to let it size itself to
-   * whatever RAM is actually free at render time. */
+  /** Overrides the render's auto-computed (RAM-tiered) concurrency — see
+   * renderVideo.ts's resolveConcurrency(). Leave unset to let it size itself
+   * to whatever RAM is actually free at render time. */
   concurrency?: number;
+  /** Lets the caller (server.ts) actually stop this render mid-flight —
+   * see RenderVideoOptions' own doc. */
+  cancelSignal?: RenderVideoOptions["cancelSignal"];
+  /** Preview-quality rendering (a fraction of full resolution) — see
+   * RenderVideoOptions' own doc. Leave unset for a full-quality render. */
+  scale?: number;
   onLog?: (message: string) => void;
   onProgress?: (progress: RenderProgress) => void;
   /** A user-supplied whole-video background music file, already uploaded via
@@ -181,11 +187,10 @@ function resyncAudioClipsToRealDurations(
 async function renderAndPersist(
   timeline: TimelinePayload,
   outputName: string,
-  onProgress?: (progress: RenderProgress) => void,
-  concurrency?: number,
+  renderOptions: RenderVideoOptions = {},
 ): Promise<{ outputPath: string; totalSeconds: number }> {
   const outputPath = path.join(OUTPUT_DIR, `${outputName}.mp4`);
-  await renderVideo("AnalysisVideo", { ...timeline }, outputPath, onProgress, concurrency);
+  await renderVideo("AnalysisVideo", { ...timeline }, outputPath, renderOptions);
 
   const totalSeconds = timeline.segments.reduce((sum, s) => sum + s.durationSeconds, 0);
   fs.writeFileSync(path.join(OUTPUT_DIR, `${outputName}.json`), JSON.stringify(timeline, null, 2));
@@ -201,6 +206,8 @@ function outputNameFor(aspectRatio: AspectRatio, prefix: string): string {
 export interface RenderTimelineOptions {
   outputName?: string;
   concurrency?: number;
+  cancelSignal?: RenderVideoOptions["cancelSignal"];
+  scale?: number;
   onProgress?: (progress: RenderProgress) => void;
 }
 
@@ -219,7 +226,12 @@ export async function renderEditedTimeline(
   options: RenderTimelineOptions = {},
 ): Promise<GenerateResult> {
   const outputName = options.outputName ?? outputNameFor(timeline.aspectRatio, "edited");
-  const { outputPath, totalSeconds } = await renderAndPersist(timeline, outputName, options.onProgress, options.concurrency);
+  const { outputPath, totalSeconds } = await renderAndPersist(timeline, outputName, {
+    onProgress: options.onProgress,
+    concurrency: options.concurrency,
+    cancelSignal: options.cancelSignal,
+    scale: options.scale,
+  });
   return { outputPath, outputName, segmentCount: timeline.segments.length, totalSeconds, usedSceneFormat: true, diagnostics: [] };
 }
 
@@ -419,8 +431,7 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   const { outputPath, totalSeconds: renderedTotalSeconds } = await renderAndPersist(
     { segments, aspectRatio, backgroundMusicPath, audioClips },
     outputName,
-    options.onProgress,
-    options.concurrency,
+    { onProgress: options.onProgress, concurrency: options.concurrency, cancelSignal: options.cancelSignal, scale: options.scale },
   );
   log("Render complete.");
 
@@ -456,6 +467,13 @@ export interface PreviewSceneOptions {
   segments?: TimedSegment[];
   onLog?: (message: string) => void;
   onProgress?: (progress: RenderProgress) => void;
+  cancelSignal?: RenderVideoOptions["cancelSignal"];
+  /** Scene preview defaults to PREVIEW quality (scale 0.5, concurrency 1) —
+   * see Part 14 of the render-architecture doctrine: fast iteration for the
+   * "tweak scene 13, look at it again" loop matters more here than final
+   * fidelity. Set true to render this one scene at full production quality
+   * instead (e.g. a final sanity check before a full render). */
+  fullQuality?: boolean;
 }
 
 export interface PreviewSceneResult {
@@ -510,7 +528,12 @@ export async function previewScene(scriptText: string, options: PreviewSceneOpti
   const aspectRatio: AspectRatio = options.aspectRatio ?? "16:9";
   const outputName = options.outputName ?? outputNameFor(aspectRatio, `scene-${options.sceneIndex + 1}-preview`);
   log(`Rendering scene ${options.sceneIndex + 1} of ${segments.length} to output/${outputName}.mp4...`);
-  const { outputPath } = await renderAndPersist({ segments: [segment], aspectRatio }, outputName, options.onProgress);
+  const { outputPath } = await renderAndPersist({ segments: [segment], aspectRatio }, outputName, {
+    onProgress: options.onProgress,
+    cancelSignal: options.cancelSignal,
+    concurrency: options.fullQuality ? undefined : 1,
+    scale: options.fullQuality ? undefined : 0.5,
+  });
   log("Scene preview complete.");
 
   return { outputPath, outputName, sceneLabel: `Scene ${options.sceneIndex + 1}`, totalScenes: segments.length };

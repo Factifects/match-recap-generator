@@ -205,6 +205,106 @@ function checkTimelineFinalOverlap(objects: CanvasObjectT[], timeline: CanvasTim
   }
 }
 
+/** Same fold as `resolveTimelineFinalState`, but at an arbitrary point in
+ * time rather than only the end — real linear interpolation between
+ * whatever position an object's state had accumulated to BEFORE the
+ * currently-active `move` and that move's own target, so a check can ask
+ * "where is this object mid-transit," not just "where does it start" or
+ * "where does it end up." Deliberately linear even for `path: "arc"` moves
+ * (Canvas.tsx's own arc math bows the path OUTWARD from the straight line —
+ * a straight-line approximation is if anything the more conservative,
+ * closer-together estimate, so it never UNDER-reports a genuine crossing). */
+function resolveObjectStateAt(object: CanvasObjectT, timeline: CanvasTimelineActionT[], atSeconds: number): { x: number; y: number; opacity: number } {
+  const base = resolveObjectPosition(object);
+  const state = { x: base.x, y: base.y, opacity: object.opacity ?? 1, visible: (object.opacity ?? 1) !== 0 };
+  const actions = timeline
+    .filter((a) => a.type !== "camera" && a.type !== "focus" && a.id === object.id)
+    .sort((a, b) => a.startSeconds - b.startSeconds);
+  for (const action of actions) {
+    if (atSeconds < action.startSeconds) continue;
+    if (action.type === "appear") {
+      state.visible = true;
+      continue;
+    }
+    if (action.type === "disappear") {
+      state.opacity = 0;
+      state.visible = false;
+      continue;
+    }
+    if (action.type === "move") {
+      const duration = action.durationSeconds ?? 0.8;
+      const t = duration <= 0 ? 1 : Math.max(0, Math.min(1, (atSeconds - action.startSeconds) / duration));
+      const fromX = state.x;
+      const fromY = state.y;
+      const fromOpacity = state.opacity;
+      if (action.to?.x !== undefined) state.x = fromX + (action.to.x - fromX) * t;
+      if (action.to?.y !== undefined) state.y = fromY + (action.to.y - fromY) * t;
+      if (action.opacity !== undefined) {
+        state.opacity = fromOpacity + (action.opacity - fromOpacity) * t;
+        if (state.opacity > 0) state.visible = true;
+      }
+    }
+  }
+  return { x: state.x, y: state.y, opacity: state.visible ? state.opacity : 0 };
+}
+
+/** Time-sampled overlap check across a scene's actual MOTION, not just its
+ * authored start (`fixCanvasPhaseOverlap`) or its final resting state
+ * (`checkTimelineFinalOverlap`). Confirmed as a real, render-caught gap: a
+ * CTA scene sent four icons out from nearby points toward four different
+ * quadrants via `path: "arc"` moves — the authored start (after the
+ * identical-position nudge) was fine, the settled end was fine, but the arcs
+ * crossed and visibly collided on screen for several frames in between,
+ * which neither existing check has any notion of ("the moment in between"
+ * isn't either endpoint). This samples several points across every active
+ * `move` instead of only its two ends. */
+function checkMotionPathOverlap(objects: CanvasObjectT[], timeline: CanvasTimelineActionT[] | undefined, sceneIndex: number, diagnostics: SceneDiagnostic[]): void {
+  if (!timeline || timeline.length === 0) return;
+  const moveActions = timeline.filter((a) => a.type === "move");
+  if (moveActions.length === 0) return;
+
+  // A handful of interior points per move — this is a percent-space
+  // bounding-box check, not a frame-accurate render, so it doesn't need
+  // (and shouldn't pay for) per-frame sampling.
+  const SAMPLES_PER_MOVE = 4;
+  const times = new Set<number>();
+  for (const action of moveActions) {
+    const duration = action.durationSeconds ?? 0.8;
+    for (let i = 1; i < SAMPLES_PER_MOVE; i++) {
+      times.add(action.startSeconds + (duration * i) / SAMPLES_PER_MOVE);
+    }
+  }
+
+  const reportedPairs = new Set<string>();
+  for (const atSeconds of times) {
+    const resolved = objects.map((object) => {
+      const state = resolveObjectStateAt(object, timeline, atSeconds);
+      return { object, state, box: estimateObjectBoundingBox(object, state.x, state.y) };
+    });
+    for (let i = 0; i < resolved.length; i++) {
+      for (let j = i + 1; j < resolved.length; j++) {
+        const a = resolved[i];
+        const b = resolved[j];
+        const pairKey = [a.object.id, b.object.id].sort().join("|");
+        if (reportedPairs.has(pairKey)) continue;
+        if (a.state.opacity <= 0 || b.state.opacity <= 0) continue;
+        if (!boxesOverlap(a.box, b.box)) continue;
+        if (isNestedContainment(a.object, a.box, b.object, b.state) || isNestedContainment(b.object, b.box, a.object, a.state)) continue;
+        reportedPairs.add(pairKey);
+        diagnostics.push(
+          diagnostic(
+            sceneIndex,
+            1,
+            "hard",
+            "overlap",
+            `Scene ${sceneIndex + 1}: "${a.object.id}" and "${b.object.id}" cross paths mid-motion around t=${atSeconds.toFixed(1)}s (at (${a.state.x.toFixed(0)},${a.state.y.toFixed(0)}) and (${b.state.x.toFixed(0)},${b.state.y.toFixed(0)})) — their authored start and settled end don't overlap, but their transit paths do.`,
+          ),
+        );
+      }
+    }
+  }
+}
+
 /** An object authored `opacity: 0` is only ever meant to be a starting point
  * something later reveals — but an `appear` timeline action does NOT do
  * that (it only gates whether the object renders at all; it never touches
@@ -483,6 +583,7 @@ export function autoFixGeometry(segments: TimedSegment[]): { segments: TimedSegm
       checkUnconnectedEntities(visual, index, diagnostics);
       checkLowVisualDensity(visual, index, diagnostics);
       checkTimelineFinalOverlap(visual.objects, visual.timeline, index, diagnostics);
+      checkMotionPathOverlap(visual.objects, visual.timeline, index, diagnostics);
       checkNeverRevealedObjects(visual.objects, visual.timeline, index, diagnostics);
       checkIconCaptionClipping(visual.objects, visual.timeline, index, diagnostics);
       return { ...segment, visual: fixCanvasOverlap(visual, index, fixes, diagnostics) };

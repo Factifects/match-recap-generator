@@ -208,6 +208,46 @@ describe("autoFixGeometry — Canvas timeline-driven checks (regression coverage
     const { diagnostics } = autoFixGeometry(segments);
     expect(diagnostics.some((d) => d.category === "caption-clipping")).toBe(false);
   });
+
+  it("flags two objects whose motion paths cross mid-transit, even though neither their authored start nor their settled end overlaps", () => {
+    // Reproduces a real render bug: a CTA scene sent four icons out from
+    // nearby points toward four different quadrants via `path: "arc"` moves.
+    // Neither endpoint overlapped, but the arcs crossed mid-flight and
+    // visibly collided on screen. Minimal repro here: two icons literally
+    // swap places on the same horizontal line over the same window, which
+    // puts them exactly on top of each other at the midpoint.
+    const segments = [
+      timelineCanvasSegment(
+        [
+          canvasObject({ id: "left-to-right", type: "icon", x: 20, y: 50, radius: 10, label: "A" }),
+          canvasObject({ id: "right-to-left", type: "icon", x: 80, y: 50, radius: 10, label: "B" }),
+        ],
+        [
+          { type: "move", id: "left-to-right", startSeconds: 1, durationSeconds: 1, path: "line", to: { x: 80, y: 50 } },
+          { type: "move", id: "right-to-left", startSeconds: 1, durationSeconds: 1, path: "line", to: { x: 20, y: 50 } },
+        ],
+      ),
+    ];
+    const { diagnostics } = autoFixGeometry(segments);
+    expect(diagnostics.some((d) => d.category === "overlap" && d.message.includes("mid-motion"))).toBe(true);
+  });
+
+  it("does NOT flag two objects moving in parallel that never cross", () => {
+    const segments = [
+      timelineCanvasSegment(
+        [
+          canvasObject({ id: "top-row", type: "icon", x: 20, y: 30, radius: 8, label: "A" }),
+          canvasObject({ id: "bottom-row", type: "icon", x: 20, y: 70, radius: 8, label: "B" }),
+        ],
+        [
+          { type: "move", id: "top-row", startSeconds: 1, durationSeconds: 1, path: "line", to: { x: 80, y: 30 } },
+          { type: "move", id: "bottom-row", startSeconds: 1, durationSeconds: 1, path: "line", to: { x: 80, y: 70 } },
+        ],
+      ),
+    ];
+    const { diagnostics } = autoFixGeometry(segments);
+    expect(diagnostics.some((d) => d.category === "overlap" && d.message.includes("mid-motion"))).toBe(false);
+  });
 });
 
 describe("parseSceneScript — Canvas anchor field", () => {

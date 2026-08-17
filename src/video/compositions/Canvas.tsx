@@ -207,6 +207,74 @@ function WrappedTspans({ wrapped, x }: { wrapped: WrappedText; x: number }): Rea
   );
 }
 
+// `autoSize` card metrics, in px at the frame's own resolution — deliberately
+// smaller than a plain rectangle's default 36px label ceiling (fitText/
+// wrapLabel above): a "card" (a RequestCard's "GET /refund", a ResponseCard's
+// "200 OK") is meant to read as a compact, labeled chip sitting in a spatial
+// composition, not a headline-sized box.
+const CARD_FONT_SIZE_PX = 26;
+const CARD_PAD_X_PX = 22;
+const CARD_PAD_Y_PX = 14;
+const CARD_MIN_WIDTH_PX = 90;
+
+/** Sizes a `autoSize` rectangle/roundedRectangle to fit its own `label` —
+ * Canvas's answer to diagramLayout.ts's `sizeNode`: the box is computed FROM
+ * the text using the same AVG_CHAR_WIDTH_RATIO fitText/wrapLabel already
+ * measure with, instead of an author guessing width/height and hoping the
+ * label fits. Returns canvas-percent width/height (the same unit
+ * `object.width`/`object.height` are normally authored in), so it can drop
+ * straight into the resolvedObjects computation as an override. */
+export function autoCardSizePercent(label: string | undefined, canvasWidth: number, canvasHeight: number, sizeScale: number): { width: number; height: number } {
+  const text = label ?? "";
+  const textWidthPx = text.length * CARD_FONT_SIZE_PX * AVG_CHAR_WIDTH_RATIO;
+  const widthPx = Math.max(CARD_MIN_WIDTH_PX, textWidthPx + CARD_PAD_X_PX * 2);
+  const heightPx = CARD_FONT_SIZE_PX * 1.35 + CARD_PAD_Y_PX * 2;
+  return {
+    width: (widthPx / (canvasWidth * sizeScale)) * 100,
+    height: (heightPx / (canvasHeight * sizeScale)) * 100,
+  };
+}
+
+/** A resolved object's shape, in real pixels, for arrow boundary-anchoring
+ * below — Canvas's answer to diagramLayout.ts's `anchorBox`. `dot`/`circle`/
+ * `icon`/`lottie`/`gif`/`image`/`label`/everything-else-round is treated as a
+ * circle using its resolved radius (a label with no meaningful radius still
+ * gets a small nonzero one, so an arrow into a bare label stops just short of
+ * the text rather than landing dead-center on top of it); rectangle/
+ * roundedRectangle/ellipse use their resolved width/height box. */
+export interface ObjectShape {
+  cx: number;
+  cy: number;
+  kind: "circle" | "rect";
+  rPx?: number;
+  wPx?: number;
+  hPx?: number;
+}
+
+/** Where a ray from this shape's centre toward (towardX, towardY) crosses its
+ * own boundary — an arrow anchored here touches the actual rendered shape
+ * instead of floating toward/from its raw centre point. Falls back to the
+ * centre itself when the two points coincide (a zero-length direction has no
+ * defined boundary crossing). */
+export function boundaryPoint(shape: ObjectShape, towardX: number, towardY: number): [number, number] {
+  const dx = towardX - shape.cx;
+  const dy = towardY - shape.cy;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 0.001) return [shape.cx, shape.cy];
+  const ux = dx / dist;
+  const uy = dy / dist;
+  if (shape.kind === "circle") {
+    const r = shape.rPx ?? 0;
+    return [shape.cx + ux * r, shape.cy + uy * r];
+  }
+  const hw = (shape.wPx ?? 0) / 2;
+  const hh = (shape.hPx ?? 0) / 2;
+  const tX = ux !== 0 ? hw / Math.abs(ux) : Infinity;
+  const tY = uy !== 0 ? hh / Math.abs(uy) : Infinity;
+  const t = Math.min(tX, tY, dist);
+  return [shape.cx + ux * t, shape.cy + uy * t];
+}
+
 // How long each phase of a multi-phase diagram holds the screen — exported so
 // parseSceneScript.ts's computeVisualMinDurationSeconds can reserve a real
 // floor for a multi-phase Canvas scene, same convention as TacticalBoard's
@@ -738,6 +806,15 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
     }
     if (displayLabel === undefined && timelineState?.labelOverride !== undefined) displayLabel = timelineState.labelOverride;
 
+    // Computed fresh from the current label every frame rather than glided
+    // through `props` — a card's size is a pure function of its text, not an
+    // authored value with a phase-to-phase tween, so there's nothing to
+    // interpolate. Cheap: a handful of arithmetic ops per object per frame.
+    const autoSize =
+      object.autoSize && (object.type === "rectangle" || object.type === "roundedRectangle")
+        ? autoCardSizePercent(object.label, canvasWidth, canvasHeight, SIZE_SCALE)
+        : undefined;
+
     return {
       object,
       displayLabel,
@@ -746,8 +823,8 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
       x: timelineState?.x ?? props.x,
       y: timelineState?.y ?? props.y,
       radius: timelineState?.radius ?? props.radius,
-      width: props.width,
-      height: props.height,
+      width: autoSize?.width ?? props.width,
+      height: autoSize?.height ?? props.height,
       rotation: (timelineState?.rotation ?? props.rotation) + entranceRotationOffset,
       scale: (timelineState?.scale ?? props.scale) * entranceScale,
       opacity: (timelineState?.opacity ?? props.opacity) * entranceOpacity * (timelineMode ? resolveFocusMultiplier(object.id, timelineSorted, frame) : 1),
@@ -908,9 +985,24 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
   // overflows once the camera zooms to e.g. 1.7. Only the fixed overlay's
   // fitText call (unzoomed) targets the plain canvasWidth.
 
-  const objectPosition = (id: string): [number, number] | null => {
+  /** Resolved shape (pixels, this frame) of a live object, for arrow
+   * boundary-anchoring — null for an id that doesn't resolve to a currently-
+   * visible object. */
+  const objectShape = (id: string): ObjectShape | null => {
     const resolved = renderObjects.find((r) => r.object.id === id && !r.isExiting);
-    return resolved ? project(resolved.x, resolved.y) : null;
+    if (!resolved) return null;
+    const [cx, cy] = project(resolved.x, resolved.y);
+    const scale = resolved.scale ?? 1;
+    if (resolved.object.type === "rectangle" || resolved.object.type === "roundedRectangle" || resolved.object.type === "ellipse") {
+      return {
+        cx,
+        cy,
+        kind: "rect",
+        wPx: ((resolved.width ?? 20) / 100) * canvasWidth * SIZE_SCALE * scale,
+        hPx: ((resolved.height ?? 20) / 100) * canvasHeight * SIZE_SCALE * scale,
+      };
+    }
+    return { cx, cy, kind: "circle", rPx: projectRadius((resolved.radius ?? 6) * scale) };
   };
 
   return (
@@ -931,10 +1023,19 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
             style={{ overflow: "visible", transform: cameraTransform, transformOrigin: "0 0", position: "absolute", top: 0, left: 0 }}
           >
             {currentPhase.arrows?.map((arrow, index) => {
-              const from = objectPosition(arrow.from);
-              if (!from) return null;
-              const to = typeof arrow.to === "string" ? objectPosition(arrow.to) : project(arrow.to.x, arrow.to.y);
-              if (!to) return null;
+              const fromShape = objectShape(arrow.from);
+              if (!fromShape) return null;
+              const toShape = typeof arrow.to === "string" ? objectShape(arrow.to) : null;
+              const toRaw: [number, number] | null = typeof arrow.to === "string" ? (toShape ? [toShape.cx, toShape.cy] : null) : project(arrow.to.x, arrow.to.y);
+              if (!toRaw) return null;
+              // Anchor each end to its own shape's actual boundary — the
+              // Canvas equivalent of diagramLayout.ts's `anchorBox` — instead
+              // of a raw centre-to-centre line that floats toward/from
+              // wherever the object's coordinate happens to be. A literal
+              // {x,y} `to` target (not an object id) has no shape to anchor
+              // against and keeps going to that exact point, unchanged.
+              const from = boundaryPoint(fromShape, toRaw[0], toRaw[1]);
+              const to = toShape ? boundaryPoint(toShape, fromShape.cx, fromShape.cy) : toRaw;
               const [toX, toY] = to;
               // An arrow's own `revealAtSeconds` (absolute, from the scene's
               // start — schema-documented but previously unwired, same story
@@ -1164,7 +1265,12 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                     />
                     {object.label &&
                       (() => {
-                        const wrapped = wrapLabel(object.label ?? "", 36, (w * 0.9) / camZoom);
+                        // autoSize computed the box to fit exactly one line at
+                        // CARD_FONT_SIZE_PX — cap wrapLabel at that same size
+                        // instead of its normal 36px ceiling, or it would try
+                        // to wrap/shrink text into a box sized for a smaller
+                        // font than it's about to render at.
+                        const wrapped = wrapLabel(object.label ?? "", object.autoSize ? CARD_FONT_SIZE_PX : 36, (w * 0.9) / camZoom, object.autoSize ? 1 : 2);
                         return (
                           // Rectangles default to a fully opaque, bright
                           // fill — dark text centered inside reads far

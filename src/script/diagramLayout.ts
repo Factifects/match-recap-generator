@@ -133,17 +133,35 @@ const SIBLING_GUTTER = 30;
 const CONTAINER_PADDING = 26;
 /** Extra top padding inside a container, for its own label. */
 const CONTAINER_HEADER = 34;
+
+/** Total header space a container must reserve above its children — the
+ * fixed CONTAINER_HEADER band (sized for a bare label) plus a full extra
+ * SUBLABEL_HEIGHT row when the container itself also carries a `sublabel`.
+ * A container's own label/sublabel render exactly like a leaf's (see
+ * DiagramCard.tsx's group branch), but only the leaf branch of `sizeNode`
+ * used to budget for the sublabel row — the container branch reserved the
+ * same CONTAINER_HEADER regardless, so a labeled+sublabeled container's own
+ * text rendered tall enough to collide with its first child. Shared between
+ * `sizeNode` (which sizes the box) and `placeChildren` (which positions the
+ * children inside it) so the two cannot drift apart the way TILE_HEIGHT_FRACTION
+ * is shared between layout and card. */
+function containerHeaderHeight(input: DiagramNodeInput): number {
+  return CONTAINER_HEADER + (input.sublabel ? SUBLABEL_HEIGHT : 0);
+}
 const REPLICA_OFFSET = 7;
 /** Ceiling on how tall a plain leaf node may render, as a percent of frame
  * height. Keeps a sparse diagram honestly small instead of inflating it —
  * but not so small that its label stops being readable on a phone, which is
  * the failure the first value of 11 produced. */
-const MAX_LEAF_HEIGHT_PERCENT = 15;
+const MAX_LEAF_HEIGHT_PERCENT = 20;
 
 /** Fraction of a tile node's height taken by the icon square itself. Shared
  * with DiagramCard, which draws the tile at exactly this height — one constant,
- * so the drawing and the connector anchoring cannot drift apart. */
-export const TILE_HEIGHT_FRACTION = 0.56;
+ * so the drawing and the connector anchoring cannot drift apart. Raised from
+ * 0.56: a brand tile only does its job (GitHub/Slack/Stripe recognizable at
+ * a glance, at normal viewing size) if the mark dominates the tile — the
+ * caption underneath already carries the "what is this" text job. */
+export const TILE_HEIGHT_FRACTION = 0.7;
 
 /** Fraction of a node's face across which several connectors are fanned out.
  * Well inside 1 so the outermost port still lands on the visible shape rather
@@ -207,7 +225,7 @@ function sizeNode(input: DiagramNodeInput): SizedNode {
     input,
     id: input.id,
     width: Math.max(innerWidth + CONTAINER_PADDING * 2, ownTextWidth),
-    height: innerHeight + CONTAINER_PADDING * 2 + CONTAINER_HEADER,
+    height: innerHeight + CONTAINER_PADDING * 2 + containerHeaderHeight(input),
     children,
     childDirection,
     x: 0,
@@ -245,10 +263,11 @@ function assignLayers(ids: string[], edges: DiagramEdgeInput[], ownerOf: Map<str
 /** Places a container's children inside it, recursively. */
 function placeChildren(node: SizedNode): void {
   const along = node.childDirection === "horizontal";
+  const headerHeight = containerHeaderHeight(node.input);
   const innerLeft = node.x - node.width / 2 + CONTAINER_PADDING;
-  const innerTop = node.y - node.height / 2 + CONTAINER_PADDING + CONTAINER_HEADER;
+  const innerTop = node.y - node.height / 2 + CONTAINER_PADDING + headerHeight;
   const innerWidth = node.width - CONTAINER_PADDING * 2;
-  const innerHeight = node.height - CONTAINER_PADDING * 2 - CONTAINER_HEADER;
+  const innerHeight = node.height - CONTAINER_PADDING * 2 - headerHeight;
 
   const total =
     node.children.reduce((sum, c) => sum + (along ? c.width : c.height), 0) + SIBLING_GUTTER * (node.children.length - 1);

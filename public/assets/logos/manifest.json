@@ -198,5 +198,105 @@
     "source": "https://cdn.simpleicons.org/googlegemini",
     "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
     "fetchedAt": "2026-08-11T09:38:28.915Z"
+  },
+  "stripe": {
+    "slug": "stripe",
+    "title": "Stripe",
+    "hex": "#635BFF",
+    "monochrome": true,
+    "staticPath": "assets/logos/stripe.svg",
+    "source": "https://cdn.simpleicons.org/stripe",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-17T09:53:52.201Z"
+  },
+  "github": {
+    "slug": "github",
+    "title": "GitHub",
+    "hex": "#181717",
+    "monochrome": true,
+    "staticPath": "assets/logos/github.svg",
+    "source": "https://cdn.simpleicons.org/github",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-17T09:53:52.328Z"
+  },
+  "slack": {
+    "slug": "slack",
+    "title": "slack",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/slack.svg",
+    "source": "https://api.iconify.design/simple-icons/slack.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-17T09:59:32.356Z"
+  },
+  "carbon-api": {
+    "slug": "carbon-api",
+    "title": "api",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-api.svg",
+    "source": "https://api.iconify.design/carbon/api.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-17T10:46:04.213Z"
+  },
+  "carbon-document": {
+    "slug": "carbon-document",
+    "title": "document",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-document.svg",
+    "source": "https://api.iconify.design/carbon/document.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-17T10:46:04.217Z"
+  },
+  "carbon-bot": {
+    "slug": "carbon-bot",
+    "title": "bot",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-bot.svg",
+    "source": "https://api.iconify.design/carbon/bot.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-17T10:46:04.217Z"
+  },
+  "carbon-machine-learning-model": {
+    "slug": "carbon-machine-learning-model",
+    "title": "machine-learning-model",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-machine-learning-model.svg",
+    "source": "https://api.iconify.design/carbon/machine-learning-model.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-17T10:46:04.467Z"
+  },
+  "carbon-password": {
+    "slug": "carbon-password",
+    "title": "password",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-password.svg",
+    "source": "https://api.iconify.design/carbon/password.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-17T10:46:04.477Z"
+  },
+  "carbon-task-approved": {
+    "slug": "carbon-task-approved",
+    "title": "task-approved",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-task-approved.svg",
+    "source": "https://api.iconify.design/carbon/task-approved.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-17T10:46:04.595Z"
+  },
+  "carbon-money": {
+    "slug": "carbon-money",
+    "title": "money",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/carbon-money.svg",
+    "source": "https://api.iconify.design/carbon/money.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-17T11:52:20.639Z"
   }
 }
