@@ -74,7 +74,33 @@ describe("layoutStage", () => {
     }
   });
 
-  it("grows a box to fit a long label rather than letting the text overflow", () => {
+  it("keeps a real-world silhouette's proportions no matter how long its label is", () => {
+    // The bug this guards: growing a phone until "Their phone" fitted inside it
+    // turned the phone into a wide rectangle, and every kind converged on the
+    // same rectangle as labels got longer.
+    const shortLabel = layoutStage([{ id: "a", kind: "phone", label: "Me", at: "center" }], [], {}, { frame: PORTRAIT });
+    const longLabel = layoutStage([{ id: "a", kind: "phone", label: "Their phone over here", at: "center" }], [], {}, { frame: PORTRAIT });
+    const ratio = (b: { width: number; height: number }) => b.width / b.height;
+    expect(ratio(longLabel.boxes[0])).toBeCloseTo(ratio(shortLabel.boxes[0]), 5);
+    expect(longLabel.boxes[0].captionBelow).toBe(true);
+  });
+
+  it("separates two objects by their caption footprint, not just their silhouettes", () => {
+    const layout = layoutStage(
+      [
+        { id: "a", kind: "phone", label: "Their phone", at: "left" },
+        { id: "b", kind: "phone", label: "Your phone", at: "right" },
+      ],
+      [],
+      {},
+      { frame: PORTRAIT },
+    );
+    const [a, b] = layout.boxes;
+    const gap = Math.abs(a.x - b.x);
+    expect(gap).toBeGreaterThan((Math.max(a.width, a.captionWidth) + Math.max(b.width, b.captionWidth)) / 2);
+  });
+
+  it("still grows a card kind to fit its own text", () => {
     const short = layoutStage([{ id: "a", kind: "service", label: "API", at: "center" }], [], {}, { frame: PORTRAIT });
     const long = layoutStage(
       [{ id: "a", kind: "service", label: "Authentication Gateway Service", at: "center" }],
@@ -150,8 +176,8 @@ describe("pointOnStageEdge", () => {
   it("returns the endpoints at t=0 and t=1", () => {
     const [edge] = routeStageEdges(
       [
-        { id: "a", kind: "client", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, hidden: false, x: 100, y: 100, width: 50, height: 50 },
-        { id: "b", kind: "server", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, hidden: false, x: 400, y: 100, width: 50, height: 50 },
+        { id: "a", kind: "client", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, captionBelow: false, captionHeight: 0, captionWidth: 0, hidden: false, x: 100, y: 100, width: 50, height: 50 },
+        { id: "b", kind: "server", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, captionBelow: false, captionHeight: 0, captionWidth: 0, hidden: false, x: 400, y: 100, width: 50, height: 50 },
       ],
       [{ from: "a", to: "b" }],
       1080,

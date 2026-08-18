@@ -185,14 +185,33 @@ const Shape: React.FC<SilhouetteProps> = ({ box, stroke, fill, strokeWidth }) =>
         </g>
       );
     }
-    case "phone":
+    case "phone": {
+      // Corner radius scales with WIDTH, and generously. A phone is identifiable
+      // by being tall, narrow and very round-cornered; capping the radius at a
+      // fixed 18px meant any large phone rendered as a plain rectangle.
+      const r = w * 0.17;
+      const bezel = w * 0.075;
       return (
         <g>
-          <rect x={x} y={y} width={w} height={h} rx={Math.min(w * 0.16, 18)} {...common} />
-          <rect x={cx - w * 0.16} y={y + h * 0.035} width={w * 0.32} height={h * 0.022} rx={3} fill={stroke} opacity={0.75} />
-          <line x1={cx - w * 0.12} y1={y + h * 0.955} x2={cx + w * 0.12} y2={y + h * 0.955} {...line} />
+          <rect x={x} y={y} width={w} height={h} rx={r} {...common} />
+          {/* The inset screen is most of what makes the outline read as a
+              handset rather than as a card. */}
+          <rect
+            x={x + bezel}
+            y={y + bezel * 1.7}
+            width={w - bezel * 2}
+            height={h - bezel * 3.6}
+            rx={r * 0.65}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={strokeWidth * 0.55}
+            opacity={0.5}
+          />
+          <rect x={cx - w * 0.13} y={y + bezel * 0.55} width={w * 0.26} height={Math.max(3, h * 0.011)} rx={3} fill={stroke} opacity={0.8} />
+          <line x1={cx - w * 0.15} y1={y + h - bezel * 0.85} x2={cx + w * 0.15} y2={y + h - bezel * 0.85} {...line} strokeWidth={strokeWidth * 0.9} />
         </g>
       );
+    }
     case "laptop": {
       const screenH = h * 0.72;
       return (

@@ -953,7 +953,41 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                   ) : null;
                 })()}
 
-                {!box.isContainer && !box.code
+                {box.captionBelow && !box.isContainer
+                  ? (() => {
+                      // Caption UNDER the silhouette, so the shape stays exact.
+                      const form = forms.get(box.id);
+                      const shownLabel = form && form.t > 0.5 && form.label !== undefined ? form.label : box.label;
+                      const shownSub = form && form.t > 0.5 && form.sublabel !== undefined ? form.sublabel : box.sublabel;
+                      const counterText = counters.get(box.id);
+                      const subText = counterText ?? shownSub;
+                      const top = box.y + box.height / 2 + labelPx * 0.95;
+                      return (
+                        <g>
+                          {shownLabel ? (
+                            <text x={box.x} y={top} textAnchor="middle" fill="#ffffff" fontFamily={STAGE_FONT} fontWeight={800} fontSize={labelPx}>
+                              {shownLabel}
+                            </text>
+                          ) : null}
+                          {subText ? (
+                            <text
+                              x={box.x}
+                              y={top + subPx * 1.25}
+                              textAnchor="middle"
+                              fill={counterText ? accent.stroke : "#9fb0cc"}
+                              fontFamily={MONO_FONT}
+                              fontWeight={counterText ? 700 : 500}
+                              fontSize={counterText ? subPx * 1.15 : subPx}
+                            >
+                              {subText}
+                            </text>
+                          ) : null}
+                        </g>
+                      );
+                    })()
+                  : null}
+
+                {!box.isContainer && !box.code && !box.captionBelow
                   ? (() => {
                       // ONE layout for everything inside the box, so the brand
                       // mark, label, sublabel and replica pips cannot collide
@@ -1008,6 +1042,18 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                       );
                     })()
                   : null}
+
+                {box.logoPath && box.captionBelow ? (
+                  // With the caption outside, a brand mark can own the whole
+                  // interior — a logo has to be recognisable at a glance on a
+                  // phone screen, and a small mark tucked in a corner is not.
+                  <BrandMark
+                    box={box}
+                    size={Math.min(box.width * 0.62, box.height * 0.46)}
+                    cx={box.x}
+                    cy={box.y - (box.kind === "phone" ? box.height * 0.04 : 0)}
+                  />
+                ) : null}
 
                 {box.states && box.states.length > 0
                   ? (() => {

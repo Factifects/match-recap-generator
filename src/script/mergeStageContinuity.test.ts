@@ -52,14 +52,16 @@ describe("mergeStageContinuity", () => {
     expect(visual.objects[0].label).toBe("api");
   });
 
-  it("concatenates timelines unshifted and records one clip range per scene", () => {
+  it("shifts each folded scene's timeline by the running estimate and records it", () => {
     const { segments } = mergeStageContinuity([stageScene("a", ["api"], 0), stageScene("b", ["db"], 1, true)]);
     const visual = stageVisualOf(segments[0]);
     expect(visual.timeline).toHaveLength(2);
-    expect(visual.timeline![1].startSeconds).toBe(1);
+    // Shifted by the running estimate at merge time, so a no-audio render of a
+    // folded passage plays in sequence instead of stacking on frame 0.
+    expect(visual.timeline![1].startSeconds).toBe(11);
     expect(segments[0]._stageClipRanges).toEqual([
-      { from: 0, to: 1 },
-      { from: 1, to: 2 },
+      { from: 0, to: 1, appliedOffsetSeconds: 0 },
+      { from: 1, to: 2, appliedOffsetSeconds: 10 },
     ]);
   });
 

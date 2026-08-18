@@ -328,5 +328,15 @@
     "source": "https://api.iconify.design/simple-icons/amazonwebservices.svg",
     "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
     "fetchedAt": "2026-08-18T10:35:08.547Z"
+  },
+  "whatsapp": {
+    "slug": "whatsapp",
+    "title": "WhatsApp",
+    "hex": "#25D366",
+    "monochrome": true,
+    "staticPath": "assets/logos/whatsapp.svg",
+    "source": "https://cdn.simpleicons.org/whatsapp",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-18T14:59:58.135Z"
   }
 }

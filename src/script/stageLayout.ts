@@ -180,6 +180,18 @@ export interface StageComposition {
   hidden?: string[];
 }
 
+/** Kinds whose label belongs INSIDE the shape, because the shape is a card and
+ * a card is a thing you write on. Every other kind is a real-world silhouette —
+ * a phone, a cylinder, a padlock, a rack — whose recognisability depends on its
+ * outline and proportions, so its label is a CAPTION UNDERNEATH it instead.
+ *
+ * This is not a styling preference. Growing a box until its label fits inside
+ * destroys the very thing that makes the object identifiable: a phone widened
+ * to fit "Their phone" is no longer phone-shaped, it is a rectangle, and every
+ * kind converges on the same rectangle as labels get longer. Captioning below
+ * keeps the silhouette exact at any label length. */
+const LABEL_INSIDE_KINDS = new Set<StageObjectKind>(["service", "note", "code", "table", "region", "browser", "gateway"]);
+
 export interface StageBox {
   id: string;
   kind: StageObjectKind;
@@ -190,6 +202,15 @@ export interface StageBox {
   replicas: number;
   code?: string[];
   states?: string[];
+  /** True when this kind's label renders as a caption beneath the silhouette
+   * rather than inside it. */
+  captionBelow: boolean;
+  /** Height reserved under the silhouette for that caption, in pixels. Part of
+   * the box's SEPARATION footprint but not of its drawn shape. */
+  captionHeight: number;
+  /** Width the caption needs — a long caption under a narrow phone still has to
+   * be kept clear of its neighbours. */
+  captionWidth: number;
   parentId?: string;
   /** True for a `region` — the renderer draws it as a quiet frame behind its
    * children rather than as a solid object. */
@@ -282,7 +303,7 @@ const KIND_SIZE: Partial<Record<StageObjectKind, { w?: number; h?: number }>> = 
   queue: { w: 1.2, h: 0.78 },
   client: { w: 0.8 },
   note: { w: 1.05, h: 0.7 },
-  phone: { w: 0.5, h: 1.3 },
+  phone: { w: 0.44, h: 1.5 },
   tv: { w: 1.15, h: 1.0 },
   laptop: { w: 1.15, h: 0.92 },
   cdn: { w: 0.9, h: 1.0 },
@@ -328,7 +349,15 @@ export function stageSublabelPx(box: { height: number }, unit: number): number {
   return Math.max(STAGE_MIN_SUBLABEL_PX * (unit / 1080), box.height * 0.14);
 }
 
-function sizeOf(object: StageObjectInput, emphasis: StageEmphasis, unit: number): { width: number; height: number } {
+interface SizedBox {
+  width: number;
+  height: number;
+  captionBelow: boolean;
+  captionHeight: number;
+  captionWidth: number;
+}
+
+function sizeOf(object: StageObjectInput, emphasis: StageEmphasis, unit: number): SizedBox {
   const kind = KIND_SIZE[object.kind] ?? {};
   const scale = EMPHASIS_SCALE[emphasis];
   let baseW = BASE_WIDTH_UNITS * unit * (kind.w ?? 1) * scale;
@@ -355,7 +384,21 @@ function sizeOf(object: StageObjectInput, emphasis: StageEmphasis, unit: number)
   const subWidth = (object.sublabel?.length ?? 0) * subPx * CHAR_ADVANCE;
   const needed = Math.max(labelWidth, subWidth) + LABEL_PADDING_X * 2;
 
-  return { width: Math.max(baseW, needed), height: baseH };
+  const captionBelow = !LABEL_INSIDE_KINDS.has(object.kind);
+  if (captionBelow) {
+    // The silhouette keeps its authored proportions exactly; the text lives
+    // beneath it and only ever affects the SEPARATION footprint.
+    const lines = (object.label ? 1 : 0) + (object.sublabel ? 1 : 0);
+    return {
+      width: baseW,
+      height: baseH,
+      captionBelow: true,
+      captionHeight: lines === 0 ? 0 : labelPx * 1.15 + (object.sublabel ? subPx * 1.25 : 0),
+      captionWidth: Math.max(labelWidth, subWidth),
+    };
+  }
+
+  return { width: Math.max(baseW, needed), height: baseH, captionBelow: false, captionHeight: 0, captionWidth: 0 };
 }
 
 /** Pushes overlapping boxes apart along whichever axis they overlap LEAST,
@@ -375,8 +418,15 @@ function separate(boxes: StageBox[], gutter: number, bounds: { x: number; y: num
       for (let j = i + 1; j < movable.length; j++) {
         const a = movable[i];
         const b = movable[j];
-        const overlapX = (a.width + b.width) / 2 + gutter - Math.abs(a.x - b.x);
-        const overlapY = (a.height + b.height) / 2 + gutter - Math.abs(a.y - b.y);
+        // Footprint, not silhouette: a narrow phone with a long caption under
+        // it occupies the caption's width too, and ignoring that is how three
+        // objects ended up with their labels stacked on top of each other.
+        const aw = Math.max(a.width, a.captionWidth);
+        const bw = Math.max(b.width, b.captionWidth);
+        const ah = a.height + a.captionHeight;
+        const bh = b.height + b.captionHeight;
+        const overlapX = (aw + bw) / 2 + gutter - Math.abs(a.x - b.x);
+        const overlapY = (ah + bh) / 2 + gutter - Math.abs(a.y - b.y);
         if (overlapX <= 0 || overlapY <= 0) continue;
         moved = true;
         if (overlapX < overlapY) {
@@ -393,8 +443,10 @@ function separate(boxes: StageBox[], gutter: number, bounds: { x: number; y: num
     // Clamp inside the loop, not after it: clamping once at the end can shove a
     // box back into the neighbour it was just separated from.
     for (const box of movable) {
-      box.x = Math.min(Math.max(box.x, bounds.x + box.width / 2), bounds.x + bounds.width - box.width / 2);
-      box.y = Math.min(Math.max(box.y, bounds.y + box.height / 2), bounds.y + bounds.height - box.height / 2);
+      const w = Math.max(box.width, box.captionWidth);
+      const h = box.height + box.captionHeight;
+      box.x = Math.min(Math.max(box.x, bounds.x + w / 2), bounds.x + bounds.width - w / 2);
+      box.y = Math.min(Math.max(box.y, bounds.y + h / 2), bounds.y + bounds.height - h / 2 + box.captionHeight / 2);
     }
     if (!moved) break;
   }
@@ -529,7 +581,7 @@ export function layoutStage(
     const region = composition.place?.[object.id] ?? object.at;
     const emphasis = composition.emphasis?.[object.id] ?? object.emphasis ?? "normal";
     const anchor = REGION_ANCHORS[region] ?? REGION_ANCHORS.center;
-    const { width, height } = sizeOf(object, emphasis, unit);
+    const sized = sizeOf(object, emphasis, unit);
     return {
       id: object.id,
       kind: object.kind,
@@ -549,8 +601,11 @@ export function layoutStage(
       hidden: hidden.has(object.id),
       x: safe.x + safe.width * anchor.fx,
       y: safe.y + safe.height * anchor.fy,
-      width,
-      height,
+      width: sized.width,
+      height: sized.height,
+      captionBelow: sized.captionBelow,
+      captionHeight: sized.captionHeight,
+      captionWidth: sized.captionWidth,
     };
   });
 
@@ -657,10 +712,10 @@ function fitToSafeArea(boxes: StageBox[], safe: { x: number; y: number; width: n
   const visible = boxes.filter((b) => !b.hidden);
   if (visible.length === 0) return;
 
-  const minX = Math.min(...visible.map((b) => b.x - b.width / 2));
-  const maxX = Math.max(...visible.map((b) => b.x + b.width / 2));
+  const minX = Math.min(...visible.map((b) => b.x - Math.max(b.width, b.captionWidth) / 2));
+  const maxX = Math.max(...visible.map((b) => b.x + Math.max(b.width, b.captionWidth) / 2));
   const minY = Math.min(...visible.map((b) => b.y - b.height / 2));
-  const maxY = Math.max(...visible.map((b) => b.y + b.height / 2));
+  const maxY = Math.max(...visible.map((b) => b.y + b.height / 2 + b.captionHeight));
   const contentW = maxX - minX;
   const contentH = maxY - minY;
   if (contentW <= 0 || contentH <= 0) return;
@@ -682,6 +737,8 @@ function fitToSafeArea(boxes: StageBox[], safe: { x: number; y: number; width: n
     box.y = targetY + (box.y - centreY) * applied;
     box.width *= applied;
     box.height *= applied;
+    box.captionHeight *= applied;
+    box.captionWidth *= applied;
   }
 
   // Final containment pass. The scale is chosen to fit, but a HIDDEN box can
