@@ -393,6 +393,40 @@ export async function resolveSegmentAudio(
         visual = { ...visual, timeline };
       }
 
+      // A merged Diagram passage (see mergeDiagramContinuity.ts) — identical
+      // shift to the TacticalBoard case above, `_diagramClipRanges` instead
+      // of `_boardClipRanges`. Every Diagram timeline action variant
+      // (addNode/addEdge/flow/focus/setState/annotate/removeNode/setValue/
+      // meter) carries its own `startSeconds`, so the same flat map handles
+      // all of them alike.
+      // A folded Stage passage (see mergeStageContinuity.ts) — same shift, with
+      // `_stageClipRanges`. Every Stage action variant carries its own
+      // `startSeconds`, so one flat map handles all of them alike.
+      if (visual?.kind === "stage" && segment._stageClipRanges && visual.timeline) {
+        const timeline = visual.timeline.map((action, actionIndex) => {
+          const range = segment._stageClipRanges!.find((r) => actionIndex >= r.from && actionIndex < r.to);
+          const clipIndex = range ? segment._stageClipRanges!.indexOf(range) : 0;
+          const clipOffset = narrationClips[clipIndex]?.offsetSeconds ?? 0;
+          // Correct by the DIFFERENCE. mergeStageContinuity already shifted
+          // these actions by its own estimate so that a no-audio render of a
+          // folded passage is coherent; adding the real offset on top of that
+          // would shift them twice.
+          const applied = range?.appliedOffsetSeconds ?? 0;
+          return { ...action, startSeconds: Math.max(0, action.startSeconds + (clipOffset - applied)) };
+        });
+        visual = { ...visual, timeline };
+      }
+
+      if (visual?.kind === "diagram" && segment._diagramClipRanges && visual.timeline) {
+        const timeline = visual.timeline.map((action, actionIndex) => {
+          const range = segment._diagramClipRanges!.find((r) => actionIndex >= r.from && actionIndex < r.to);
+          const clipIndex = range ? segment._diagramClipRanges!.indexOf(range) : 0;
+          const clipOffset = narrationClips[clipIndex]?.offsetSeconds ?? 0;
+          return { ...action, startSeconds: action.startSeconds + clipOffset };
+        });
+        visual = { ...visual, timeline };
+      }
+
       return {
         ...segment,
         durationSeconds,

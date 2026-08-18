@@ -5,11 +5,14 @@ import { parseSceneScript, isSceneScript } from "./script/parseSceneScript";
 import { autoFixGeometry } from "./script/validateGeometry";
 import { diagnoseScenes } from "./script/validateScene";
 import { diagnoseNarrationSync } from "./script/validateNarrationSync";
+import { diagnoseStageScenes } from "./script/validateStage";
 import { fitSegmentsToNarration, describeFitOutcomes } from "./script/fitSegmentsToNarration";
 import { resolveDiagramBrands } from "./script/resolveDiagramBrands";
 import { hasHardFailures, sortDiagnostics, type SceneDiagnostic } from "./script/sceneDiagnostics";
 import { mergeCanvasContinuity } from "./script/mergeCanvasContinuity";
 import { mergeTacticalContinuity } from "./script/mergeTacticalContinuity";
+import { mergeDiagramContinuity } from "./script/mergeDiagramContinuity";
+import { mergeStageContinuity } from "./script/mergeStageContinuity";
 import { resolveSegmentAudio, generateBackgroundMusic, type TtsProvider } from "./audio/resolveAudio";
 import { renderVideo, type RenderProgress, type RenderVideoOptions } from "./render/renderVideo";
 import type { TimedSegment, AspectRatio, AudioClipPlacement } from "./model/Segment";
@@ -339,6 +342,28 @@ function resolveSegments(scriptText: string, presetSegments: TimedSegment[] | un
     boardMergeNotes.forEach((note) => log(`  - ${note}`));
   }
 
+  // Same idea as the Canvas/Board merges above, for `**Continue Diagram:**
+  // true` Diagram scenes — folds a run of them into one continuous
+  // structure/timeline instead of a fresh cut per scene.
+  const { segments: diagramMergedSegments, notes: diagramMergeNotes } = mergeDiagramContinuity(segments);
+  segments = diagramMergedSegments;
+  if (diagramMergeNotes.length > 0) {
+    log(`Merged continuous Diagram passages (${diagramMergeNotes.length} note${diagramMergeNotes.length > 1 ? "s" : ""}):`);
+    diagramMergeNotes.forEach((note) => log(`  - ${note}`));
+  }
+
+  // Same pass for `**Continue Stage:** true` — the Shorts medium's
+  // object-persistence primitive. Without it every Stage scene re-declares its
+  // whole world, so an entity in scene 3 is a different object from the
+  // identically-labelled one in scene 2, which is exactly the slideshow the
+  // doctrine rejects.
+  const { segments: stageMergedSegments, notes: stageMergeNotes } = mergeStageContinuity(segments);
+  segments = stageMergedSegments;
+  if (stageMergeNotes.length > 0) {
+    log(`Merged continuous Stage passages (${stageMergeNotes.length} note${stageMergeNotes.length > 1 ? "s" : ""}):`);
+    stageMergeNotes.forEach((note) => log(`  - ${note}`));
+  }
+
   return { segments, usedSceneFormat, geometryDiagnostics };
 }
 
@@ -360,7 +385,7 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   if (brands.resolved.length > 0) log(`Resolved ${brands.resolved.length} brand mark(s): ${brands.resolved.map((b) => b.title).join(", ")}.`);
   if (brands.unresolved.length > 0) log(`No brand mark for ${brands.unresolved.join(", ")} — those nodes fall back to their shape.`);
 
-  const preAudioDiagnostics = [...geometryDiagnostics, ...diagnoseScenes(segments)];
+  const preAudioDiagnostics = [...geometryDiagnostics, ...diagnoseScenes(segments), ...diagnoseStageScenes(segments)];
   logDiagnostics(log, preAudioDiagnostics, "Scene diagnostics (pre-audio estimate):");
   runEnforcementGate(preAudioDiagnostics, options.strict, "before narration/audio generation");
 
@@ -414,7 +439,12 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   // diagnoseNarrationSync only reports for segments carrying a measured
   // `narrationSeconds`, so it self-skips entirely on an estimate-only
   // (no --audio) run rather than judging a real timeline against a guess.
-  const finalDiagnostics = [...geometryDiagnostics, ...diagnoseScenes(segments), ...diagnoseNarrationSync(segments)];
+  const finalDiagnostics = [
+    ...geometryDiagnostics,
+    ...diagnoseScenes(segments),
+    ...diagnoseStageScenes(segments),
+    ...diagnoseNarrationSync(segments),
+  ];
   logDiagnostics(log, finalDiagnostics, "Final scene diagnostics (real narration timing):");
   runEnforcementGate(finalDiagnostics, options.strict, "before render");
 

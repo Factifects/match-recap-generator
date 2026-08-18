@@ -41,6 +41,12 @@ export interface SharedVisualProps {
   // tall code/comparison panel doesn't sit under the caption box. Any other
   // card is free to start reading this the same way; none currently do.
   hasCaption?: boolean;
+  // The segment's own spoken line, passed through for the few cards that
+  // render their OWN caption treatment rather than relying on the shared
+  // `phases`/PhaseCaptionOverlay (currently just Kinetic Stat's word-synced
+  // karaoke bar) — every other card safely ignores it, same convention as
+  // every other field here.
+  narrationText?: string;
 }
 
 /** One data-shape alias per visual kind, each just `Extract<Visual, {kind:
@@ -62,6 +68,7 @@ export type AnalysisData = Extract<Visual, { kind: "analysis" }>;
 export type StatBurstData = Extract<Visual, { kind: "statburst" }>;
 export type BarChartData = Extract<Visual, { kind: "barchart" }>;
 export type LineChartData = Extract<Visual, { kind: "line-chart" }>;
+export type KineticStatData = Extract<Visual, { kind: "kinetic-stat" }>;
 export type DonutChartData = Extract<Visual, { kind: "shape" }>;
 export type RadarData = Extract<Visual, { kind: "radar" }>;
 export type SingleStatData = Extract<Visual, { kind: "single-stat" }>;
@@ -83,6 +90,7 @@ export type BrowserMockData = Extract<Visual, { kind: "browser-mock" }>;
 export type TerminalMockData = Extract<Visual, { kind: "terminal-mock" }>;
 export type WorkspaceData = Extract<Visual, { kind: "workspace" }>;
 export type DiagramData = Extract<Visual, { kind: "diagram" }>;
+export type StageData = Extract<Visual, { kind: "stage" }>;
 export type CareerPathData = Extract<Visual, { kind: "career-path" }>;
 export type IconData = Extract<Visual, { kind: "icon" }>;
 export type CanvasData = Extract<Visual, { kind: "canvas" }>;

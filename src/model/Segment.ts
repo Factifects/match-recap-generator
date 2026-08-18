@@ -303,6 +303,37 @@ export type TimedSegment = Segment & {
    * every event in its range once real TTS duration is known (mirrors
    * `_canvasCaptionRanges`'s role for Canvas captions). */
   _boardClipRanges?: { from: number; to: number }[];
+  /** Scene-spec scripts only: set when this scene's `**Continue Diagram:**`
+   * field is `true` — a signal to mergeDiagramContinuity.ts (src/script/)
+   * that this scene's Diagram `timeline` should be folded into the
+   * immediately preceding scene's Diagram (one persistent structure/canvas
+   * that keeps building, never cutting) instead of becoming its own segment.
+   * Consumed and never persisted past that merge step — a scene that
+   * actually reaches rendering never has this set to true. */
+  continuesDiagramFrom?: boolean;
+  /** `**Continue Stage:** true` — folds this scene into the preceding Stage
+   * passage so the entities persist across what would have been a cut. */
+  continuesStageFrom?: boolean;
+  /** `**Word Captions:** true` — burned-in karaoke captions, the word being
+   * spoken lit while the rest of the line stays plain. Mutually exclusive with
+   * `phases`: both render the same bottom-pinned chrome, so a segment picks one
+   * caption treatment, never both. */
+  wordCaptions?: boolean;
+  /** Internal bookkeeping set by mergeDiagramContinuity.ts, consumed and
+   * deleted by resolveSegmentAudio — never reaches the rendered sidecar
+   * JSON. One `[from, to)` slice of `visual.timeline` (Diagram only) per
+   * `narrationClips` entry — every timeline event inside a range still has
+   * its `startSeconds` relative to that sub-scene's own local zero;
+   * resolveSegmentAudio adds that clip's real cumulative narration offset to
+   * every event in its range once real TTS duration is known (mirrors
+   * `_boardClipRanges`'s role for TacticalBoard). */
+  _diagramClipRanges?: { from: number; to: number }[];
+  /** Which timeline actions came from which narration clip, for a folded Stage
+   * passage. Unlike `_diagramClipRanges`, each range also records the ESTIMATED
+   * offset already applied to those actions at merge time, so the audio pass
+   * corrects by the difference instead of shifting a second time — which is
+   * what keeps a no-audio preview of a folded passage coherent. */
+  _stageClipRanges?: { from: number; to: number; appliedOffsetSeconds: number }[];
   /** Scene-spec scripts only: parsed from optional `**Thesis:**`/
    * `**Entities:**`/`**Flow:**` fields (see src/script/sceneContract.ts) —
    * the author's DECLARED intent for what this scene demonstrates,

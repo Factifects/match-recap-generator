@@ -99,7 +99,11 @@ export function computeVisualMinDurationSeconds(visual: Visual | undefined): num
   // render would cut a code walkthrough short partway through its highlights.
   // Every workspace action carries `startSeconds`, and only some carry a
   // duration (`clear` is instantaneous), matching Canvas's shape.
-  if ((visual?.kind === "workspace" || visual?.kind === "diagram") && visual.timeline && visual.timeline.length > 0) {
+  if (
+    (visual?.kind === "workspace" || visual?.kind === "diagram" || visual?.kind === "stage") &&
+    visual.timeline &&
+    visual.timeline.length > 0
+  ) {
     const timelineEnd = Math.max(
       ...visual.timeline.map((action) => action.startSeconds + ("durationSeconds" in action ? (action.durationSeconds ?? 0) : 0)),
     );
@@ -764,6 +768,29 @@ function resolveContinueBoard(fields: SceneFields): true | undefined {
   return fields["Continue Board"]?.trim().toLowerCase() === "true" ? true : undefined;
 }
 
+/** An optional **Continue Diagram:** true field — same convention as
+ * **Continue Board:** above, for Diagram's evented `timeline`. Consumed by
+ * mergeDiagramContinuity.ts (run as a post-parse pass in generate.ts); a
+ * scene isn't required to be `Scene Type: Diagram` at parse time for this
+ * field to be set (same graceful-degradation posture as Continue Canvas/
+ * Continue Board — mergeDiagramContinuity.ts is responsible for checking
+ * that, not this parser). A continuing scene only needs `Narration` and a
+ * `Data` block with its OWN new `timeline` (and any brand-new `nodes`); it
+ * should not redeclare nodes/edges the passage already has — the merge
+ * unions by id, first declaration wins, so a redeclaration is silently
+ * ignored rather than resetting anything. */
+function resolveWordCaptions(fields: SceneFields): boolean | undefined {
+  return fields["Word Captions"]?.trim().toLowerCase() === "true" ? true : undefined;
+}
+
+function resolveContinueStage(fields: SceneFields): boolean | undefined {
+  return fields["Continue Stage"]?.trim().toLowerCase() === "true" ? true : undefined;
+}
+
+function resolveContinueDiagram(fields: SceneFields): true | undefined {
+  return fields["Continue Diagram"]?.trim().toLowerCase() === "true" ? true : undefined;
+}
+
 const BOARD_POSITION_KEYS = new Set(["left", "right", "center"]);
 
 /** An optional **Board Position:** field, TacticalBoard/Formation only —
@@ -953,6 +980,9 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
       phases: resolvePhases(fields),
       continuesCanvasFrom: resolveContinueCanvas(fields),
       continuesBoardFrom: resolveContinueBoard(fields),
+      continuesDiagramFrom: resolveContinueDiagram(fields),
+      continuesStageFrom: resolveContinueStage(fields),
+      wordCaptions: resolveWordCaptions(fields),
       // Present for every Flow-type scene (resolveFlowVisual requires a
       // real contract to have produced a visual at all) and for any other
       // scene type that additionally declares Entities/Flow purely for

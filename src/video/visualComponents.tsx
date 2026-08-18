@@ -16,6 +16,7 @@ import { AnalysisBoard } from "./compositions/AnalysisBoard";
 import { StatBurstCard } from "./compositions/StatBurstCard";
 import { BarChartCard } from "./compositions/BarChartCard";
 import { LineChartCard } from "./compositions/LineChartCard";
+import { KineticStatCard } from "./compositions/KineticStatCard";
 import { DonutChartCard } from "./compositions/DonutChartCard";
 import { RadarChart } from "./compositions/RadarChart";
 import { SingleStatCard } from "./compositions/SingleStatCard";
@@ -36,6 +37,7 @@ import { BrowserMockCard } from "./compositions/BrowserMockCard";
 import { TerminalMockCard } from "./compositions/TerminalMockCard";
 import { WorkspaceCard } from "./compositions/WorkspaceCard";
 import { DiagramCard } from "./compositions/DiagramCard";
+import { StageCard } from "./compositions/StageCard";
 import { CareerPathCard } from "./compositions/CareerPathCard";
 import { GridCard } from "./compositions/GridCard";
 import { IconInfographicCard } from "./compositions/IconInfographicCard";
@@ -66,6 +68,7 @@ export const VISUAL_COMPONENTS: { [K in Visual["kind"]]: React.FC<{ data: DataFo
   statburst: StatBurstCard,
   barchart: BarChartCard,
   "line-chart": LineChartCard,
+  "kinetic-stat": KineticStatCard,
   shape: DonutChartCard,
   radar: RadarChart,
   "single-stat": SingleStatCard,
@@ -86,6 +89,7 @@ export const VISUAL_COMPONENTS: { [K in Visual["kind"]]: React.FC<{ data: DataFo
   "terminal-mock": TerminalMockCard,
   workspace: WorkspaceCard,
   diagram: DiagramCard,
+  stage: StageCard,
   "career-path": CareerPathCard,
   grid: GridCard,
   icon: IconInfographicCard,

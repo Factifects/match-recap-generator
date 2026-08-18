@@ -8,6 +8,7 @@ import { zoomIn, zoomOut } from "../transitions";
 import { ChapterCard } from "./ChapterCard";
 import { StatementCard } from "./StatementCard";
 import { PhaseCaptionOverlay } from "./PhaseCaptionOverlay";
+import { WordCaptionOverlay } from "./WordCaptionOverlay";
 import { VISUAL_COMPONENTS } from "../visualComponents";
 import type { SharedVisualProps } from "../sharedVisualProps";
 import type { TimedSegment, AspectRatio, Visual, AudioClipPlacement } from "../../model/Segment";
@@ -222,11 +223,19 @@ export const AnalysisVideo: React.FC<{
                     jerseyImages: segment.jerseyImages,
                     boardPosition: segment.boardPosition,
                     animation: segment.animation,
-                    hasCaption: !!(segment.phases && segment.phases.length > 0),
+                    hasCaption: !!(segment.phases && segment.phases.length > 0) || !!segment.wordCaptions,
+                    narrationText: segment.narrationText ?? segment.text,
                   };
                   return <Component data={segment.visual} {...shared} />;
                 })()}
-              {segment.phases && segment.phases.length > 0 && (
+              {/* Exactly one caption treatment per segment: karaoke word
+                  captions and authored phase captions share the same
+                  bottom-pinned chrome, so rendering both would stack two
+                  pills on top of each other. Word captions win when set. */}
+              {segment.wordCaptions && (
+                <WordCaptionOverlay text={segment.narrationText ?? segment.text} durationInFrames={durationInFrames} />
+              )}
+              {!segment.wordCaptions && segment.phases && segment.phases.length > 0 && (
                 <PhaseCaptionOverlay phases={segment.phases} durationInFrames={durationInFrames} />
               )}
               {segment.audioStaticPath && (

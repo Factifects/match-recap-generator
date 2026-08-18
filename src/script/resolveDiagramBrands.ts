@@ -43,10 +43,19 @@ export interface DiagramBrandResult {
 export async function resolveDiagramBrands(segments: TimedSegment[]): Promise<DiagramBrandResult> {
   const wanted: string[] = [];
   for (const segment of segments) {
-    if (segment.type !== "statement" || segment.visual?.kind !== "diagram") continue;
-    eachNode(segment.visual.nodes, (node) => {
-      if (node.brand) wanted.push(node.brand);
-    });
+    if (segment.type !== "statement") continue;
+    if (segment.visual?.kind === "diagram") {
+      eachNode(segment.visual.nodes, (node) => {
+        if (node.brand) wanted.push(node.brand);
+      });
+    }
+    // The `stage` medium resolves brands through exactly the same registry and
+    // cache. Wiring it here rather than building a parallel resolver is the
+    // whole point of the registry existing — a second lookup path would drift
+    // on provenance and licence tracking.
+    if (segment.visual?.kind === "stage") {
+      for (const object of segment.visual.objects) if (object.brand) wanted.push(object.brand);
+    }
   }
   if (wanted.length === 0) return { segments, resolved: [], unresolved: [] };
 
@@ -54,6 +63,15 @@ export async function resolveDiagramBrands(segments: TimedSegment[]): Promise<Di
   // Deep-copies only the segments that actually carry diagram brands, so
   // everything else keeps its identity (cheap, and easy to reason about).
   const next = segments.map((segment) => {
+    if (segment.type === "statement" && segment.visual?.kind === "stage") {
+      const objects = segment.visual.objects.map((object) => {
+        if (!object.brand) return object;
+        const asset = resolved.find((a) => a.slug === slugFor(object.brand!));
+        if (!asset) return object;
+        return { ...object, logoPath: asset.staticPath, logoHex: asset.hex, logoMonochrome: asset.monochrome };
+      });
+      return { ...segment, visual: { ...segment.visual, objects } };
+    }
     if (segment.type !== "statement" || segment.visual?.kind !== "diagram") return segment;
     const nodes = JSON.parse(JSON.stringify(segment.visual.nodes)) as DiagramNode[];
     let touched = false;

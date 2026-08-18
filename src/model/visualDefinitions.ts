@@ -1097,6 +1097,502 @@ const diagramLeafSchema = z.object(diagramNodeBase);
 const diagramMidSchema = z.object({ ...diagramNodeBase, children: z.array(diagramLeafSchema).optional() });
 const diagramNodeSchema = z.object({ ...diagramNodeBase, children: z.array(diagramMidSchema).optional() });
 
+// ---------------------------------------------------------------------------
+// Stage — the Techijest Shorts medium. See src/script/stageLayout.ts for why
+// this is a separate medium from `diagram` rather than a mode of it: diagram's
+// layered layout can only ever emit a single flow axis, which in 9:16 means a
+// vertical flowchart BY CONSTRUCTION, and its geometry is computed once so
+// nothing can ever move, grow or recede.
+// ---------------------------------------------------------------------------
+
+/** The 3x3 stage. Regions are stable across scenes on purpose — an object put
+ * in `center` sits in the same place in every scene that puts it there, which
+ * is what lets a viewer learn the space across a series instead of re-reading
+ * the frame every cut. */
+const stageRegionSchema = z.enum([
+  "top-left",
+  "top",
+  "top-right",
+  "left",
+  "center",
+  "right",
+  "bottom-left",
+  "bottom",
+  "bottom-right",
+]);
+
+/** Visual weight. `lead` is the object being explained RIGHT NOW and grows to
+ * dominate; `recede` is context the viewer must still see but must not read as
+ * the subject, and genuinely shrinks (a purely dimmed object reads as "faded
+ * out", a smaller one reads as "further away"). If everything is moving,
+ * nothing feels important — this is the field that buys visual contrast. */
+const stageEmphasisSchema = z.enum(["lead", "normal", "recede"]);
+
+const stageAccentSchema = z.enum(["neutral", "primary", "warn", "success", "danger"]);
+
+/** What the object IS, chosen so the silhouette is recognisable WITHOUT its
+ * label — a shape must be recognisable, not merely distinct. Everything here is
+ * either a real-world object with a universal outline or an explicitly generic
+ * card (`note`). Represent the actual thing being discussed: a browser is a
+ * browser window, a database is a cylinder, a queue has real slots. */
+const stageObjectKindSchema = z.enum([
+  // devices — where a request starts
+  "client",
+  "browser",
+  "phone",
+  "tv",
+  "laptop",
+  // network & routing
+  "cdn",
+  "gateway",
+  "loadBalancer",
+  // compute
+  "server",
+  "service",
+  "container",
+  "worker",
+  "function",
+  // state
+  "database",
+  "cache",
+  "storage",
+  "table",
+  "queue",
+  // media & data
+  "stream",
+  "code",
+  // security
+  "token",
+  "lock",
+  // structure — a `region` is a CONTAINER, drawn as a quiet dashed frame
+  // behind whatever declares it as `parent`
+  "region",
+  "note",
+]);
+
+const stageObjectSchema = z.object({
+  id: z.string().min(1),
+  kind: stageObjectKindSchema,
+  label: z.string().optional(),
+  sublabel: z.string().optional(),
+  /** Home region — where this object sits until a `compose` moves it. */
+  at: stageRegionSchema,
+  emphasis: stageEmphasisSchema.optional(),
+  accent: stageAccentSchema.optional(),
+  /** Nests this object inside another (which should be a `region`). The parent
+   * is SIZED FROM ITS CHILDREN and drawn behind them, so "this service lives in
+   * us-east-1" is structural rather than two boxes placed near each other in
+   * the hope the viewer infers it. One level of nesting only — deeper
+   * hierarchies stop being legible at phone size. A nested object ignores its
+   * own `at`. */
+  parent: z.string().optional(),
+  /** Draws N stacked copies instead of one box — a fleet, a replica set, a
+   * hundred instances of one service. Identical is the point: N replicas must
+   * look like N of the SAME thing. Occupies one box in layout regardless of N,
+   * and caps its drawn stack so a large number stays legible. */
+  replicas: z.number().int().min(1).max(50).optional(),
+  /** A real brand mark, resolved from Simple Icons at generation time and
+   * cached (see assets/brandRegistry.ts). Name it whenever the object IS a
+   * recognisable product — "netflix", "cassandra", "kafka", "redis", "postgres",
+   * "docker", "nginx". A generic silhouette is a last-resort fallback, never
+   * the default representation of a technology a viewer would recognise, and an
+   * invented or approximated logo is never acceptable. The mark participates in
+   * the animation like any other property of the object; it is not a sticker. */
+  brand: z.string().optional(),
+  /** REAL SOURCE, for a `code` object. Code is a first-class medium, not an
+   * illustration of code: give it the actual lines and let `highlightLine`
+   * brighten the one being discussed while the rest dim. Keep lines short —
+   * nothing wraps, and a 9:16 frame is narrow. */
+  code: z.array(z.string()).max(14).optional(),
+  /** THE ENTITY'S LIFECYCLE, in order.
+   *
+   * "Stop thinking 'show object X', think 'show X changing from state A to
+   * state B'." A cache is not `CACHE` — it is empty -> miss -> filling -> hit,
+   * and the explanation IS that progression. Declaring the states makes the
+   * lifecycle a property of the entity rather than a sequence of unrelated
+   * recolours, which is what lets the engine catch a scene putting a cache into
+   * `hit` without ever having filled it.
+   *
+   * The object shows its current state and how far through the lifecycle it is;
+   * `phase` moves it. An accent is a colour, this is a state. */
+  states: z.array(z.string().min(1)).min(2).max(8).optional(),
+});
+
+const stageEdgeSchema = z.object({
+  from: z.string().min(1),
+  to: z.string().min(1),
+  label: z.string().optional(),
+  style: z.enum(["solid", "dashed"]).default("solid"),
+  kind: z.enum(["request", "response", "data", "dependency"]).default("request"),
+});
+
+/** Canonical treatment per travelling-packet kind. The renderer, not each
+ * script, decides what "this is a response" looks like, so request and response
+ * can never read as the same thing moving in two directions. */
+const stageFlowKindSchema = z.enum(["request", "response", "data", "success", "error", "retry"]);
+
+/** A PERSISTENT packet — an object in its own right rather than a one-shot
+ * animation. Declared once, then `send` moves it, `mutate` changes what it IS,
+ * and it REMAINS on screen wherever it last arrived.
+ *
+ * This is the difference between "an animation of a request" and "a request".
+ * A one-shot flow cannot express the beats that actually carry a Short: a
+ * request that arrives and WAITS while something else happens; the same request
+ * being retried; a `GET` that becomes a `POST`; one request duplicating into
+ * two that then race each other. All of those need the packet to survive
+ * between beats and carry state, which a fire-and-forget token cannot do. */
+const stagePacketSchema = z.object({
+  id: z.string().min(1),
+  /** What it IS right now — "GET /orders", "auth token", "SELECT * FROM users".
+   * Always concrete: the viewer should be able to pause on any frame and know
+   * exactly what is moving and why. */
+  label: z.string().min(1),
+  kind: stageFlowKindSchema.default("request"),
+  /** Where it starts out, if it is on stage before anything sends it. */
+  at: z.string().optional(),
+});
+
+const stageTimelineActionSchema = z.discriminatedUnion("type", [
+  /** An object arrives on the stage. Introduce components only when the
+   * narration makes them relevant — showing the whole architecture at t=0 is
+   * presentation; revealing it as it becomes relevant is discovery. */
+  z.object({
+    type: z.literal("enter"),
+    id: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.5),
+  }),
+  z.object({
+    type: z.literal("exit"),
+    id: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.4),
+  }),
+  /** A connector draws itself between two objects. */
+  z.object({
+    type: z.literal("connect"),
+    from: z.string().min(1),
+    to: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.6),
+  }),
+  /** THE core action of this medium: a new composition state. Every object
+   * glides to its new region/emphasis and connectors re-route from the moving
+   * silhouettes, so the frame visibly reorganises as the explanation develops
+   * instead of sitting still. `place`/`emphasis`/`hidden` are PARTIAL overrides
+   * of what came before — state only what changed, so a four-act Short reads as
+   * four short deltas rather than four re-declarations of the world.
+   *
+   * Prefer moving an existing object over creating a new one. A server that
+   * already exists and is needed elsewhere should TRAVEL there; destroying it
+   * and creating an identical copy in a new spot is a slideshow of unrelated
+   * illustrations, not one system evolving. */
+  z.object({
+    type: z.literal("compose"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.9),
+    place: z.record(z.string(), stageRegionSchema).optional(),
+    emphasis: z.record(z.string(), stageEmphasisSchema).optional(),
+    hidden: z.array(z.string()).optional(),
+  }),
+  /** Changes the viewer's relationship to the system — a documentary camera
+   * observing it, not motion for its own sake. `focus` pushes in on one object;
+   * omitting it with `zoom: 1` pulls back to reveal the whole stage. Use it
+   * because the story needs a different view, not because the frame needs
+   * something to look alive. */
+  z.object({
+    type: z.literal("camera"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(1),
+    focus: z.string().optional(),
+    zoom: z.number().min(0.6).max(3).default(1),
+  }),
+  /** Short punchy text as its OWN visual actor, landing at a specific beat and
+   * clearing again ("ONE LINE." ... "THAT'S ENOUGH."). Deliberately the only
+   * way to put a headline on a Stage: a title that sits on screen for the whole
+   * scene stops being information and becomes furniture.
+   *
+   * Type here is a CO-EQUAL COMPOSITIONAL ELEMENT, not a caption bar — `at`
+   * places it anywhere on the stage and `size: "huge"` lets it dominate the
+   * frame outright, which is how a poster-style beat works: the words and the
+   * graphics interlock rather than the words sitting in a reserved strip above
+   * the picture. Use `huge` for the act-opening question ("WHY DOES POSTMAN
+   * WORK BUT CHROME FAIL?") and the payoff line; keep the rest `normal`. */
+  z.object({
+    type: z.literal("beat"),
+    text: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(1.8),
+    tone: z.enum(["neutral", "alert", "reveal"]).default("neutral"),
+    at: z.enum(["top", "center", "bottom"]).default("top"),
+    size: z.enum(["normal", "huge"]).default("normal"),
+  }),
+  /** A packet travels the REAL routed connectors through `path`, so it can
+   * never drift off the line or stop inside a box. ALWAYS give it a label
+   * naming the actual thing in flight ("GET /refund", "200 OK", "SELECT * FROM
+   * orders", "auth token") — animate the information, not the connection. An
+   * unlabelled packet is the generic dot-on-a-line this medium exists to
+   * replace. */
+  z.object({
+    type: z.literal("flow"),
+    path: z.array(z.string().min(1)).min(2),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.4),
+    label: z.string().optional(),
+    kind: stageFlowKindSchema.default("request"),
+    /** The destination REACTS when the packet lands instead of it just
+     * vanishing into the box. */
+    reactsOnArrival: stageAccentSchema.optional(),
+    /** Stops the packet PART WAY along its path (0-1) instead of arriving —
+     * a request blocked by a gate, rejected by a rate limiter, intercepted by
+     * a cache. The single most important beat in most Shorts is a thing that
+     * does NOT happen, and it cannot be shown by a packet that always
+     * arrives. */
+    blockedAt: z.number().min(0).max(1).optional(),
+    /** ESCALATION. One packet becomes N, staggered down the same path — the
+     * retry storm, the thundering herd, the accidental fan-out. Magnitude has
+     * to be SEEN: a label reading "10,000 requests" is a claim, a screen
+     * filling with them is a demonstration. Pair with `magnitude` for the
+     * count nobody could read off the screen by counting. */
+    copies: z.number().int().min(1).max(40).default(1),
+    /** Odometer text that counts up alongside a `copies` fan-out ("10,000
+     * REQUESTS"). Rendered on the packet trail, not as a separate caption. */
+    magnitude: z.string().optional(),
+  }),
+  /** Recolours an object to show a state change. */
+  z.object({
+    type: z.literal("setState"),
+    id: z.string().min(1),
+    accent: stageAccentSchema,
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.4),
+  }),
+  /** Brightens the named objects and dims the rest. Unfocused objects are
+   * DIMMED, never hidden: the dim ones are the context the bright one is being
+   * placed into, so removing them defeats the point. An empty `ids` restores
+   * everything. */
+  z.object({
+    type: z.literal("focus"),
+    ids: z.array(z.string()),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.4),
+  }),
+  /** IMPACT. A scale punch plus a flash on one object — "THIS is the thing".
+   * Deliberately separate from `setState` (which changes what an object IS)
+   * and from `focus` (which changes what the viewer should look at): this
+   * changes nothing, it just hits. Use it on a reveal, never as decoration —
+   * an object that pops for no reason spends the emphasis budget and leaves
+   * the real reveal with nothing left. */
+  z.object({
+    type: z.literal("pop"),
+    id: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.45),
+  }),
+  /** Frame shake on a disruption beat — a server falling over, a collision, a
+   * queue bursting. Physical consequence the viewer feels rather than reads.
+   * Short and rare by construction: the cap is deliberately low because a
+   * shaky frame stops being an event and becomes a style within about two
+   * uses per video. */
+  z.object({
+    type: z.literal("shake"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).max(1.2).default(0.4),
+    intensity: z.enum(["light", "heavy"]).default("light"),
+  }),
+  /** An odometer on an object's sublabel — a number visibly counting from one
+   * value to another. "Name numbers": a concrete count beats abstract language
+   * every time, and a number that TICKS is a frame that is visibly resolving,
+   * which is the actual retention mechanic (the viewer holds on to see it
+   * finish). A static label reading "10,000 requests" is a claim; the same
+   * number racing up to it is evidence. */
+  z.object({
+    type: z.literal("count"),
+    id: z.string().min(1),
+    from: z.number(),
+    to: z.number(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.6),
+    /** Appended after the number ("req/s", "ms", "%"). */
+    suffix: z.string().optional(),
+  }),
+  /** A bar across the bottom of an object that visibly fills or drains. The
+   * other half of "frames that keep resolving" — a TTL running out, a queue
+   * filling, a cache warming. The viewer watches the budget go rather than
+   * reading three static labels claiming it did. `from`/`to` are 0-1. */
+  z.object({
+    type: z.literal("meter"),
+    id: z.string().min(1),
+    from: z.number().min(0).max(1).default(0),
+    to: z.number().min(0).max(1).default(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2),
+  }),
+  /** Moves a PERSISTENT packet along a path. Unlike `flow`, the packet stays
+   * on screen at wherever it lands, so the next beat can act on the same
+   * object instead of spawning a lookalike. */
+  z.object({
+    type: z.literal("send"),
+    id: z.string().min(1),
+    path: z.array(z.string().min(1)).min(2),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.4),
+    blockedAt: z.number().min(0).max(1).optional(),
+    reactsOnArrival: stageAccentSchema.optional(),
+  }),
+  /** Changes what a persistent packet IS, in place — the same card mutating
+   * rather than a new card appearing beside the old one. `GET /refund` becoming
+   * `POST /refund`; a request becoming an error. Transforming an existing object
+   * is always preferable to creating another one. */
+  z.object({
+    type: z.literal("mutate"),
+    id: z.string().min(1),
+    label: z.string().optional(),
+    kind: stageFlowKindSchema.optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.4),
+  }),
+  /** Removes a persistent packet — consumed, dropped, expired. */
+  z.object({
+    type: z.literal("consume"),
+    id: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.35),
+  }),
+  /** Brightens specific lines of a `code` object and dims the rest — the core
+   * teaching move for code: highlight the line while the narrator explains it.
+   * Lines are 1-indexed. An empty array clears the highlight. */
+  z.object({
+    type: z.literal("highlightLine"),
+    id: z.string().min(1),
+    lines: z.array(z.number().int().min(1)),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.35),
+  }),
+  /** TRANSFORMATION — an entity literally BECOMING a different representation
+   * of itself. The most important action in this vocabulary and the one that
+   * separates "animate the system" from "animate the diagram".
+   *
+   * The same underlying thing has different representations at different levels
+   * of explanation, and showing that chain is far more useful than drawing five
+   * boxes joined by arrows. One HTTP request is, in turn: "Get my profile" ->
+   * `GET /profile` -> an HTTP packet on the wire -> `req.user` in the handler ->
+   * `SELECT * FROM users WHERE id = 42` -> and back up the chain. Authentication
+   * is credentials -> SESSION -> a cookie in the browser -> `Cookie:
+   * session_id=...` on the wire. Same state, four representations.
+   *
+   * Use this instead of hiding one object and showing another: a crossfade in
+   * place says "this became that", whereas a swap says "here is a different
+   * thing", which is a different and usually wrong claim. */
+  z.object({
+    type: z.literal("transform"),
+    id: z.string().min(1),
+    toKind: stageObjectKindSchema.optional(),
+    toLabel: z.string().optional(),
+    toSublabel: z.string().optional(),
+    /** For a transform INTO code — a query, a handler, a config block. */
+    toCode: z.array(z.string()).max(14).optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.7),
+  }),
+  /** An entity PRODUCES another entity out of itself — the browser emitting the
+   * request it is about to send, a server constructing a response. The emitted
+   * packet grows out of the emitter's own body rather than fading in beside it,
+   * so causation is visible: this thing made that thing. Follow with `send` to
+   * move it. */
+  z.object({
+    type: z.literal("emit"),
+    /** The object doing the emitting. */
+    from: z.string().min(1),
+    /** The packet id (declared in `packets`) being produced. */
+    id: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.5),
+  }),
+  /** A packet ENTERS an object and is taken in by it — consumed, stored,
+   * processed — rather than parking beside it. The counterpart to `emit`: use
+   * it when the point is that the thing was received, not that it is waiting. */
+  z.object({
+    type: z.literal("absorb"),
+    id: z.string().min(1),
+    into: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.5),
+  }),
+  /** One entity DIVIDES into several — a fan-out, a retry duplicating, a
+   * batch breaking into individual jobs. The children emerge from the parent's
+   * own position and spread, so the viewer sees one thing becoming many rather
+   * than several things appearing near each other. */
+  z.object({
+    type: z.literal("split"),
+    id: z.string().min(1),
+    into: z.array(z.string().min(1)).min(2),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.7),
+  }),
+  /** Several entities BECOME one — a scatter-gather collecting, a batch
+   * forming, replicas agreeing on a value. The mirror of `split`. */
+  z.object({
+    type: z.literal("merge"),
+    ids: z.array(z.string().min(1)).min(2),
+    into: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.7),
+  }),
+  /** Two entities arrive at the SAME target at the SAME instant and impact.
+   *
+   * This is the race condition, and it is the clearest case for why a
+   * relationship is not a line. "Two requests arrive at exactly the same time"
+   * drawn as two arrows into a box says nothing — the simultaneity, which is
+   * the entire concept, is invisible. Here both packets physically converge,
+   * meet, and the target visibly takes the hit. The viewer sees the collision
+   * rather than reading about it. */
+  z.object({
+    type: z.literal("collide"),
+    ids: z.array(z.string().min(1)).length(2),
+    at: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.4),
+  }),
+  /** An entity BECOMES THE STAGE — it grows to fill the frame while everything
+   * else clears, so the viewer moves inside it. Use it when the explanation
+   * descends a level: the request becomes the dominant object and fills the
+   * screen; the camera moves into the server and the server becomes huge,
+   * showing its own internals. `collapse` returns it to the system view, and
+   * the pull-back is what re-establishes where the viewer just was. */
+  z.object({
+    type: z.literal("expand"),
+    id: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.9),
+  }),
+  z.object({
+    type: z.literal("collapse"),
+    id: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.9),
+  }),
+  /** Moves an entity to the next state of its declared lifecycle. Skipping
+   * states is reported, because a cache that reaches `hit` without passing
+   * through `filling` is not a shortcut — it is a scene claiming something that
+   * never happened. */
+  z.object({
+    type: z.literal("phase"),
+    id: z.string().min(1),
+    to: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.5),
+  }),
+  /** Pins a short callout beside an object. */
+  z.object({
+    type: z.literal("annotate"),
+    target: z.string().min(1),
+    text: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.4),
+  }),
+]);
+
 export const VISUAL_DEFINITIONS = [
   {
     kind: "tactical-board",
@@ -1346,6 +1842,22 @@ export const VISUAL_DEFINITIONS = [
           label: z.string().optional(),
         })
         .optional(),
+    }),
+  },
+  {
+    kind: "kinetic-stat",
+    category: "stats-dataviz",
+    label: "Kinetic Stat",
+    description:
+      "A kinetic-typography stat beat: plain background, a short uppercase title, a climbing line chart, and a grid of icon cards that fills in as the same reveal plays — the metric climbing and the resource pool growing are ONE animated cause-and-effect, not two decorations on independent clocks (e.g. traffic climbing while server instances light up to match, or retries piling up while a connection pool fills). Reveals fast (well under 2s) then HOLDS its settled state for the rest of the scene's real narration — this is one short punchy beat, not a slow single-scene video; pair several Kinetic Stat scenes in a script for a multi-beat Short, the same way any other scene type chains. Word-synced karaoke captions (the currently-spoken word highlighted) run along the bottom automatically from this scene's own Narration — no separate Data field for caption text.",
+    sceneTypeKey: "kineticstat",
+    schema: z.object({
+      kind: z.literal("kinetic-stat"),
+      title: z.string(),
+      points: z.array(z.object({ label: z.string(), value: z.number() })).min(2),
+      unitIcon: z.enum(CANVAS_ICON_KEYS),
+      unitCount: z.number().int().min(2).max(30),
+      badgeLabel: z.string().optional(),
     }),
   },
   {
@@ -1789,6 +2301,14 @@ export const VISUAL_DEFINITIONS = [
       kind: z.literal("diagram"),
       title: z.string().optional(),
       direction: z.enum(["horizontal", "vertical"]).optional(),
+      // A persistent "the system is live" backdrop — a street grid with
+      // small vehicle dots drifting continuously, independent of narration
+      // timing (see LiveMapBackdrop.tsx). For a scene that's literally about
+      // live location/dispatch data (ride-hailing, delivery tracking, fleet
+      // GPS) — not a generic ambient option for every diagram, most
+      // architecture scenes want the plain panel so the diagram itself stays
+      // the only moving subject.
+      background: z.enum(["none", "liveMap"]).optional(),
       nodes: z.array(diagramNodeSchema).min(1),
       edges: z
         .array(
@@ -1910,6 +2430,80 @@ export const VISUAL_DEFINITIONS = [
           ]),
         )
         .optional(),
+    }),
+  },
+  {
+    kind: "stage",
+    category: "narrative-callouts",
+    label: "Stage",
+    description:
+      "The Techijest SHORTS medium — a 2D environment the viewer watches OPERATE, not a diagram they read. Objects live in named regions of a 3x3 stage (`top-left` .. `bottom-right`), and the whole composition REORGANISES across the scene: `compose` moves objects between regions and changes their `emphasis` (`lead` dominates, `recede` shrinks back), and every box glides to its new geometry while connectors re-route from the moving silhouettes. Use this instead of `Diagram` for any 9:16 Short. `Diagram` lays out in ONE flow axis, so in portrait it can only ever produce a vertical flowchart; a Stage uses the whole frame as a space (client left, server centre, database right; later the server expands and the database moves forward). Deliberately has NO `title` field: a headline is a timed actor (`beat`), not a permanent banner sitting on screen for the whole scene. Author the four-act arc (STRANGE THING -> INVESTIGATION -> REVEAL -> CONSEQUENCE) by declaring the scene's `act` and letting each act be its own composition.",
+    sceneTypeKey: "stage",
+    schema: z.object({
+      kind: z.literal("stage"),
+      /** This scene's role in the mandatory four-act arc. Every Techijest
+       * video opens on something strange, unfair, broken or counterintuitive
+       * and only then reveals the mechanism — the mystery is what earns the
+       * attention, the explanation is the reward. Declared rather than
+       * inferred so the arc is checkable: a script whose first scene is
+       * `reveal` has started by explaining, which is the failure this field
+       * exists to catch. */
+      act: z.enum(["strange", "investigate", "reveal", "consequence"]).optional(),
+      /** A persistent background layer, so no frame is ever visually dead
+       * during a narration lull. `grid` is a slow technical grid; `liveMap` is
+       * the street-grid/vehicle backdrop shared with the diagram medium, for
+       * scenes literally about live location or dispatch data. Both are
+       * BACKDROPS: they never compete with the stage for attention, and
+       * neither is a substitute for the system itself doing something.
+       * Usually leave this unset and let `world` choose. */
+      backdrop: z.enum(["none", "grid", "liveMap", "scanlines", "field", "depth"]).optional(),
+      /** THE TOPIC'S VISUAL WORLD. A video about caching should not look like
+       * a video about TLS or about image decoding — one uniform dark-grid
+       * template across every topic is what makes a channel's output read as
+       * a slide deck with different words in it. The world sets the palette,
+       * the backdrop, and how much ambient motion the frame carries, so the
+       * viewer can tell what KIND of thing they are watching within a second
+       * of it starting.
+       *
+       * - `network`  request/response, APIs, protocols, CDNs. Cyan/amber, fast
+       *              directional motion along wires.
+       * - `storage`  databases, caches, disks, indexes. Amber/green, slower and
+       *              heavier, blocks settling rather than darting.
+       * - `security` auth, tokens, CORS, TLS, rate limits. Red/cyan, scanlines,
+       *              motion that gets INTERRUPTED — the world where things get
+       *              stopped.
+       * - `compute`  concurrency, threads, queues, workers, schedulers. Green/
+       *              violet, busy parallel motion.
+       * - `data`     pipelines, ETL, streams, encoding, media. Violet/cyan,
+       *              continuous flow that never fully stops.
+       *
+       * Defaults to `network` — the most common Techijest topic shape, and the
+       * one whose grammar (something travels from A to B) the medium is built
+       * around. */
+      world: z.enum(["network", "storage", "security", "compute", "data"]).optional(),
+      /** How alive the frame is between authored events. `calm` is nearly
+       * static (for a scene where one thing must be read carefully), `busy`
+       * keeps wires flowing and active objects breathing continuously.
+       * Defaults to `active`. A Short should almost never be `calm`: dead air
+       * between beats is the single most common reason a viewer scrolls. */
+      energy: z.enum(["calm", "active", "busy"]).optional(),
+      /** How much of the frame the system occupies. "full" is a poster
+       * composition — the stage runs nearly edge to edge and the graphics fill
+       * the frame, which is the default register for a Short. "inset" keeps
+       * generous margins, for a scene where a large `beat` headline or a
+       * caption needs to share the frame without crowding. Never solve a busy
+       * frame by shrinking the system; solve it by removing objects. */
+      composition: z.enum(["full", "inset"]).optional(),
+      objects: z.array(stageObjectSchema).min(1),
+      /** Persistent packets — see stagePacketSchema. Prefer these over one-shot
+       * `flow` whenever the same thing appears in more than one beat. */
+      packets: z.array(stagePacketSchema).optional(),
+      edges: z.array(stageEdgeSchema).default([]),
+      /** Absolute seconds from the start of the scene, exactly like Canvas's
+       * and Diagram's — so the narration fitter can re-time every event onto
+       * the real spoken audio. Never author a timing as a fraction of the
+       * scene. */
+      timeline: z.array(stageTimelineActionSchema).optional(),
     }),
   },
   {

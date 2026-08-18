@@ -3,6 +3,7 @@ import { useCurrentFrame, useVideoConfig, interpolate, Easing, staticFile } from
 import { COLORS } from "../theme";
 import { brandTileColor } from "../brandTile";
 import { SceneFrame } from "./SceneFrame";
+import { LiveMapBackdrop } from "./LiveMapBackdrop";
 import { layoutDiagram, pointOnEdge, TILE_HEIGHT_FRACTION, type LaidOutEdge, type LaidOutNode, type NodeAccent } from "../../script/diagramLayout";
 import { placeAnnotations, placeEdgeLabels, connectorObstacles, resolveAnnotations, ANNOTATION_LINE_HEIGHT } from "../../script/diagramAnnotations";
 import type { SharedVisualProps, DiagramData } from "../sharedVisualProps";
@@ -514,6 +515,7 @@ export const DiagramCard: React.FC<SharedVisualProps & { data: DiagramData }> = 
 
   return (
     <SceneFrame>
+      {data.background === "liveMap" && <LiveMapBackdrop />}
       <div style={{ position: "absolute", inset: 0, color: COLORS.text }}>
         {data.title && (
           <div

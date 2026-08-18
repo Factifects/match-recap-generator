@@ -298,5 +298,35 @@
     "source": "https://api.iconify.design/carbon/money.svg",
     "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
     "fetchedAt": "2026-08-17T11:52:20.639Z"
+  },
+  "cassandra": {
+    "slug": "cassandra",
+    "title": "cassandra",
+    "hex": "#373535",
+    "monochrome": false,
+    "staticPath": "assets/logos/cassandra.svg",
+    "source": "https://api.iconify.design/logos/cassandra.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-18T10:35:07.771Z"
+  },
+  "netflix": {
+    "slug": "netflix",
+    "title": "Netflix",
+    "hex": "#E50914",
+    "monochrome": true,
+    "staticPath": "assets/logos/netflix.svg",
+    "source": "https://cdn.simpleicons.org/netflix",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-18T10:35:08.324Z"
+  },
+  "amazonwebservices": {
+    "slug": "amazonwebservices",
+    "title": "amazonwebservices",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/amazonwebservices.svg",
+    "source": "https://api.iconify.design/simple-icons/amazonwebservices.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-18T10:35:08.547Z"
   }
 }

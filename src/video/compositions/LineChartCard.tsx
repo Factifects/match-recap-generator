@@ -3,6 +3,7 @@ import { interpolate, useCurrentFrame } from "remotion";
 import { COLORS, DISPLAY_FONT_FAMILY, FONT_FAMILY, TITLE_STYLE } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, pulse } from "../motion";
+import { buildSmoothPath, lerp } from "../curveMath";
 import type { SharedVisualProps, LineChartData } from "../sharedVisualProps";
 
 const CHART_W = 820;
@@ -17,42 +18,12 @@ const REVEAL_TAIL_FRAMES = 20;
 // which is exactly the contrast a simple-vs-compound comparison needs.
 const SERIES2_COLOR = COLORS.textDim;
 
-type Point = { x: number; y: number };
-
-/** Uniform Catmull-Rom -> cubic Bezier conversion — the actual point of this
- * component: a script author hands over VALUES (points), never geometry
- * (rotation angles, segment lengths), and this is what turns that into a
- * genuinely smooth curve through every point. Endpoints duplicate their
- * single neighbor (the standard fix for Catmull-Rom needing a point on
- * either side of each segment). */
-function buildSmoothPath(points: Point[]): string {
-  if (points.length < 2) return "";
-  if (points.length === 2) return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
-  let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] ?? points[i];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2] ?? p2;
-    const c1x = p1.x + (p2.x - p0.x) / 6;
-    const c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6;
-    const c2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`;
-  }
-  return d;
-}
-
 function formatValue(value: number, prefix?: string, suffix?: string): string {
   const rounded = Number.isInteger(value) ? value : Math.round(value * 100) / 100;
   const text = Number.isInteger(rounded)
     ? rounded.toLocaleString("en-US")
     : rounded.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${prefix ?? ""}${text}${suffix ?? ""}`;
-}
-
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
 }
 
 /** A real interpolated curve through an ordered series of values — the fix

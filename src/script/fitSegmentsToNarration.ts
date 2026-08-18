@@ -87,27 +87,38 @@ export function fitSegmentsToNarration(segments: TimedSegment[]): FitSegmentsRes
     // with its own unsynchronized clock is exactly what the spine exists to
     // prevent (see CLAUDE.md's standing constraint).
     const visual = segment.visual;
-    if (visual?.kind !== "canvas" && visual?.kind !== "workspace" && visual?.kind !== "diagram") return segment;
+    if (visual?.kind !== "canvas" && visual?.kind !== "workspace" && visual?.kind !== "diagram" && visual?.kind !== "stage") {
+      return segment;
+    }
     if (!visual.timeline || visual.timeline.length === 0) return segment;
 
-    // Fitted per branch rather than over the union: the two media have
-    // genuinely different action types, and widening them to their common
-    // shape would lose that on the way back out.
-    const fittedVisual =
-      visual.kind === "canvas"
-        ? (() => {
-            const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds });
-            return { visual: { ...visual, timeline: result.actions }, result };
-          })()
-        : visual.kind === "workspace"
-          ? (() => {
-              const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds });
-              return { visual: { ...visual, timeline: result.actions }, result };
-            })()
-          : (() => {
-              const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds });
-              return { visual: { ...visual, timeline: result.actions }, result };
-            })();
+    // Every timeline-carrying medium goes through the SAME fit — a second
+    // medium running on its own unsynchronized clock is exactly what the
+    // narration spine exists to prevent. The per-kind branches look redundant
+    // but are load-bearing: each one NARROWS `visual` to a single kind so its
+    // own action union survives the round trip. Widening to the shared
+    // `{startSeconds, durationSeconds}` shape would compile, and would quietly
+    // strip every medium-specific field on the way back out.
+    const fittedVisual = (() => {
+      switch (visual.kind) {
+        case "canvas": {
+          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds });
+          return { visual: { ...visual, timeline: result.actions }, result };
+        }
+        case "workspace": {
+          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds });
+          return { visual: { ...visual, timeline: result.actions }, result };
+        }
+        case "diagram": {
+          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds });
+          return { visual: { ...visual, timeline: result.actions }, result };
+        }
+        case "stage": {
+          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds });
+          return { visual: { ...visual, timeline: result.actions }, result };
+        }
+      }
+    })();
 
     const result = fittedVisual.result;
     outcomes.push({ sceneIndex, report: result.report });
