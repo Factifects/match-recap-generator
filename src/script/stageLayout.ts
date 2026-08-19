@@ -118,13 +118,48 @@ export type StageObjectKind =
   | "lock"
   // structure
   | "region"
-  | "note";
+  | "note"
+  // encodings & maps — shapes whose INTERNAL structure is the subject
+  | "qr"
+  | "hexmap"
+  // quantities
+  | "clock"
+  | "road"
+  | "money"
+  // typography
+  | "phrase";
 
 /** Kinds that exist to CONTAIN other objects rather than to be a thing
  * themselves. A region is drawn as a quiet dashed frame behind its children,
  * never as another competing box — nesting should read as depth, not as more
  * boxes. */
 export const CONTAINER_KINDS: StageObjectKind[] = ["region"];
+
+/** Which half of a SPLIT stage an object lives in.
+ *
+ * A split stage is the only way to express "both approaches perform the same
+ * operation at the same time" — without it, a comparison degenerates into two
+ * boxes side by side with a label, which asserts a difference instead of
+ * demonstrating one. `a` and `b` are deliberately neutral names: the panes are
+ * before/after, with/without, polling/websockets, whatever the scene declares. */
+export type StagePane = "a" | "b";
+
+export interface StageUiRow {
+  id: string;
+  kind: "button" | "input" | "text" | "row" | "error" | "success";
+  label: string;
+  sub?: string;
+  value?: string;
+  icon?: "none" | "car";
+  hidden?: boolean;
+}
+
+export interface StageUi {
+  chrome: "browser" | "app" | "phone";
+  map?: boolean;
+  url?: string;
+  rows: StageUiRow[];
+}
 
 export interface StageObjectInput {
   id: string;
@@ -147,6 +182,11 @@ export interface StageObjectInput {
    * hand-placed icons kept getting wrong by picking a different colour each
    * time. Costs nothing in layout — the stack occupies one box. */
   replicas?: number;
+  /** Which half of a split stage this belongs to. Ignored when the scene is
+   * not split. */
+  pane?: StagePane;
+  /** A real interface surface — see the schema's `ui`. */
+  ui?: StageUi;
   /** Real source lines, for a `code` object. */
   code?: string[];
   /** Declared lifecycle, in order. */
@@ -154,6 +194,12 @@ export interface StageObjectInput {
   /** Resolved brand mark, path relative to public/ (see brandRegistry.ts). */
   brand?: string;
   logoPath?: string;
+  /** Resolved path to a REAL encoded QR image (assets/qrRegistry.ts). Without
+   * it a `qr` object falls back to a drawn grid, which reads correctly as a
+   * shape but encodes nothing and cannot be scanned. */
+  qrPath?: string;
+  /** How a `hexmap` is tiled and what it is showing. */
+  hex?: { mode?: "grid" | "neighbours"; cols?: number };
   logoHex?: string;
   logoMonochrome?: boolean;
 }
@@ -190,7 +236,13 @@ export interface StageComposition {
  * to fit "Their phone" is no longer phone-shaped, it is a rectangle, and every
  * kind converges on the same rectangle as labels get longer. Captioning below
  * keeps the silhouette exact at any label length. */
-const LABEL_INSIDE_KINDS = new Set<StageObjectKind>(["service", "note", "code", "table", "region", "browser", "gateway"]);
+const LABEL_INSIDE_KINDS = new Set<StageObjectKind>(["service", "note", "code", "table", "region", "browser", "gateway", "phrase"]);
+/** A UI surface always keeps its text inside its own chrome, whatever kind it
+ * is drawn as — an interface with a caption underneath reads as a screenshot of
+ * an app rather than as the app. */
+function keepsLabelInside(object: { kind: StageObjectKind; ui?: StageUi }): boolean {
+  return !!object.ui || LABEL_INSIDE_KINDS.has(object.kind);
+}
 
 export interface StageBox {
   id: string;
@@ -200,6 +252,8 @@ export interface StageBox {
   accent: StageAccent;
   emphasis: StageEmphasis;
   replicas: number;
+  pane?: StagePane;
+  ui?: StageUi;
   code?: string[];
   states?: string[];
   /** True when this kind's label renders as a caption beneath the silhouette
@@ -217,6 +271,12 @@ export interface StageBox {
   isContainer: boolean;
   brand?: string;
   logoPath?: string;
+  /** Resolved path to a REAL encoded QR image (assets/qrRegistry.ts). Without
+   * it a `qr` object falls back to a drawn grid, which reads correctly as a
+   * shape but encodes nothing and cannot be scanned. */
+  qrPath?: string;
+  /** How a `hexmap` is tiled and what it is showing. */
+  hex?: { mode?: "grid" | "neighbours"; cols?: number };
   logoHex?: string;
   logoMonochrome?: boolean;
   hidden: boolean;
@@ -256,6 +316,11 @@ export interface StageLayout {
 export interface StageLayoutOptions {
   /** Real composition size in pixels. */
   frame: { width: number; height: number };
+  /** Splits the stage into two independent halves, each laid out in its own
+   * safe area. Both halves run the SAME layout code, so a comparison is
+   * genuinely like-for-like rather than two hand-placed arrangements that
+   * happen to sit beside each other. */
+  split?: { orientation: "vertical" | "horizontal" };
   /** Safe area in pixels. Defaults reserve a top band for beat text and a
    * bottom band for the caption/word-caption overlay, which is why a stage
    * never collides with either. */
@@ -316,6 +381,16 @@ const KIND_SIZE: Partial<Record<StageObjectKind, { w?: number; h?: number }>> = 
   code: { w: 1.25, h: 1.1 },
   token: { w: 0.9, h: 0.62 },
   lock: { w: 0.62, h: 0.95 },
+  qr: { w: 1.0, h: 1.59 },
+  // A map wants room: wide, and tall enough to read as territory.
+  hexmap: { w: 1.55, h: 2.2 },
+  // Deliberately compact: these appear in groups, and two of them shoulder to
+  // shoulder with no gap read as one object.
+  clock: { w: 0.62, h: 0.95 },
+  road: { w: 0.72, h: 0.95 },
+  money: { w: 0.8, h: 0.62 },
+  // Wide and generous: a phrase is read, not glanced at.
+  phrase: { w: 2.6, h: 1.5 },
 };
 
 /** Readability floors in px at a 1080-short-side frame. Text is NOT derived
@@ -341,6 +416,30 @@ function unitOf(frame: { width: number; height: number }): number {
   return Math.min(frame.width, frame.height);
 }
 
+/** The frame ONE PANE of a split stage is laid out against.
+ *
+ * Sizing has to follow the pane, not the whole canvas. Every size in this file
+ * derives from `unitOf(frame)`, so a browser sized for a 1080-wide canvas and
+ * then placed in a 540-wide half runs off both edges — which is precisely what
+ * the first split-screen render did, on both sides at once. */
+export function stagePaneFrame(
+  frame: { width: number; height: number },
+  orientation: "vertical" | "horizontal",
+): { width: number; height: number } {
+  return orientation === "vertical"
+    ? { width: frame.width / 2, height: frame.height }
+    : { width: frame.width, height: frame.height / 2 };
+}
+
+/** The unit a pane's contents are sized and lettered against — exported so the
+ * renderer letters them at the same scale the layout assumed. */
+export function stagePaneUnit(
+  frame: { width: number; height: number },
+  orientation: "vertical" | "horizontal",
+): number {
+  return unitOf(stagePaneFrame(frame, orientation));
+}
+
 export function stageLabelPx(box: { height: number }, unit: number): number {
   return Math.max(STAGE_MIN_LABEL_PX * (unit / 1080), box.height * 0.2);
 }
@@ -363,11 +462,51 @@ function sizeOf(object: StageObjectInput, emphasis: StageEmphasis, unit: number)
   let baseW = BASE_WIDTH_UNITS * unit * (kind.w ?? 1) * scale;
   let baseH = BASE_HEIGHT_UNITS * unit * (kind.h ?? 1) * scale;
 
+  // A UI surface is sized to hold its own rows at a readable size. An
+  // interface squeezed into a generic card is not an interface, it is a
+  // picture of one.
+  if (object.ui && object.ui.rows.length > 0) {
+    const rowPx = Math.max(26 * (unit / 1080), unit * 0.028);
+    const longest = Math.max(...object.ui.rows.map((r) => r.label.length), (object.ui.url ?? "").length);
+    baseW = Math.max(baseW, longest * rowPx * 0.56 + rowPx * 4);
+    baseH = Math.max(baseH, object.ui.rows.length * rowPx * 2.1 + rowPx * 3.4);
+
+    // A PHONE HAS TO BE PHONE-SHAPED. Sizing from the rows alone made it as
+    // wide as its longest line and only as tall as its content, which is a
+    // squat card — and a card is not what anyone has ever held. So the width is
+    // capped and the height is driven from it, which also forces short row
+    // labels: a line that does not fit a handset does not belong on one.
+    if (object.ui.chrome === "phone") {
+      // The cap has to follow EMPHASIS, or a lead phone — the only thing in its
+      // scene — sits at the same size as one sharing the frame with three other
+      // objects, surrounded by black doing nothing. A phone that is the whole
+      // subject should own the frame.
+      // A FLOOR as well as a ceiling. Capping alone did nothing once the rows
+      // were short enough to fit easily — the handset simply stayed small and
+      // sat in a frame of black. A phone that is the subject of its scene has a
+      // minimum size regardless of how little text it happens to carry.
+      const capUnits = emphasis === "lead" ? 0.58 : emphasis === "recede" ? 0.32 : 0.44;
+      const minUnits = emphasis === "lead" ? 0.5 : emphasis === "recede" ? 0.26 : 0.36;
+      baseW = Math.min(Math.max(baseW, unit * minUnits), unit * capUnits);
+      // A real handset is about twice as tall as it is wide; with a map panel
+      // filling the top half it needs more again, or the sheet underneath has
+      // nowhere to go.
+      baseH = Math.max(baseH, baseW * (object.ui.map ? 2.35 : 2.1));
+    }
+  }
+
   // A code pane is sized to its own SOURCE — longest line and line count —
   // rather than to the generic card size. Code that has to shrink to fit a box
   // chosen for something else is unreadable on a phone, which defeats the point
   // of treating code as a first-class medium rather than an illustration of one.
-  if (object.code && object.code.length > 0) {
+  if (object.code && object.code.length > 0 && object.kind === "phrase") {
+    // Display type, sized to be read from across a room, and the box grows to
+    // whatever the longest line needs.
+    const px = Math.max(38 * (unit / 1080), unit * 0.044);
+    const longest = Math.max(...object.code.map((l) => l.length));
+    baseW = Math.max(baseW, Math.min(unit * 1.7, longest * px * 0.5 + px * 1.2));
+    baseH = Math.max(baseH, object.code.length * px * 1.5 + px);
+  } else if (object.code && object.code.length > 0) {
     const codePx = Math.max(CODE_MIN_PX * (unit / 1080), unit * 0.026);
     const longest = Math.max(...object.code.map((l) => l.length));
     baseW = Math.max(baseW, longest * codePx * CODE_CHAR_ADVANCE + codePx * 5.5);
@@ -384,7 +523,7 @@ function sizeOf(object: StageObjectInput, emphasis: StageEmphasis, unit: number)
   const subWidth = (object.sublabel?.length ?? 0) * subPx * CHAR_ADVANCE;
   const needed = Math.max(labelWidth, subWidth) + LABEL_PADDING_X * 2;
 
-  const captionBelow = !LABEL_INSIDE_KINDS.has(object.kind);
+  const captionBelow = !keepsLabelInside(object);
   if (captionBelow) {
     // The silhouette keeps its authored proportions exactly; the text lives
     // beneath it and only ever affects the SEPARATION footprint.
@@ -566,6 +705,28 @@ export function defaultSafeArea(
 /** Lays the stage out for ONE composition. Pure: same inputs, same geometry,
  * every time — which is what lets the renderer compute two compositions and
  * tween between them without anything drifting. */
+/** Divides a safe area into the two pane areas of a split stage. */
+export function paneAreas(
+  safe: { x: number; y: number; width: number; height: number },
+  orientation: "vertical" | "horizontal",
+): { a: typeof safe; b: typeof safe } {
+  // A gutter down the middle, so the two systems read as separate worlds rather
+  // than one crowded one. The divider is drawn in that gutter.
+  const gutter = orientation === "vertical" ? safe.width * 0.05 : safe.height * 0.06;
+  if (orientation === "vertical") {
+    const half = (safe.width - gutter) / 2;
+    return {
+      a: { ...safe, width: half },
+      b: { ...safe, x: safe.x + half + gutter, width: half },
+    };
+  }
+  const half = (safe.height - gutter) / 2;
+  return {
+    a: { ...safe, height: half },
+    b: { ...safe, y: safe.y + half + gutter, height: half },
+  };
+}
+
 export function layoutStage(
   objects: StageObjectInput[],
   edges: StageEdgeInput[],
@@ -573,6 +734,27 @@ export function layoutStage(
   options: StageLayoutOptions,
 ): StageLayout {
   const { frame } = options;
+
+  // A SPLIT stage is two independent layouts, not one layout with a line drawn
+  // down it. Running the same engine twice is what guarantees the two halves
+  // are directly comparable — same sizing rules, same separation, same fill —
+  // which is the entire point of putting them side by side.
+  if (options.split) {
+    const safeAll = options.safeArea ?? defaultSafeArea(frame);
+    const areas = paneAreas(safeAll, options.split.orientation);
+    const inPane = (pane: StagePane) => objects.filter((o) => (o.pane ?? "a") === pane);
+    const paneOf = (pane: StagePane) =>
+      layoutStage(inPane(pane), edges, composition, {
+        ...options,
+        split: undefined,
+        frame: stagePaneFrame(frame, options.split!.orientation),
+        safeArea: areas[pane],
+      });
+    const a = paneOf("a");
+    const b = paneOf("b");
+    return { boxes: [...a.boxes, ...b.boxes], edges: [...a.edges, ...b.edges] };
+  }
+
   const unit = unitOf(frame);
   const safe = options.safeArea ?? defaultSafeArea(frame);
   const hidden = new Set(composition.hidden ?? []);
@@ -590,12 +772,16 @@ export function layoutStage(
       accent: object.accent ?? "neutral",
       emphasis,
       replicas: Math.max(1, object.replicas ?? 1),
+      pane: object.pane,
+      ui: object.ui,
       code: object.code,
       states: object.states,
       parentId: object.parent,
       isContainer: CONTAINER_KINDS.includes(object.kind),
       brand: object.brand,
       logoPath: object.logoPath,
+      qrPath: object.qrPath,
+      hex: object.hex,
       logoHex: object.logoHex,
       logoMonochrome: object.logoMonochrome,
       hidden: hidden.has(object.id),

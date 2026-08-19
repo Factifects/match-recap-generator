@@ -5,9 +5,11 @@ import { parseSceneScript, isSceneScript } from "./script/parseSceneScript";
 import { autoFixGeometry } from "./script/validateGeometry";
 import { diagnoseScenes } from "./script/validateScene";
 import { diagnoseNarrationSync } from "./script/validateNarrationSync";
-import { diagnoseStageScenes } from "./script/validateStage";
+import { diagnoseStageScenes, diagnoseSceneMedia } from "./script/validateStage";
+import { recordStrategyUse } from "./script/visualStrategy";
 import { fitSegmentsToNarration, describeFitOutcomes } from "./script/fitSegmentsToNarration";
-import { resolveDiagramBrands } from "./script/resolveDiagramBrands";
+import { resolveDiagramBrands, mascotExpressionsIn, resolveStageQrCodes } from "./script/resolveDiagramBrands";
+import { resolveMascotAssets, MASCOT_ATTRIBUTION, type MascotExpression } from "./assets/mascotRegistry";
 import { hasHardFailures, sortDiagnostics, type SceneDiagnostic } from "./script/sceneDiagnostics";
 import { mergeCanvasContinuity } from "./script/mergeCanvasContinuity";
 import { mergeTacticalContinuity } from "./script/mergeTacticalContinuity";
@@ -290,6 +292,10 @@ interface ResolvedSegments {
    * computed once here rather than re-run pre- and post-audio the way
    * validateScene.ts's duration-dependent checks are. */
   geometryDiagnostics: SceneDiagnostic[];
+  /** Medium-rotation findings, computed on the AUTHORED scenes before the
+   * continuity merges fold passages together — after the fold there is no
+   * record of how many scenes there were or what each one showed. */
+  mediaDiagnostics: SceneDiagnostic[];
 }
 
 /** The parse -> auto-fix -> merge sequence shared by generateVideo AND
@@ -313,6 +319,10 @@ function resolveSegments(scriptText: string, presetSegments: TimedSegment[] | un
   // mistake instead of blocking generation on it — see validateGeometry.ts.
   // Applied unconditionally (including pre-parsed timeline-preview segments)
   // since it's a no-op when everything's already correct.
+  // Before any merge: a `Continue Stage:` passage is about to become one
+  // segment, taking the authored scene boundaries with it.
+  const mediaDiagnostics = diagnoseSceneMedia(segments);
+
   const { segments: geometryFixedSegments, fixes, diagnostics: geometryDiagnostics } = autoFixGeometry(segments);
   segments = geometryFixedSegments;
   if (fixes.length > 0) {
@@ -364,7 +374,7 @@ function resolveSegments(scriptText: string, presetSegments: TimedSegment[] | un
     stageMergeNotes.forEach((note) => log(`  - ${note}`));
   }
 
-  return { segments, usedSceneFormat, geometryDiagnostics };
+  return { segments, usedSceneFormat, geometryDiagnostics, mediaDiagnostics };
 }
 
 /** The one shared pipeline (parse -> optional real narration audio -> render)
@@ -372,20 +382,46 @@ function resolveSegments(scriptText: string, presetSegments: TimedSegment[] | un
  * can never drift out of sync with each other. */
 export async function generateVideo(scriptText: string, options: GenerateOptions): Promise<GenerateResult> {
   const log = options.onLog ?? (() => {});
+  /** Identifies this video in the cross-video strategy history. `outputName` is
+   * already the script's identity everywhere else, so reusing it avoids a
+   * second name that could disagree with it. */
+  const scriptLabel = options.outputName ?? "untitled";
   const resolved = resolveSegments(scriptText, options.segments, log);
   let segments = resolved.segments;
-  const { usedSceneFormat, geometryDiagnostics } = resolved;
+  const { usedSceneFormat, geometryDiagnostics, mediaDiagnostics } = resolved;
 
   // Pull real brand marks for any technology a diagram names. The only
   // network step besides TTS, done once here and cached to disk — see
   // brandRegistry.ts. Anything that can't be fetched simply keeps no logo and
   // that node falls back to its shape, so this can never fail generation.
   const brands = await resolveDiagramBrands(segments);
+
+  // Mascot expressions are fetched once here, never per frame — same discipline
+  // as brand marks. The CC-BY credit line is surfaced in the log rather than
+  // left implicit, because an attribution obligation nobody is reminded of is
+  // an attribution obligation that gets breached.
+  const mascotWanted = mascotExpressionsIn(segments) as MascotExpression[];
+  if (mascotWanted.length > 0) {
+    const mascots = await resolveMascotAssets(mascotWanted);
+    if (mascots.resolved.length > 0) {
+      log(`Resolved ${mascots.resolved.length} mascot expression(s): ${mascots.resolved.map((m) => m.expression).join(", ")}.`);
+      log(`  Attribution required in the description: ${MASCOT_ATTRIBUTION}`);
+    }
+    if (mascots.unresolved.length > 0) {
+      log(`  Could not fetch: ${mascots.unresolved.join(", ")} — those beats render without a mascot.`);
+    }
+  }
   segments = brands.segments;
+
+  // Real encoded QR codes, fetched once and cached beside the brand marks.
+  const codes = await resolveStageQrCodes(segments);
+  segments = codes.segments;
+  if (codes.resolved > 0) log(`Encoded ${codes.resolved} real QR code(s).`);
+  if (codes.unresolved.length > 0) log(`  Could not encode: ${codes.unresolved.join(", ")} — those fall back to a drawn grid and will not scan.`);
   if (brands.resolved.length > 0) log(`Resolved ${brands.resolved.length} brand mark(s): ${brands.resolved.map((b) => b.title).join(", ")}.`);
   if (brands.unresolved.length > 0) log(`No brand mark for ${brands.unresolved.join(", ")} — those nodes fall back to their shape.`);
 
-  const preAudioDiagnostics = [...geometryDiagnostics, ...diagnoseScenes(segments), ...diagnoseStageScenes(segments)];
+  const preAudioDiagnostics = [...geometryDiagnostics, ...mediaDiagnostics, ...diagnoseScenes(segments), ...diagnoseStageScenes(segments, scriptLabel)];
   logDiagnostics(log, preAudioDiagnostics, "Scene diagnostics (pre-audio estimate):");
   runEnforcementGate(preAudioDiagnostics, options.strict, "before narration/audio generation");
 
@@ -439,10 +475,19 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   // diagnoseNarrationSync only reports for segments carrying a measured
   // `narrationSeconds`, so it self-skips entirely on an estimate-only
   // (no --audio) run rather than judging a real timeline against a guess.
+  // Recorded after generation succeeds, so an abandoned run does not claim a
+  // grammar the channel never actually published.
+  const declaredProfile = segments.find((seg) => seg.type === "statement" && seg.strategyProfile)?.strategyProfile;
+  if (declaredProfile) {
+    recordStrategyUse(scriptLabel, declaredProfile.primary);
+    log(`Visual strategy: leading with "${declaredProfile.primary}" (secondary: ${declaredProfile.secondary.join(", ") || "none"}).`);
+  }
+
   const finalDiagnostics = [
     ...geometryDiagnostics,
+    ...mediaDiagnostics,
     ...diagnoseScenes(segments),
-    ...diagnoseStageScenes(segments),
+    ...diagnoseStageScenes(segments, scriptLabel),
     ...diagnoseNarrationSync(segments),
   ];
   logDiagnostics(log, finalDiagnostics, "Final scene diagnostics (real narration timing):");

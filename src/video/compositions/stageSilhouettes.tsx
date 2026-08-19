@@ -1,5 +1,5 @@
 import React from "react";
-import { staticFile } from "remotion";
+import { staticFile, Img } from "remotion";
 import { luminance } from "../brandTile";
 import type { StageBox } from "../../script/stageLayout";
 
@@ -116,6 +116,284 @@ export const BrandMark: React.FC<{ box: StageBox; size: number; cx: number; cy: 
   );
 };
 
+
+/** The drawn fallback when no real code could be fetched.
+ *
+ * Deliberately structural rather than random-looking: three finder squares in
+ * the corners and a field of modules between them. Those three squares are what
+ * makes the shape read instantly as a QR code at a glance, and — for the video
+ * this was built for — they are also the part that error correction does NOT
+ * protect. The module field is seeded from its own coordinates so it is stable
+ * across frames; a pattern that reshuffled every frame would strobe. */
+const QrModules: React.FC<{ cx: number; cy: number; side: number }> = ({ cx, cy, side }) => {
+  const N = 25;
+  const cell = side / N;
+  const left = cx - side / 2;
+  const top = cy - side / 2;
+  const inFinder = (r: number, c: number) =>
+    (r < 7 && c < 7) || (r < 7 && c >= N - 7) || (r >= N - 7 && c < 7);
+
+  const modules: React.ReactNode[] = [];
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      if (inFinder(r, c)) continue;
+      // Cheap deterministic hash — stable per cell, visually unpatterned.
+      const h = Math.sin(r * 12.9898 + c * 78.233) * 43758.5453;
+      if (h - Math.floor(h) < 0.48) continue;
+      modules.push(<rect key={`${r}-${c}`} x={left + c * cell} y={top + r * cell} width={cell} height={cell} fill="#0b0f16" />);
+    }
+  }
+
+  const finder = (r: number, c: number) => (
+    <g key={`f-${r}-${c}`}>
+      <rect x={left + c * cell} y={top + r * cell} width={cell * 7} height={cell * 7} fill="#0b0f16" />
+      <rect x={left + (c + 1) * cell} y={top + (r + 1) * cell} width={cell * 5} height={cell * 5} fill="#f7f9fc" />
+      <rect x={left + (c + 2) * cell} y={top + (r + 2) * cell} width={cell * 3} height={cell * 3} fill="#0b0f16" />
+    </g>
+  );
+
+  return (
+    <g>
+      {modules}
+      {finder(0, 0)}
+      {finder(0, N - 7)}
+      {finder(N - 7, 0)}
+    </g>
+  );
+};
+
+
+
+
+/** WHERE THE STREETS ARE, as numbers — exported so anything travelling on them
+ * (cars, a route, a rider walking a block) runs down an actual road instead of
+ * floating across the map on its own private path. Uneven spacing from a fixed
+ * sequence, so blocks differ in size the way real ones do. */
+export function cityStreetLines(w: number, h: number): { verticals: number[]; horizontals: number[] } {
+  const spread = (n: number, seed: number, span: number) => {
+    const out: number[] = [];
+    let at = 0;
+    for (let i = 0; i < n; i++) {
+      const j = Math.sin(i * seed) * 1000;
+      at += 0.55 + (j - Math.floor(j)) * 0.9;
+      out.push(at);
+    }
+    const total = out[out.length - 1];
+    return out.map((v) => (v / total) * span);
+  };
+  return { verticals: spread(9, 12.9898, w), horizontals: spread(13, 78.233, h) };
+}
+
+/** A STREET NETWORK, drawn to look like somewhere rather than like graph paper.
+ *
+ * The difference is irregularity and hierarchy: real cities have a few wide
+ * arterials, many narrow streets at uneven spacing, blocks of different sizes,
+ * usually something cutting across the grain, and a river or park that the grid
+ * has to work around. An even lattice of identical squares reads as a
+ * coordinate system, which is exactly the note this replaced. Everything here
+ * is deterministic — a city that reshuffled every frame would strobe. */
+export const CityMap: React.FC<{ x: number; y: number; w: number; h: number; atSeconds?: number }> = ({ x, y, w, h, atSeconds = 0 }) => {
+  const { verticals, horizontals } = cityStreetLines(w, h);
+  const road = Math.max(3, w * 0.011);
+  const casing = road * 1.9;
+  // The river's horizontal position at a given depth, so bridges can be put
+  // exactly where roads cross it instead of floating near it.
+  const riverAt = (ty: number) => x + w * (0.63 + Math.sin(ty * 5.6) * 0.075);
+
+  return (
+    <g fill="none">
+      {/* BLOCKS first, so the roads are drawn ON them and read as cut through
+          the city rather than laid beside it. Filled, never outlined: their
+          outlines were what made this frame noisy, and a map with no blocks at
+          all is just graph paper with a river on it. */}
+      <g fill="rgba(150, 172, 216, 0.11)" stroke="none">
+        {horizontals.slice(0, -1).map((hh, r) =>
+          verticals.slice(0, -1).map((v, c) => {
+            const bw = verticals[c + 1] - v;
+            const bh = horizontals[r + 1] - hh;
+            if (bw < w * 0.03 || bh < h * 0.02) return null;
+            const seed = Math.sin(r * 41.3 + c * 17.7) * 6521.9;
+            const rand = seed - Math.floor(seed);
+            if (rand < 0.14) return null;
+            const inset = 0.1 + rand * 0.12;
+            return (
+              <rect
+                key={`b${r}-${c}`}
+                x={x + v + bw * inset}
+                y={y + hh + bh * inset}
+                width={bw * (1 - inset * 2)}
+                height={bh * (1 - inset * 2)}
+                rx={Math.min(bw, bh) * 0.06}
+              />
+            );
+          }),
+        )}
+      </g>
+
+      {/* ROADS, drawn as a dark casing with a lighter core. That pairing is why
+          a road on a map reads as a road and a line on a chart reads as a line —
+          the casing separates it from whatever it crosses. */}
+      <g strokeLinecap="butt">
+        <g stroke="rgba(6, 9, 14, 0.9)" strokeWidth={casing}>
+          {verticals.map((v, i) => (
+            <line key={`vc${i}`} x1={x + v} y1={y} x2={x + v} y2={y + h} />
+          ))}
+          {horizontals.map((hh, i) => (
+            <line key={`hc${i}`} x1={x} y1={y + hh} x2={x + w} y2={y + hh} />
+          ))}
+        </g>
+        <g stroke="rgba(168, 190, 232, 0.3)" strokeWidth={road}>
+          {verticals.map((v, i) => (
+            <line key={`v${i}`} x1={x + v} y1={y} x2={x + v} y2={y + h} />
+          ))}
+          {horizontals.map((hh, i) => (
+            <line key={`h${i}`} x1={x} y1={y + hh} x2={x + w} y2={y + hh} />
+          ))}
+        </g>
+      </g>
+
+      {/* JUNCTIONS. Every crossing gets a node, which is the detail that turns a
+          lattice into a street network — you can see where you would be able to
+          turn. */}
+      <g fill="rgba(190, 208, 240, 0.34)">
+        {horizontals.map((hh, r) =>
+          verticals.map((v, c) => (
+            <rect
+              key={`j${r}-${c}`}
+              x={x + v - road * 0.62}
+              y={y + hh - road * 0.62}
+              width={road * 1.24}
+              height={road * 1.24}
+              rx={road * 0.3}
+            />
+          )),
+        )}
+      </g>
+
+      {/* THE RIVER, drawn over the roads so it cuts them — then the bridges put
+          three of them back. A river that everything drives straight through is
+          not a river. */}
+      <path
+        d={`M ${riverAt(0)} ${y} C ${riverAt(0.2)} ${y + h * 0.24}, ${riverAt(0.45)} ${y + h * 0.42}, ${riverAt(0.6)} ${y + h * 0.62} S ${riverAt(0.85)} ${y + h * 0.88}, ${riverAt(1)} ${y + h}`}
+        stroke="rgba(38, 96, 128, 0.85)"
+        strokeWidth={Math.max(6, w * 0.03)}
+        strokeLinecap="round"
+      />
+
+      {/* BRIDGES: the roads that survive the water, with their decks picked out.
+          Three of them, at the horizontals nearest the crossings. */}
+      <g>
+        {[0.22, 0.5, 0.78].map((ty, i) => {
+          const cy = y + h * ty;
+          const cx = riverAt(ty);
+          const span = Math.max(14, w * 0.06);
+          return (
+            <g key={`br${i}`}>
+              <rect x={cx - span} y={cy - casing * 0.75} width={span * 2} height={casing * 1.5} fill="rgba(10, 14, 20, 0.95)" rx={road * 0.2} />
+              <rect x={cx - span} y={cy - road * 0.5} width={span * 2} height={road} fill="rgba(198, 216, 248, 0.5)" />
+              {/* Rails, so it reads as a bridge and not as a patched road. */}
+              <rect x={cx - span} y={cy - casing * 0.75} width={span * 2} height={road * 0.28} fill="rgba(198, 216, 248, 0.4)" />
+              <rect x={cx - span} y={cy + casing * 0.55} width={span * 2} height={road * 0.28} fill="rgba(198, 216, 248, 0.4)" />
+            </g>
+          );
+        })}
+      </g>
+
+      {/* TRAFFIC. `atSeconds` is supplied by the caller and can simply stop
+          advancing — when the explanation moves from "this is a city" to "this
+          is how it is divided", the cars holding still is what lets the viewer
+          read the grid instead of chasing movement. */}
+      <g>
+        {Array.from({ length: 20 }, (_, i) => {
+          const seed = Math.sin(i * 57.31) * 8123.7;
+          const rand = seed - Math.floor(seed);
+          const horizontal = i % 2 === 0;
+          const speed = 0.05 + rand * 0.06;
+          const along = ((atSeconds * speed + rand) % 1.2) - 0.1;
+          if (along < 0 || along > 1) return null;
+          const lane = horizontal ? horizontals[i % horizontals.length] : verticals[i % verticals.length];
+          const forward = i % 4 < 2;
+          const t = forward ? along : 1 - along;
+          const cx = horizontal ? x + w * t : x + lane;
+          const cy = horizontal ? y + lane : y + h * t;
+          const size = Math.max(3.5, Math.min(w, h) * 0.012);
+          return (
+            <g key={`car${i}`}>
+              <rect
+                x={cx - (horizontal ? size : size * 0.62)}
+                y={cy - (horizontal ? size * 0.62 : size)}
+                width={horizontal ? size * 2 : size * 1.24}
+                height={horizontal ? size * 1.24 : size * 2}
+                rx={size * 0.42}
+                fill="rgba(240, 246, 255, 0.9)"
+              />
+              <rect
+                x={cx + (horizontal ? (forward ? size : -size * 2.6) : -size * 0.31)}
+                y={cy + (horizontal ? -size * 0.31 : forward ? size : -size * 2.6)}
+                width={horizontal ? size * 1.6 : size * 0.62}
+                height={horizontal ? size * 0.62 : size * 1.6}
+                fill="rgba(245, 200, 120, 0.32)"
+              />
+            </g>
+          );
+        })}
+      </g>
+    </g>
+  );
+};
+
+/** THE CELLS OF A HEX MAP, as geometry — exported so the shape and anything
+ * drawn on top of it (heat, a highlighted cell, a rider crossing a boundary)
+ * agree on where every cell is instead of each computing its own and drifting
+ * apart by a pixel. Flat-topped rows, offset every other row, which is how a
+ * real tiling of a city looks. */
+export function hexCells(
+  box: { x: number; y: number; width: number; height: number },
+  mode: "grid" | "neighbours",
+  cols: number,
+): { cx: number; cy: number; r: number; index: number }[] {
+  if (mode === "neighbours") {
+    // One cell and the six that touch it. The point being made is that all six
+    // are the SAME distance from the middle, so they are placed from a circle
+    // rather than from a grid.
+    const r = Math.min(box.width, box.height) * 0.19;
+    const step = r * Math.sqrt(3);
+    const cells = [{ cx: box.x, cy: box.y, r, index: 0 }];
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i + Math.PI / 6;
+      cells.push({ cx: box.x + Math.cos(angle) * step, cy: box.y + Math.sin(angle) * step, r, index: i + 1 });
+    }
+    return cells;
+  }
+
+  const r = box.width / (cols * Math.sqrt(3));
+  const stepX = r * Math.sqrt(3);
+  const stepY = r * 1.5;
+  const rows = Math.max(3, Math.round(box.height / stepY));
+  const cells: { cx: number; cy: number; r: number; index: number }[] = [];
+  let index = 0;
+  for (let row = 0; row < rows; row++) {
+    const offset = row % 2 ? stepX / 2 : 0;
+    for (let col = 0; col < cols; col++) {
+      const cx = box.x - box.width / 2 + stepX / 2 + col * stepX + offset;
+      const cy = box.y - box.height / 2 + r + row * stepY;
+      if (cx + r > box.x + box.width / 2 + 1) continue;
+      cells.push({ cx, cy, r, index: index++ });
+    }
+  }
+  return cells;
+}
+
+/** One pointy-topped hexagon as a path. */
+export function hexPath(cx: number, cy: number, r: number): string {
+  const points: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 2;
+    points.push(`${(cx + Math.cos(angle) * r).toFixed(2)} ${(cy + Math.sin(angle) * r).toFixed(2)}`);
+  }
+  return `M ${points.join(" L ")} Z`;
+}
+
 /** HOW MANY, without drawing the box again.
  *
  * Offsetting N ghost copies behind a shape was the obvious first idea and it is
@@ -167,6 +445,117 @@ const Shape: React.FC<SilhouetteProps> = ({ box, stroke, fill, strokeWidth }) =>
   const line = { stroke, fill: "none", strokeWidth: strokeWidth * 0.8, strokeLinecap: "round" as const };
 
   switch (box.kind) {
+    // ---- typography -------------------------------------------------------
+    case "phrase":
+      // NO SHAPE AT ALL. The words are the object; a frame around them would
+      // turn a sentence back into a card, which is the thing this kind exists
+      // to avoid.
+      return null;
+
+    // ---- quantities -------------------------------------------------------
+    case "clock": {
+      // TIME. A dial with a sweep hand — the one drawing of duration that
+      // needs no label in any language.
+      const r = Math.min(w, h) * 0.42;
+      return (
+        <g>
+          <circle cx={cx} cy={cy} r={r} {...common} />
+          <circle cx={cx} cy={cy} r={r * 0.86} fill="none" stroke={stroke} strokeWidth={strokeWidth * 0.5} opacity={0.5} />
+          {Array.from({ length: 12 }, (_, i) => {
+            const a = (Math.PI / 6) * i;
+            const inner = r * (i % 3 === 0 ? 0.66 : 0.76);
+            return (
+              <line
+                key={i}
+                x1={cx + Math.cos(a) * inner}
+                y1={cy + Math.sin(a) * inner}
+                x2={cx + Math.cos(a) * r * 0.88}
+                y2={cy + Math.sin(a) * r * 0.88}
+                stroke={stroke}
+                strokeWidth={strokeWidth * (i % 3 === 0 ? 0.9 : 0.5)}
+                strokeLinecap="round"
+              />
+            );
+          })}
+          <line x1={cx} y1={cy} x2={cx} y2={cy - r * 0.55} {...line} strokeWidth={strokeWidth * 1.1} />
+          <line x1={cx} y1={cy} x2={cx + r * 0.42} y2={cy + r * 0.18} {...line} strokeWidth={strokeWidth * 1.1} />
+          <circle cx={cx} cy={cy} r={r * 0.07} fill={stroke} />
+        </g>
+      );
+    }
+    case "road": {
+      // DISTANCE. A road running to a vanishing point, with the centre line
+      // dashed — how far, drawn as the thing you travel along.
+      const topW = w * 0.24;
+      const botW = w * 0.86;
+      const top = cy - h * 0.4;
+      const bot = cy + h * 0.4;
+      return (
+        <g>
+          <path d={`M ${cx - topW / 2} ${top} L ${cx + topW / 2} ${top} L ${cx + botW / 2} ${bot} L ${cx - botW / 2} ${bot} Z`} {...common} />
+          <line x1={cx} y1={top + h * 0.06} x2={cx} y2={bot - h * 0.04} {...line} strokeWidth={strokeWidth * 1.1} strokeDasharray={`${h * 0.09} ${h * 0.07}`} />
+        </g>
+      );
+    }
+    case "money": {
+      // AN AMOUNT. A banknote with a second note behind it, which reads as
+      // money at any size without needing a currency symbol that would tie the
+      // shape to one country.
+      const noteW = w * 0.82;
+      const noteH = h * 0.62;
+      return (
+        <g>
+          <rect x={cx - noteW / 2 + w * 0.05} y={cy - noteH / 2 - h * 0.09} width={noteW} height={noteH} rx={noteH * 0.12} {...common} opacity={0.55} />
+          <rect x={cx - noteW / 2} y={cy - noteH / 2 + h * 0.06} width={noteW} height={noteH} rx={noteH * 0.12} {...common} />
+          <circle cx={cx} cy={cy + h * 0.06} r={noteH * 0.24} fill="none" stroke={stroke} strokeWidth={strokeWidth * 0.8} />
+          <line x1={cx - noteW * 0.36} y1={cy + h * 0.06} x2={cx - noteW * 0.26} y2={cy + h * 0.06} {...line} />
+          <line x1={cx + noteW * 0.26} y1={cy + h * 0.06} x2={cx + noteW * 0.36} y2={cy + h * 0.06} {...line} />
+        </g>
+      );
+    }
+
+    // ---- maps -------------------------------------------------------------
+    case "hexmap": {
+      // A CITY AS TILES — and it has to read as a CITY first, or the tiling is
+      // just a honeycomb. So the streets are drawn INSIDE the map's own bounds,
+      // underneath the cells, and the cells are translucent outlines laid over
+      // them. That is also what the real thing looks like: every surge map any
+      // rider has ever seen is a see-through overlay on a road network, not an
+      // opaque grid floating on its own.
+      const mode = box.hex?.mode ?? "grid";
+      // Nothing of its own. The city is the BACKDROP, running edge to edge, and
+      // the tiling is laid over it by the renderer — a boxed mini-map floating
+      // on a background that was already a city read as two cities at once.
+      void mode;
+      return null;
+    }
+
+    // ---- encodings --------------------------------------------------------
+    case "qr": {
+      // A QR CODE, dark-on-light because that is what a scanner needs and what
+      // a viewer recognises. The light plate is not decoration: inverted codes
+      // do not reliably scan, so a code drawn in the stage's own palette would
+      // stop being a QR code and become a picture of one.
+      const side = Math.min(w, h);
+      const quiet = side * 0.055;
+      return (
+        <g>
+          <rect x={cx - side / 2} y={cy - side / 2} width={side} height={side} rx={side * 0.035} fill="#f7f9fc" stroke={stroke} strokeWidth={strokeWidth} />
+          {box.qrPath ? (
+            // Remotion's <Img> inside a foreignObject: the renderer waits for
+            // it, which matters more here than anywhere else in the medium —
+            // half a QR code is not a slightly worse frame, it is a code that
+            // does not resolve.
+            <foreignObject x={cx - side / 2 + quiet} y={cy - side / 2 + quiet} width={side - quiet * 2} height={side - quiet * 2}>
+              <Img src={staticFile(box.qrPath)} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            </foreignObject>
+          ) : (
+            <QrModules cx={cx} cy={cy} side={side - quiet * 2} />
+          )}
+        </g>
+      );
+    }
+
     // ---- structure --------------------------------------------------------
     case "region":
       // A quiet frame BEHIND its children. Nesting must read as depth, not as

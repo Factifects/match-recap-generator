@@ -233,7 +233,11 @@ export const AnalysisVideo: React.FC<{
                   bottom-pinned chrome, so rendering both would stack two
                   pills on top of each other. Word captions win when set. */}
               {segment.wordCaptions && (
-                <WordCaptionOverlay text={segment.narrationText ?? segment.text} durationInFrames={durationInFrames} />
+                <WordCaptionOverlay
+                  text={segment.narrationText ?? segment.text}
+                  durationInFrames={durationInFrames}
+                  clips={segment.narrationClips}
+                />
               )}
               {!segment.wordCaptions && segment.phases && segment.phases.length > 0 && (
                 <PhaseCaptionOverlay phases={segment.phases} durationInFrames={durationInFrames} />

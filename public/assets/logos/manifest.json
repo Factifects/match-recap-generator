@@ -338,5 +338,45 @@
     "source": "https://cdn.simpleicons.org/whatsapp",
     "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
     "fetchedAt": "2026-08-18T14:59:58.135Z"
+  },
+  "awsec2": {
+    "slug": "awsec2",
+    "title": "aws-ec2",
+    "hex": "#fff",
+    "monochrome": false,
+    "staticPath": "assets/logos/awsec2.svg",
+    "source": "https://api.iconify.design/logos/aws-ec2.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-18T20:11:15.877Z"
+  },
+  "aws": {
+    "slug": "aws",
+    "title": "aws",
+    "hex": "#252f3e",
+    "monochrome": false,
+    "staticPath": "assets/logos/aws.svg",
+    "source": "https://api.iconify.design/logos/aws.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-18T20:11:15.976Z"
+  },
+  "uber": {
+    "slug": "uber",
+    "title": "Uber",
+    "hex": "#000000",
+    "monochrome": true,
+    "staticPath": "assets/logos/uber.svg",
+    "source": "https://cdn.simpleicons.org/uber",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-18T21:35:28.963Z"
+  },
+  "ubereats": {
+    "slug": "ubereats",
+    "title": "Uber Eats",
+    "hex": "#06C167",
+    "monochrome": true,
+    "staticPath": "assets/logos/ubereats.svg",
+    "source": "https://cdn.simpleicons.org/ubereats",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-18T21:35:28.972Z"
   }
 }

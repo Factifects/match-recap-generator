@@ -1164,6 +1164,29 @@ const stageObjectKindSchema = z.enum([
   // security
   "token",
   "lock",
+  // A QR CODE, drawn as a real module grid with its three finder squares.
+  // The structure IS the subject whenever one is on screen — a scannable code
+  // that survives being partly covered cannot be told with a rounded rectangle,
+  // and it is among the most recognisable shapes anyone sees in a week.
+  "qr",
+  // A CITY DIVIDED INTO HEXAGONS. Not decoration: several real systems
+  // (ride dispatch, surge pricing, delivery zones, coverage maps) price and
+  // route by tile rather than by city, and the tiling itself is the mechanism.
+  "hexmap",
+  // QUANTITIES WITH A UNIVERSAL SHAPE. A duration, a distance and an amount of
+  // money turn up in almost every explanation that involves a price, and a
+  // generic card labelled "minutes" is a caption doing the work the silhouette
+  // should be doing. All three of these are recognisable with the sound off and
+  // the label removed, which is the bar every shape here has to clear.
+  "clock",
+  "road",
+  "money",
+  // WORDS AS THE SUBJECT. Not a code pane and not a label on a box: the text
+  // itself is the thing being explained, set in display type with no chrome
+  // around it. For scripts whose mechanism happens to a sentence — an
+  // instruction being rewritten, a value being carried, a claim being quoted
+  // forward — typography is the honest medium and a diagram is a detour.
+  "phrase",
   // structure — a `region` is a CONTAINER, drawn as a quiet dashed frame
   // behind whatever declares it as `parent`
   "region",
@@ -1199,11 +1222,93 @@ const stageObjectSchema = z.object({
    * invented or approximated logo is never acceptable. The mark participates in
    * the animation like any other property of the object; it is not a sticker. */
   brand: z.string().optional(),
+  /** How a `hexmap` is drawn.
+   *
+   * `grid` is a city tiled into cells, each of which can light up on its own —
+   * the honest picture of anything measured per tile rather than per city.
+   * `neighbours` isolates ONE cell and its six touching cells, which is the
+   * whole argument for hexagons over squares: every neighbour is the same
+   * distance away, so a rider moving in any direction crosses into the next
+   * cell on the same terms. */
+  hex: z
+    .object({
+      mode: z.enum(["grid", "neighbours"]).default("grid"),
+      /** Cells across. Ignored in `neighbours` mode. */
+      cols: z.number().int().min(3).max(14).default(7),
+    })
+    .optional(),
+  /** REAL DATA to encode, for a `qr` object.
+   *
+   * The code on screen genuinely encodes this, at the stated error-correction
+   * level, fetched and cached at generation time. That is not pedantry: a video
+   * claiming a damaged code still scans is only true if the viewer can pause it
+   * and scan the damaged frame. `correction` defaults to H, the level whose
+   * ~30% recovery budget is the thing usually worth talking about. */
+  qr: z
+    .object({
+      data: z.string().min(1),
+      correction: z.enum(["L", "M", "Q", "H"]).default("H"),
+    })
+    .optional(),
+  /** Filled in by the QR resolver — path relative to public/. Not authored. */
+  qrPath: z.string().optional(),
   /** REAL SOURCE, for a `code` object. Code is a first-class medium, not an
    * illustration of code: give it the actual lines and let `highlightLine`
    * brighten the one being discussed while the rest dim. Keep lines short —
    * nothing wraps, and a 9:16 frame is narrow. */
   code: z.array(z.string()).max(14).optional(),
+  /** Which half of a SPLIT stage this object lives in. Ignored unless the
+   * scene declares `splitScreen`. */
+  pane: z.enum(["a", "b"]).optional(),
+  /** A REAL INTERFACE, for concepts that are user-facing.
+   *
+   * When the thing being explained is something a person does — logging in,
+   * a permission prompt, a page failing to load — an architecture diagram is
+   * the wrong register entirely. The viewer should see the click, the change,
+   * and the consequence in the surface they actually recognise. Rows render
+   * top to bottom inside browser or app chrome; `click` and `uiState` drive
+   * them. */
+  ui: z
+    .object({
+      /** `phone` draws a real handset screen — status bar, no window chrome,
+       * a home indicator — for anything a viewer experiences in their hand.
+       * A rideshare quote, a banking prompt or a 2FA code shown in a desktop
+       * window is the wrong register: the viewer has never seen it there. */
+      chrome: z.enum(["browser", "app", "phone"]).default("browser"),
+      /** Address-bar text, for browser chrome. */
+      url: z.string().optional(),
+      /** Draws a LIVE MAP in the top half of a phone screen, with a route and
+       * a car on it. Every ride-hailing, delivery and navigation app on a
+       * phone is a map with a sheet of controls under it — showing one as a
+       * list of rows on a blank screen is not that app, it is a form. */
+      map: z.boolean().default(false),
+      rows: z
+        .array(
+          z.object({
+            id: z.string().min(1),
+            kind: z.enum(["button", "input", "text", "row", "error", "success"]).default("text"),
+            label: z.string(),
+            /** Secondary line under the label — an arrival time, a seat count,
+             * a status. Real app rows are two lines, and flattening them to one
+             * is what makes a mock read as a form. */
+            sub: z.string().optional(),
+            /** Right-aligned value: a price, a count, a time. The left/right
+             * split is most of what makes a list read as a chooser rather than
+             * as a paragraph. */
+            value: z.string().optional(),
+            /** A leading glyph, asked for explicitly. Inferring one from the
+             * row's KIND put a car beside every row that was not plain text —
+             * including a question and a booking fee — which is how a mock
+             * stops being believable. */
+            icon: z.enum(["none", "car"]).default("none"),
+            /** Hidden until a `uiState` reveals it — a result that appears
+             * only after the click that caused it. */
+            hidden: z.boolean().default(false),
+          }),
+        )
+        .max(8),
+    })
+    .optional(),
   /** THE ENTITY'S LIFECYCLE, in order.
    *
    * "Stop thinking 'show object X', think 'show X changing from state A to
@@ -1395,6 +1500,12 @@ const stageTimelineActionSchema = z.discriminatedUnion("type", [
    * shaky frame stops being an event and becomes a style within about two
    * uses per video. */
   z.object({
+    /** RESERVED for force: a failure, a collision, a jam, a real vibration.
+     *
+     * Not an all-purpose emphasis. Used on any beat that merely CHANGES —
+     * a price moving, a value updating, a state advancing — it stops meaning
+     * anything and becomes the house punctuation mark. `pop` is the emphasis
+     * primitive; this one says something went wrong or something hit. */
     type: z.literal("shake"),
     startSeconds: z.number().min(0),
     durationSeconds: z.number().min(0).max(1.2).default(0.4),
@@ -1409,6 +1520,14 @@ const stageTimelineActionSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("count"),
     id: z.string().min(1),
+    /** Counts INSIDE a UI row instead of on the object — how a running total
+     * climbs as line items land on a receipt. Without it a breakdown can only
+     * show its final figure, which shows the answer while hiding the sum. */
+    row: z.string().optional(),
+    /** Leading text for the value: a currency symbol, a multiplier's "x". */
+    prefix: z.string().optional(),
+    /** Decimal places. Money needs two; a count of riders needs none. */
+    decimals: z.number().int().min(0).max(2).default(0),
     from: z.number(),
     to: z.number(),
     startSeconds: z.number().min(0),
@@ -1582,6 +1701,169 @@ const stageTimelineActionSchema = z.discriminatedUnion("type", [
     to: z.string().min(1),
     startSeconds: z.number().min(0),
     durationSeconds: z.number().min(0).default(0.5),
+  }),
+  /** The mascot changes expression, with a small pop as it lands.
+   *
+   * Time these to the BEAT, not to every event: a face that reacts constantly
+   * stops reading as a reaction and becomes ambient motion competing with the
+   * system. Roughly one per act — puzzled at the strange thing, alarmed as it
+   * goes wrong, surprised at the reveal, pleased at the payoff. */
+  z.object({
+    type: z.literal("react"),
+    to: z.enum(["puzzled", "alarmed", "surprised", "unimpressed", "pleased", "approving", "focused"]),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.4),
+  }),
+  /** An object visibly FILLS with items — a queue backing up, memory rising,
+   * a cache warming, logs piling. Accumulation deserves its own primitive
+   * rather than being hand-assembled from a meter each time, because the thing
+   * being taught is the pile getting bigger, and a bar sliding right does not
+   * read as a pile. */
+  z.object({
+    type: z.literal("accumulate"),
+    id: z.string().min(1),
+    from: z.number().int().min(0).max(40).default(0),
+    to: z.number().int().min(0).max(40),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2),
+  }),
+  /** The SAME packet cycles a path repeatedly, and each pass can get worse.
+   *
+   * Retries, polling, event loops and feedback systems are circular by nature,
+   * and showing them as a row of separate attempts loses the one property that
+   * matters — that it is the same thing coming back around. `degrade` makes
+   * each lap visibly heavier, which is what turns a loop into a storm. */
+  z.object({
+    type: z.literal("loop"),
+    id: z.string().min(1),
+    path: z.array(z.string().min(1)).min(2),
+    count: z.number().int().min(2).max(12).default(3),
+    startSeconds: z.number().min(0),
+    /** Seconds per lap. */
+    intervalSeconds: z.number().min(0.2).default(1.2),
+    /** Each lap adds copies and shifts the packet toward an error treatment. */
+    degrade: z.boolean().default(false),
+  }),
+  /** A system visibly FAILING over time rather than flipping to red.
+   *
+   * An outage is a process: the thing works, then slows, then judders, then
+   * stops. Showing it as a colour change asserts the failure; showing it
+   * degrade demonstrates it. `to` is 0 (healthy) to 1 (gone). */
+  z.object({
+    type: z.literal("degrade"),
+    id: z.string().min(1),
+    from: z.number().min(0).max(1).default(0),
+    to: z.number().min(0).max(1).default(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(3),
+  }),
+  /** ISOLATES ONE TILE of a hex map and mutes everything else, so a viewer can
+   * see exactly how much ground a single tile covers.
+   *
+   * A grid laid over a city answers "it is divided" but not "divided into what
+   * size?" — and the size is the whole point when the thing being explained is
+   * measured per tile. Dimming everything outside one cell turns an abstract
+   * tiling into a region with streets and blocks inside it. */
+  z.object({
+    type: z.literal("spotlight"),
+    id: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.8),
+  }),
+  /** A machine READING an object: a reticle closes around it, a bar sweeps
+   * across it, and it locks on.
+   *
+   * The act of reading is usually invisible, which is why explanations of
+   * scanning, parsing and recognition fall back to captions saying "scanning".
+   * A sweep that visibly crosses the subject and then locks is the difference
+   * between asserting that something was read and showing it. */
+  z.object({
+    type: z.literal("scan"),
+    id: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.6),
+  }),
+  /** COVERS part of an object, the way a sticker, a scratch, a thumb or a
+   * redaction covers part of a real thing.
+   *
+   * Distinct from `degrade`, which is a thing failing. Here the object is
+   * perfectly fine and the VIEW of it is obstructed — which is its own
+   * explanation whenever the question is "how much of this can be missing and
+   * still work?" `amount` is how opaque the covering is, so a patch can fade
+   * on rather than snap. */
+  z.object({
+    type: z.literal("occlude"),
+    id: z.string().min(1),
+    area: z.enum(["corner", "band", "centre", "third"]).default("third"),
+    amount: z.number().min(0).max(1).default(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.5),
+  }),
+  /** A click on a UI row, with the press visibly landing. */
+  z.object({
+    type: z.literal("click"),
+    id: z.string().min(1),
+    row: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.35),
+  }),
+  /** Reveals or hides a UI row — the response to the click. */
+  z.object({
+    type: z.literal("uiState"),
+    id: z.string().min(1),
+    row: z.string().min(1),
+    visible: z.boolean().default(true),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.3),
+  }),
+  /** A PART of an object lifts out of it and becomes a packet.
+   *
+   * Distinct from `emit`, which spawns a new thing beside its maker. Here the
+   * source visibly LOSES the piece: the browser's request panel detaches from
+   * the browser and becomes the HTTP request; a line of code lifts off the page
+   * and travels. That is a transformation with a cause, and it is the honest
+   * alternative to a dot appearing on a wire — the viewer sees where the packet
+   * came from because they watched it leave.
+   *
+   * Name `row` for a `ui` object or `line` for a `code` object to lift that
+   * specific element; omit both to detach the object's body as a whole. */
+  z.object({
+    type: z.literal("detach"),
+    from: z.string().min(1),
+    id: z.string().min(1),
+    row: z.string().optional(),
+    line: z.number().int().min(1).optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.8),
+  }),
+  /** Compresses time, so something slow becomes watchable.
+   *
+   * Memory leaks, cache growth, log accumulation and technical debt are all
+   * invisible at real speed — the concept IS that it creeps. Running the clock
+   * fast, and SAYING so on screen, is more honest than animating a fast version
+   * of a slow process and letting the viewer assume that is the real rate. */
+  z.object({
+    type: z.literal("timeLapse"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(3),
+    /** Shown on screen, e.g. "6 hours" or "x1000". */
+    label: z.string().min(1),
+    /** How much faster ambient motion runs while the clock is compressed. */
+    factor: z.number().min(1).max(50).default(6),
+  }),
+  /** Re-frames the SAME system from a different participant's point of view.
+   *
+   * "I clicked Login" -> an HTTP request -> middleware and a controller -> a SQL
+   * query. Same events, four vantage points, and moving between them is often a
+   * stronger explanation than adding more components. Names whose view it is on
+   * screen and brings that entity forward while the rest recede. */
+  z.object({
+    type: z.literal("perspective"),
+    to: z.string().min(1),
+    /** The entity whose viewpoint this is, brought forward. */
+    focus: z.string().optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.8),
   }),
   /** Pins a short callout beside an object. */
   z.object({
@@ -2456,7 +2738,74 @@ export const VISUAL_DEFINITIONS = [
        * BACKDROPS: they never compete with the stage for attention, and
        * neither is a substitute for the system itself doing something.
        * Usually leave this unset and let `world` choose. */
-      backdrop: z.enum(["none", "grid", "liveMap", "scanlines", "field", "depth"]).optional(),
+      backdrop: z.enum(["none", "grid", "liveMap", "scanlines", "field", "depth", "scanner", "streets", "branches"]).optional(),
+      /** Divides the stage into two halves that run the SAME layout engine.
+       *
+       * The only honest way to show "both approaches perform the same
+       * operation" or "without the index / with the index": both systems
+       * actually do the work at the same time, and the difference emerges from
+       * watching rather than from a label claiming it. Two boxes placed side by
+       * side assert a comparison; a split stage demonstrates one.
+       *
+       * `labels` name the halves ("POLLING" / "WEBSOCKET", "BEFORE" / "AFTER"). */
+      splitScreen: z
+        .object({
+          orientation: z.enum(["vertical", "horizontal"]).default("vertical"),
+          labels: z.tuple([z.string(), z.string()]).optional(),
+        })
+        .optional(),
+      /** THE VISUAL STRATEGY this scene uses to explain its concept.
+       *
+       * Declared, not inferred, because the governing question is never "how do
+       * I animate these components?" but "what is the best visual way to make
+       * THIS concept understandable?" A scene that has not answered that
+       * question falls back to the house default — component, line, component,
+       * travelling dot — which is the repetition this field exists to break.
+       *
+       * Pick from the concept: a race condition wants `competition` +
+       * `stateChange` + `collision`; caching wants `stateChange` +
+       * `accumulation` + `absence`; rate limiting wants `simulation` +
+       * `accumulation` + `comparison`; indexing wants `beforeAfter` + `zoom`.
+       *
+       * `absence` deserves special mention: sometimes the most powerful thing
+       * on screen is something NOT happening. On a cache hit the database stays
+       * completely dark, and that darkness is the explanation. */
+      strategy: z
+        .array(
+          z.enum([
+            "transformation",
+            "stateChange",
+            "physicalInteraction",
+            "competition",
+            "accumulation",
+            "failure",
+            "splitting",
+            "merging",
+            "expansion",
+            "zoom",
+            "codeExecution",
+            "uiInteraction",
+            "beforeAfter",
+            "simulation",
+            "comparison",
+            "metaphor",
+            "reveal",
+            "causalChain",
+            "timeLapse",
+            "loop",
+            "perspective",
+            "detach",
+            "scaleChange",
+            "absence",
+            // The only strategies for which a persistent connector is the
+            // honest representation — the connection itself is the subject.
+            "topology",
+            "dependency",
+            "lineage",
+          ]),
+        )
+        .min(1)
+        .optional(),
       /** THE TOPIC'S VISUAL WORLD. A video about caching should not look like
        * a video about TLS or about image decoding — one uniform dark-grid
        * template across every topic is what makes a channel's output read as
@@ -2480,7 +2829,7 @@ export const VISUAL_DEFINITIONS = [
        * Defaults to `network` — the most common Techijest topic shape, and the
        * one whose grammar (something travels from A to B) the medium is built
        * around. */
-      world: z.enum(["network", "storage", "security", "compute", "data"]).optional(),
+      world: z.enum(["network", "storage", "security", "compute", "data", "scan", "city", "reasoning"]).optional(),
       /** How alive the frame is between authored events. `calm` is nearly
        * static (for a scene where one thing must be read carefully), `busy`
        * keeps wires flowing and active objects breathing continuously.
@@ -2498,6 +2847,20 @@ export const VISUAL_DEFINITIONS = [
       /** Persistent packets — see stagePacketSchema. Prefer these over one-shot
        * `flow` whenever the same thing appears in more than one beat. */
       packets: z.array(stagePacketSchema).optional(),
+      /** Puts the reacting mascot on screen, in the named corner, for this
+       * scene. It sits OUTSIDE the stage's coordinate space and never takes
+       * part in the mechanism — it is a storytelling device reacting to what
+       * the system does, and the system stays the subject. Omit it entirely for
+       * scenes where a face would only compete with the explanation. */
+      mascot: z
+        .object({
+          at: z.enum(["bottom-left", "bottom-right", "top-left", "top-right"]).default("bottom-left"),
+          /** The face it wears until a `react` changes it. */
+          expression: z
+            .enum(["puzzled", "alarmed", "surprised", "unimpressed", "pleased", "approving", "focused"])
+            .default("puzzled"),
+        })
+        .optional(),
       edges: z.array(stageEdgeSchema).default([]),
       /** Absolute seconds from the start of the scene, exactly like Canvas's
        * and Diagram's — so the narration fitter can re-time every event onto

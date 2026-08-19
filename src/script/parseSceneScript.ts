@@ -779,6 +779,26 @@ function resolveContinueBoard(fields: SceneFields): true | undefined {
  * should not redeclare nodes/edges the passage already has — the merge
  * unions by id, first declaration wins, so a redeclaration is silently
  * ignored rather than resetting anything. */
+/** `**Strategy Profile:**` — the VIDEO-level plan, declared before any scene is
+ * written: what grammar this video leads with, what it may draw on, and what it
+ * must not fall back to. Read off whichever scene carries it (conventionally
+ * the first), because the script format has no document header. */
+function resolveStrategyProfile(fields: SceneFields): { primary: string; secondary: string[]; avoid: string[] } | undefined {
+  const raw = fields["Strategy Profile"]?.trim();
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as { primary?: unknown; secondary?: unknown; avoid?: unknown };
+    if (typeof parsed.primary !== "string") return undefined;
+    return {
+      primary: parsed.primary,
+      secondary: Array.isArray(parsed.secondary) ? parsed.secondary.filter((x): x is string => typeof x === "string") : [],
+      avoid: Array.isArray(parsed.avoid) ? parsed.avoid.filter((x): x is string => typeof x === "string") : [],
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 function resolveWordCaptions(fields: SceneFields): boolean | undefined {
   return fields["Word Captions"]?.trim().toLowerCase() === "true" ? true : undefined;
 }
@@ -983,6 +1003,7 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
       continuesDiagramFrom: resolveContinueDiagram(fields),
       continuesStageFrom: resolveContinueStage(fields),
       wordCaptions: resolveWordCaptions(fields),
+      strategyProfile: resolveStrategyProfile(fields),
       // Present for every Flow-type scene (resolveFlowVisual requires a
       // real contract to have produced a visual at all) and for any other
       // scene type that additionally declares Entities/Flow purely for

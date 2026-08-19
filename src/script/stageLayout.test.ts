@@ -4,6 +4,7 @@ import {
   contentBounds,
   defaultSafeArea,
   layoutStage,
+  paneAreas,
   pointOnStageEdge,
   resolveCamera,
   routeStageEdges,
@@ -369,5 +370,156 @@ describe("containment (regions holding services)", () => {
     );
     expect(layout.boxes[0].replicas).toBe(6);
     expect(layout.boxes[0].isContainer).toBe(false);
+  });
+});
+
+describe("split stage (unlocks before/after, comparison, simulation)", () => {
+  const objects: StageObjectInput[] = [
+    { id: "a1", kind: "service", label: "Query", at: "top", pane: "a" },
+    { id: "a2", kind: "database", label: "Scan", at: "bottom", pane: "a" },
+    { id: "b1", kind: "service", label: "Query", at: "top", pane: "b" },
+    { id: "b2", kind: "database", label: "Index", at: "bottom", pane: "b" },
+  ];
+  const split = { orientation: "vertical" as const };
+
+  it("keeps each pane's objects on its own side of the divider", () => {
+    const layout = layoutStage(objects, [], {}, { frame: PORTRAIT, split });
+    const a = layout.boxes.filter((b) => b.id.startsWith("a"));
+    const b = layout.boxes.filter((b) => b.id.startsWith("b"));
+    expect(Math.max(...a.map((x) => x.x))).toBeLessThan(Math.min(...b.map((x) => x.x)));
+  });
+
+  it("never overlaps an object from one pane with one from the other", () => {
+    const layout = layoutStage(objects, [], {}, { frame: PORTRAIT, split });
+    for (const x of layout.boxes.filter((b) => b.id.startsWith("a"))) {
+      for (const y of layout.boxes.filter((b) => b.id.startsWith("b"))) {
+        expect(overlaps(x, y)).toBe(false);
+      }
+    }
+  });
+
+  it("lays both halves out with the SAME engine, so a comparison is like-for-like", () => {
+    // Identical content in both panes must produce identical geometry, mirrored.
+    const mirrored: StageObjectInput[] = [
+      { id: "a1", kind: "service", label: "Same", at: "center", pane: "a" },
+      { id: "b1", kind: "service", label: "Same", at: "center", pane: "b" },
+    ];
+    const layout = layoutStage(mirrored, [], {}, { frame: PORTRAIT, split });
+    const [a, b] = layout.boxes;
+    expect(a.width).toBeCloseTo(b.width, 5);
+    expect(a.height).toBeCloseTo(b.height, 5);
+    expect(a.y).toBeCloseTo(b.y, 5);
+  });
+
+  it("puts unassigned objects in pane a rather than dropping them", () => {
+    const layout = layoutStage([{ id: "lonely", kind: "service", label: "X", at: "center" }], [], {}, { frame: PORTRAIT, split });
+    expect(layout.boxes).toHaveLength(1);
+  });
+
+  it("supports a horizontal split too", () => {
+    const layout = layoutStage(objects, [], {}, { frame: LANDSCAPE, split: { orientation: "horizontal" } });
+    const a = layout.boxes.filter((b) => b.id.startsWith("a"));
+    const b = layout.boxes.filter((b) => b.id.startsWith("b"));
+    expect(Math.max(...a.map((x) => x.y))).toBeLessThan(Math.min(...b.map((x) => x.y)));
+  });
+
+  it("keeps every box inside the frame in both panes", () => {
+    const layout = layoutStage(objects, [], {}, { frame: PORTRAIT, split });
+    const safe = defaultSafeArea(PORTRAIT);
+    for (const box of layout.boxes) expect(isInside(box, safe)).toBe(true);
+  });
+});
+
+describe("ui surfaces", () => {
+  it("sizes a UI surface to hold its own rows rather than squeezing them", () => {
+    const few = layoutStage(
+      [{ id: "app", kind: "browser", label: "", at: "center", ui: { chrome: "browser", rows: [{ id: "r1", kind: "text", label: "Hi" }] } }],
+      [], {}, { frame: PORTRAIT },
+    );
+    const many = layoutStage(
+      [
+        {
+          id: "app", kind: "browser", label: "", at: "center",
+          ui: {
+            chrome: "browser",
+            rows: [
+              { id: "r1", kind: "text", label: "Hi" },
+              { id: "r2", kind: "input", label: "email@example.com" },
+              { id: "r3", kind: "button", label: "Sign in" },
+              { id: "r4", kind: "error", label: "Blocked by CORS policy" },
+            ],
+          },
+        },
+      ],
+      [], {}, { frame: PORTRAIT },
+    );
+    expect(many.boxes[0].height).toBeGreaterThan(few.boxes[0].height);
+  });
+
+  it("keeps a UI surface's text inside its own chrome, never as a caption below", () => {
+    const layout = layoutStage(
+      [{ id: "app", kind: "phone", label: "Login", at: "center", ui: { chrome: "app", rows: [{ id: "r", kind: "button", label: "Sign in" }] } }],
+      [], {}, { frame: PORTRAIT },
+    );
+    // `phone` normally captions below; carrying a UI must override that, or the
+    // interface reads as a screenshot of an app rather than as the app.
+    expect(layout.boxes[0].captionBelow).toBe(false);
+  });
+});
+
+describe("layoutStage — a split pane sizes against the pane, not the canvas", () => {
+  const splitObjects: StageObjectInput[] = [
+    {
+      id: "you",
+      kind: "browser",
+      label: "",
+      at: "center",
+      pane: "a",
+      emphasis: "lead",
+      ui: {
+        chrome: "browser",
+        url: "console.aws.amazon.com/ec2",
+        rows: [
+          { id: "launch", kind: "button", label: "Launch instance", hidden: false },
+          { id: "ok", kind: "success", label: "running", hidden: false },
+        ],
+      },
+    },
+    {
+      id: "them",
+      kind: "code",
+      label: "",
+      at: "center",
+      pane: "b",
+      emphasis: "lead",
+      code: ["epoch 41/50", "loss 0.318", "spot interruption", "terminating in 2:00"],
+    },
+  ] as StageObjectInput[];
+
+  it("keeps each half's contents inside its own half", () => {
+    // Every size in the engine derives from min(frame.width, frame.height). Laid
+    // out against the whole canvas and then placed in a 540-wide half, a browser
+    // and a code pane both ran off the outer edges of a 9:16 frame at once.
+    const safe = defaultSafeArea(PORTRAIT);
+    const areas = paneAreas(safe, "vertical");
+    const layout = layoutStage(splitObjects, [], {}, { frame: PORTRAIT, safeArea: safe, split: { orientation: "vertical" } });
+
+    for (const box of layout.boxes) {
+      const area = areas[box.pane ?? "a"];
+      expect(isInside(box, area), `${box.id} escapes pane ${box.pane}`).toBe(true);
+    }
+  });
+
+  it("sizes the same objects larger when they get the whole frame", () => {
+    const split = layoutStage(splitObjects, [], {}, { frame: PORTRAIT, split: { orientation: "vertical" } });
+    const whole = layoutStage(
+      splitObjects.map((o) => ({ ...o, pane: undefined })),
+      [],
+      {},
+      { frame: PORTRAIT },
+    );
+    const widthOf = (layout: typeof split, id: string) => layout.boxes.find((b) => b.id === id)!.width;
+    expect(widthOf(split, "you")).toBeLessThan(widthOf(whole, "you"));
+    expect(widthOf(split, "them")).toBeLessThan(widthOf(whole, "them"));
   });
 });

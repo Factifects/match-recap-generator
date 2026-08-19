@@ -14,6 +14,7 @@
 
 import type { TimedSegment } from "../model/Segment";
 import { resolveBrandAssets, normalizeSlug, normalizeIconifyName, type BrandAsset } from "../assets/brandRegistry";
+import { resolveQrAssets, type QrErrorCorrection } from "../assets/qrRegistry";
 
 // `visual` only exists on the "statement" arm of the TimedSegment union.
 type StatementSegment = Extract<TimedSegment, { type: "statement" }>;
@@ -32,6 +33,52 @@ function eachNode(nodes: readonly DiagramNode[], visit: (node: { brand?: string;
       if (grandchildren) for (const grandchild of grandchildren) visit(grandchild);
     }
   }
+}
+
+/** Every real QR code a script asks for, fetched and written back onto the
+ * objects that declared them — the same generation-time, cache-to-disk contract
+ * as brand marks and mascot faces, for the same reason: a render must never
+ * depend on a network round trip. */
+export async function resolveStageQrCodes(
+  segments: TimedSegment[],
+): Promise<{ segments: TimedSegment[]; resolved: number; unresolved: string[] }> {
+  const wanted: { data: string; correction: QrErrorCorrection }[] = [];
+  for (const segment of segments) {
+    if (segment.type !== "statement" || segment.visual?.kind !== "stage") continue;
+    for (const object of segment.visual.objects) {
+      if (object.qr) wanted.push({ data: object.qr.data, correction: (object.qr.correction ?? "H") as QrErrorCorrection });
+    }
+  }
+  if (wanted.length === 0) return { segments, resolved: 0, unresolved: [] };
+
+  const { resolved, unresolved } = await resolveQrAssets(wanted);
+  const next = segments.map((segment) => {
+    if (segment.type !== "statement" || segment.visual?.kind !== "stage") return segment;
+    const objects = segment.visual.objects.map((object) => {
+      if (!object.qr) return object;
+      const correction = object.qr.correction ?? "H";
+      const asset = resolved.find((a) => a.data === object.qr!.data && a.correction === correction);
+      return asset ? { ...object, qrPath: asset.staticPath } : object;
+    });
+    return { ...segment, visual: { ...segment.visual, objects } };
+  });
+  return { segments: next, resolved: resolved.length, unresolved };
+}
+
+/** Expressions a stage scene's mascot uses, so the generator can fetch them
+ * once before rendering. */
+export function mascotExpressionsIn(segments: TimedSegment[]): string[] {
+  const used: string[] = [];
+  for (const segment of segments) {
+    if (segment.type !== "statement" || segment.visual?.kind !== "stage") continue;
+    const mascot = segment.visual.mascot;
+    if (!mascot) continue;
+    used.push(mascot.expression ?? "puzzled");
+    for (const action of segment.visual.timeline ?? []) {
+      if (action.type === "react") used.push(action.to);
+    }
+  }
+  return [...new Set(used)];
 }
 
 export interface DiagramBrandResult {

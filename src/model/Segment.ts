@@ -319,6 +319,9 @@ export type TimedSegment = Segment & {
    * `phases`: both render the same bottom-pinned chrome, so a segment picks one
    * caption treatment, never both. */
   wordCaptions?: boolean;
+  /** The VIDEO-level visual strategy plan (see visualStrategy.ts), declared on
+   * whichever scene carries the `Strategy Profile` field. */
+  strategyProfile?: { primary: string; secondary: string[]; avoid: string[] };
   /** Internal bookkeeping set by mergeDiagramContinuity.ts, consumed and
    * deleted by resolveSegmentAudio — never reaches the rendered sidecar
    * JSON. One `[from, to)` slice of `visual.timeline` (Diagram only) per

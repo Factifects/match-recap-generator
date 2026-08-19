@@ -1,0 +1,51 @@
+{
+  "puzzled": {
+    "expression": "puzzled",
+    "staticPath": "assets/mascot/puzzled.svg",
+    "source": "https://api.dicebear.com/9.x/bottts/svg?seed=techijest&backgroundColor=transparent&baseColor=1c2c3a&eyesColor=22d3ee&mouthColor=22d3ee&sidesColor=1c2c3a&topColor=22d3ee&eyes=round&mouth=diagram",
+    "license": "Bottts by Pablo Stanley (bottts.com), licensed \"Free for personal and commercial use\", generated via the DiceBear API (dicebear.com).",
+    "fetchedAt": "2026-08-18T15:44:08.011Z"
+  },
+  "surprised": {
+    "expression": "surprised",
+    "staticPath": "assets/mascot/surprised.svg",
+    "source": "https://api.dicebear.com/9.x/bottts/svg?seed=techijest&backgroundColor=transparent&baseColor=1c2c3a&eyesColor=22d3ee&mouthColor=22d3ee&sidesColor=1c2c3a&topColor=22d3ee&eyes=bulging&mouth=square01",
+    "license": "Bottts by Pablo Stanley (bottts.com), licensed \"Free for personal and commercial use\", generated via the DiceBear API (dicebear.com).",
+    "fetchedAt": "2026-08-18T15:44:08.209Z"
+  },
+  "unimpressed": {
+    "expression": "unimpressed",
+    "staticPath": "assets/mascot/unimpressed.svg",
+    "source": "https://api.dicebear.com/9.x/bottts/svg?seed=techijest&backgroundColor=transparent&baseColor=1c2c3a&eyesColor=22d3ee&mouthColor=22d3ee&sidesColor=1c2c3a&topColor=22d3ee&eyes=shade01&mouth=grill01",
+    "license": "Bottts by Pablo Stanley (bottts.com), licensed \"Free for personal and commercial use\", generated via the DiceBear API (dicebear.com).",
+    "fetchedAt": "2026-08-18T15:44:08.381Z"
+  },
+  "pleased": {
+    "expression": "pleased",
+    "staticPath": "assets/mascot/pleased.svg",
+    "source": "https://api.dicebear.com/9.x/bottts/svg?seed=techijest&backgroundColor=transparent&baseColor=1c2c3a&eyesColor=22d3ee&mouthColor=22d3ee&sidesColor=1c2c3a&topColor=22d3ee&eyes=happy&mouth=smile01",
+    "license": "Bottts by Pablo Stanley (bottts.com), licensed \"Free for personal and commercial use\", generated via the DiceBear API (dicebear.com).",
+    "fetchedAt": "2026-08-18T15:44:08.615Z"
+  },
+  "approving": {
+    "expression": "approving",
+    "staticPath": "assets/mascot/approving.svg",
+    "source": "https://api.dicebear.com/9.x/bottts/svg?seed=techijest&backgroundColor=transparent&baseColor=1c2c3a&eyesColor=22d3ee&mouthColor=22d3ee&sidesColor=1c2c3a&topColor=22d3ee&eyes=happy&mouth=smile02",
+    "license": "Bottts by Pablo Stanley (bottts.com), licensed \"Free for personal and commercial use\", generated via the DiceBear API (dicebear.com).",
+    "fetchedAt": "2026-08-18T15:44:08.821Z"
+  },
+  "focused": {
+    "expression": "focused",
+    "staticPath": "assets/mascot/focused.svg",
+    "source": "https://api.dicebear.com/9.x/bottts/svg?seed=techijest&backgroundColor=transparent&baseColor=1c2c3a&eyesColor=22d3ee&mouthColor=22d3ee&sidesColor=1c2c3a&topColor=22d3ee&eyes=sensor&mouth=diagram",
+    "license": "Bottts by Pablo Stanley (bottts.com), licensed \"Free for personal and commercial use\", generated via the DiceBear API (dicebear.com).",
+    "fetchedAt": "2026-08-18T15:57:05.408Z"
+  },
+  "alarmed": {
+    "expression": "alarmed",
+    "staticPath": "assets/mascot/alarmed.svg",
+    "source": "https://api.dicebear.com/9.x/bottts/svg?seed=techijest&backgroundColor=transparent&baseColor=1c2c3a&eyesColor=22d3ee&mouthColor=22d3ee&sidesColor=1c2c3a&topColor=22d3ee&eyes=dizzy&mouth=grill02",
+    "license": "Bottts by Pablo Stanley (bottts.com), licensed \"Free for personal and commercial use\", generated via the DiceBear API (dicebear.com).",
+    "fetchedAt": "2026-08-18T20:03:53.430Z"
+  }
+}

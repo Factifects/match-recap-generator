@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { COLORS, FONT_FAMILY } from "../theme";
 import { fadeIn, pulse } from "../motion";
-import { buildWordCaptionLines } from "../../script/wordCaptions";
+import { buildWordCaptionLines, buildPassageCaptionLines, type NarrationClipTiming } from "../../script/wordCaptions";
 
 const CROSSFADE_FRAMES = 8;
 
@@ -17,10 +17,18 @@ const CROSSFADE_FRAMES = 8;
 export const WordCaptionOverlay: React.FC<{
   text: string;
   durationInFrames: number;
-}> = ({ text, durationInFrames }) => {
+  /** Present when this segment is a MERGED passage. Captions are then built per
+   * clip, so a line can never straddle a scene boundary and each clip's words
+   * are timed against its own real audio duration rather than an even share of
+   * the whole passage. */
+  clips?: NarrationClipTiming[];
+}> = ({ text, durationInFrames, clips }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const lines = buildWordCaptionLines(text, durationInFrames / fps, fps);
+  const lines =
+    clips && clips.length > 1
+      ? buildPassageCaptionLines(clips, durationInFrames / fps, fps)
+      : buildWordCaptionLines(text, durationInFrames / fps, fps);
   if (lines.length === 0) return null;
 
   let activeIndex = 0;

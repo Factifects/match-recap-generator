@@ -138,7 +138,7 @@ describe("mergeDiagramContinuity", () => {
         // proper setState event; continuity means this is ignored.
         nodes: [{ id: "service", label: "Orders Service", accent: "danger" }],
         edges: [],
-        timeline: [{ type: "setState", id: "service", accent: "danger", startSeconds: 0.2 }],
+        timeline: [{ type: "setState", id: "service", accent: "danger", startSeconds: 0.2, durationSeconds: 0.4 }],
       },
     });
     const { segments: merged } = mergeDiagramContinuity([first, second]);

@@ -29,10 +29,6 @@ export function buildAudioCacheKey(kind: "speech" | "sfx", value: string, durati
   return crypto.createHash("sha256").update(payload).digest("hex").slice(0, 24);
 }
 
-function cacheKeyFor(text: string): string {
-  return crypto.createHash("sha256").update(text).digest("hex").slice(0, 24);
-}
-
 /** Writes via a unique temp file and an atomic rename, never straight to the
  * destination.
  *
