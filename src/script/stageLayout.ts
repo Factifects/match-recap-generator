@@ -127,7 +127,13 @@ export type StageObjectKind =
   | "road"
   | "money"
   // typography
-  | "phrase";
+  | "phrase"
+  // environments
+  | "app"
+  | "context"
+  // symbols
+  | "incognito"
+  | "phonebook";
 
 /** Kinds that exist to CONTAIN other objects rather than to be a thing
  * themselves. A region is drawn as a quiet dashed frame behind its children,
@@ -152,6 +158,85 @@ export interface StageUiRow {
   value?: string;
   icon?: "none" | "car";
   hidden?: boolean;
+}
+
+/** The content vocabulary a product screen is built from. Structural twins of
+ * the authored schema, so the renderer can draw a real form, a real month grid
+ * and a real seat map rather than a row of generic rectangles. */
+export type StageAppBlock =
+  | { kind: "heading"; text: string }
+  | { kind: "fields"; items: { id: string; label: string; value: string }[] }
+  | { kind: "calendar"; month: string; startDay?: number; days: number[]; selected?: number; requested?: number }
+  | { kind: "cards"; items: { id: string; title: string; sub?: string; value?: string; badge?: string }[] }
+  | { kind: "seatmap"; rows: number; cols: number; selected?: string }
+  | { kind: "summary"; items: { label: string; value?: string; state?: "plain" | "good" | "bad" }[] }
+  | { kind: "status"; label: string; state?: "processing" | "approved" | "failed" }
+  | { kind: "confirmation"; title: string; route?: string; date?: string; reference?: string }
+  | { kind: "button"; id: string; label: string };
+
+/** HOW TALL A BLOCK RENDERS, in the same units AppSurface draws it.
+ *
+ * Lives here rather than in the renderer because the LAYOUT has to know it: an
+ * application that always filled the safe area left half a portrait frame empty
+ * under three rows of content, and the only way to size a window to its content
+ * is to measure the content before placing the window. AppSurface imports this
+ * so the two can never disagree about how tall a calendar is. */
+export function appBlockHeight(block: StageAppBlock, px: number): number {
+  switch (block.kind) {
+    case "heading":
+      return px * 2;
+    case "fields":
+      return px * 4.2;
+    case "calendar":
+      return px * 7.2;
+    case "cards":
+      return block.items.length * px * 3.4;
+    case "seatmap":
+      return px * 1.4 + block.rows * px * 1.6;
+    case "summary":
+      return block.items.length * px * 2.1 + px;
+    case "status":
+      return px * 3.4;
+    case "confirmation":
+      return px * 9;
+    case "button":
+      return px * 3.6;
+    default:
+      return px * 2;
+  }
+}
+
+/** The height the TALLEST screen needs, so the shell stays put while the
+ * content inside it changes. A window that resized on every navigation would
+ * read as the whole product jumping rather than the page turning. */
+export function appContentHeight(app: StageApp, px: number): number {
+  const chrome = px * 3.2;
+  const pad = px * 1.2;
+  let tallest = 0;
+  for (const screen of Object.values(app.screens ?? {})) {
+    let h = pad + (screen.title ? px * 2.4 : 0);
+    for (const block of screen.blocks ?? []) h += px * 1.1 + appBlockHeight(block, px);
+    tallest = Math.max(tallest, h + pad);
+  }
+  return chrome + tallest;
+}
+
+/** A whole product: shell, screens, and which screen is showing. */
+/** Everything a model has been given, in arrival order. */
+export interface StageContext {
+  label: string;
+  entries: { id: string; source: "user" | "page" | "tool" | "model"; text: string; hidden?: boolean }[];
+  chosen?: string;
+}
+
+export interface StageApp {
+  brand: string;
+  mark?: "wing" | "orbit" | "spark" | "layers" | "pulse" | "incognito";
+  nav: string[];
+  account?: string;
+  screens: Record<string, { title?: string; blocks: StageAppBlock[] }>;
+  screen: string;
+  overlay?: string;
 }
 
 export interface StageUi {
@@ -200,6 +285,8 @@ export interface StageObjectInput {
   qrPath?: string;
   /** How a `hexmap` is tiled and what it is showing. */
   hex?: { mode?: "grid" | "neighbours"; cols?: number };
+  app?: StageApp;
+  context?: StageContext;
   logoHex?: string;
   logoMonochrome?: boolean;
 }
@@ -236,7 +323,7 @@ export interface StageComposition {
  * to fit "Their phone" is no longer phone-shaped, it is a rectangle, and every
  * kind converges on the same rectangle as labels get longer. Captioning below
  * keeps the silhouette exact at any label length. */
-const LABEL_INSIDE_KINDS = new Set<StageObjectKind>(["service", "note", "code", "table", "region", "browser", "gateway", "phrase"]);
+const LABEL_INSIDE_KINDS = new Set<StageObjectKind>(["service", "note", "code", "table", "region", "browser", "gateway", "phrase", "app", "context"]);
 /** A UI surface always keeps its text inside its own chrome, whatever kind it
  * is drawn as — an interface with a caption underneath reads as a screenshot of
  * an app rather than as the app. */
@@ -277,6 +364,8 @@ export interface StageBox {
   qrPath?: string;
   /** How a `hexmap` is tiled and what it is showing. */
   hex?: { mode?: "grid" | "neighbours"; cols?: number };
+  app?: StageApp;
+  context?: StageContext;
   logoHex?: string;
   logoMonochrome?: boolean;
   hidden: boolean;
@@ -391,6 +480,11 @@ const KIND_SIZE: Partial<Record<StageObjectKind, { w?: number; h?: number }>> = 
   money: { w: 0.8, h: 0.62 },
   // Wide and generous: a phrase is read, not glanced at.
   phrase: { w: 2.6, h: 1.5 },
+  // An application is the WORLD of its scene, not an object in it.
+  app: { w: 3.3, h: 4.6 },
+  context: { w: 3.1, h: 3.6 },
+  incognito: { w: 0.85, h: 0.8 },
+  phonebook: { w: 1.5, h: 1.15 },
 };
 
 /** Readability floors in px at a 1080-short-side frame. Text is NOT derived
@@ -763,7 +857,25 @@ export function layoutStage(
     const region = composition.place?.[object.id] ?? object.at;
     const emphasis = composition.emphasis?.[object.id] ?? object.emphasis ?? "normal";
     const anchor = REGION_ANCHORS[region] ?? REGION_ANCHORS.center;
-    const sized = sizeOf(object, emphasis, unit);
+    // AN APPLICATION IS THE ENVIRONMENT, so it fills the safe area exactly
+    // rather than being sized like an object and scaled by emphasis. Sized the
+    // ordinary way it overflowed the frame at `lead` and left the shell cut off
+    // at both edges — and an environment cannot be emphasised against itself.
+    const sized =
+      object.kind === "app" && object.app
+        ? {
+            // As tall as its content needs, never taller than the frame. An
+            // environment owns the width; letting it own the height as well
+            // left products floating in half a screen of nothing.
+            width: safe.width,
+            height: Math.min(safe.height, Math.max(unit * 0.5, appContentHeight(object.app, Math.max(22, unit * 0.026)))),
+            captionBelow: false,
+            captionHeight: 0,
+            captionWidth: 0,
+          }
+        : object.kind === "app" || object.kind === "context"
+          ? { width: safe.width, height: safe.height, captionBelow: false, captionHeight: 0, captionWidth: 0 }
+          : sizeOf(object, emphasis, unit);
     return {
       id: object.id,
       kind: object.kind,
@@ -782,11 +894,13 @@ export function layoutStage(
       logoPath: object.logoPath,
       qrPath: object.qrPath,
       hex: object.hex,
+      app: object.app,
+      context: object.context,
       logoHex: object.logoHex,
       logoMonochrome: object.logoMonochrome,
       hidden: hidden.has(object.id),
-      x: safe.x + safe.width * anchor.fx,
-      y: safe.y + safe.height * anchor.fy,
+      x: object.kind === "app" || object.kind === "context" ? safe.x + safe.width / 2 : safe.x + safe.width * anchor.fx,
+      y: object.kind === "app" || object.kind === "context" ? safe.y + safe.height / 2 : safe.y + safe.height * anchor.fy,
       width: sized.width,
       height: sized.height,
       captionBelow: sized.captionBelow,

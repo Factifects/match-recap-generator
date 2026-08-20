@@ -1187,10 +1187,103 @@ const stageObjectKindSchema = z.enum([
   // instruction being rewritten, a value being carried, a claim being quoted
   // forward — typography is the honest medium and a diagram is a detour.
   "phrase",
+  // environments
+  // A whole application, drawn as a product rather than as a window: the scene's
+  // world, with screens that replace one another while the shell persists.
+  "app",
+  // THE MODEL'S OWN CONTEXT, as a place things accumulate.
+  // The single most useful object for explaining why language models get things
+  // wrong: everything the model knows arrives here as text, from wherever, with
+  // nothing marking which part is the goal and which part is just something it
+  // read. Showing that pile is showing the cause.
+  "context",
+  // THE PRIVATE-BROWSING MARK: the hat and glasses every browser uses for it.
+  // A symbol the audience already associates with the promise being examined,
+  // which makes it the right thing to put on screen while that promise is taken
+  // apart.
+  "incognito",
+  // AN ACTUAL PHONE BOOK: covers, pages, entries, a found line.
+  // Built because "DNS is the internet's phonebook" is the single best analogy
+  // in networking and it is routinely thrown away by drawing a server rack.
+  // A book that opens and is read explains the lookup with the sound off; a
+  // labelled box does not.
+  "phonebook",
   // structure — a `region` is a CONTAINER, drawn as a quiet dashed frame
   // behind whatever declares it as `parent`
   "region",
   "note",
+]);
+
+/** ONE BLOCK OF PRODUCT UI. The vocabulary a believable application is built
+ * from, rather than a generic row list — a date picker that is actually a
+ * calendar, results that are actually cards, a seat map that is actually seats.
+ * Fidelity is not decoration here: the mistake this medium exists to show is
+ * only visible if the audience recognises the surface it happens on. */
+const appBlockSchema = z.discriminatedUnion("kind", [
+  /** A row of labelled inputs, the way every search form lays them out. */
+  z.object({
+    kind: z.literal("fields"),
+    items: z
+      .array(z.object({ id: z.string().min(1), label: z.string(), value: z.string().default("") }))
+      .min(1)
+      .max(4),
+  }),
+  /** A REAL MONTH GRID. `selected` is what the product has chosen; `requested`
+   * is what the user actually asked for, drawn differently and left unselected.
+   * Putting both on the same calendar is the whole tension of an agent taking a
+   * default: the audience can see the two days at once. */
+  z.object({
+    kind: z.literal("calendar"),
+    month: z.string().min(1),
+    /** First weekday of the shown week row, 0 = Mon. */
+    startDay: z.number().int().min(0).max(6).default(0),
+    days: z.array(z.number().int()).min(5).max(14),
+    selected: z.number().int().optional(),
+    requested: z.number().int().optional(),
+  }),
+  /** Result cards — flights, rooms, options. */
+  z.object({
+    kind: z.literal("cards"),
+    items: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          title: z.string(),
+          sub: z.string().optional(),
+          value: z.string().optional(),
+          badge: z.string().optional(),
+        }),
+      )
+      .max(4),
+  }),
+  /** A seat grid, with one seat selectable. */
+  z.object({
+    kind: z.literal("seatmap"),
+    rows: z.number().int().min(2).max(6).default(4),
+    cols: z.number().int().min(3).max(8).default(6),
+    selected: z.string().optional(),
+  }),
+  /** Line items with values — a checkout summary or a receipt. */
+  z.object({
+    kind: z.literal("summary"),
+    items: z.array(z.object({ label: z.string(), value: z.string().optional(), state: z.enum(["plain", "good", "bad"]).default("plain") })).max(6),
+  }),
+  /** A process that is visibly running, then resolved. */
+  z.object({
+    kind: z.literal("status"),
+    label: z.string(),
+    state: z.enum(["processing", "approved", "failed"]).default("processing"),
+  }),
+  /** The big confirmation card a product shows when it is finished. */
+  z.object({
+    kind: z.literal("confirmation"),
+    title: z.string(),
+    route: z.string().optional(),
+    date: z.string().optional(),
+    reference: z.string().optional(),
+  }),
+  z.object({ kind: z.literal("button"), id: z.string().min(1), label: z.string() }),
+  z.object({ kind: z.literal("heading"), text: z.string() }),
 ]);
 
 const stageObjectSchema = z.object({
@@ -1235,6 +1328,73 @@ const stageObjectSchema = z.object({
       mode: z.enum(["grid", "neighbours"]).default("grid"),
       /** Cells across. Ignored in `neighbours` mode. */
       cols: z.number().int().min(3).max(14).default(7),
+    })
+    .optional(),
+  /** THE MODEL'S CONTEXT: everything it has been given, in the order it arrived.
+   *
+   * Entries carry a SOURCE, and that is the entire point — a viewer can see
+   * that the instruction and the page text are the same kind of thing once they
+   * are inside, differing only by a tag the model has no obligation to respect.
+   * The value the model ends up using is shown at the foot, so "it picked this
+   * one" is something that happens on screen rather than something narration
+   * asserts. */
+  context: z
+    .object({
+      label: z.string().default("context"),
+      entries: z
+        .array(
+          z.object({
+            id: z.string().min(1),
+            source: z.enum(["user", "page", "tool", "model"]),
+            text: z.string().min(1),
+            /** Marks the entry as the value finally used. */
+            hidden: z.boolean().default(false),
+          }),
+        )
+        .max(8),
+      /** Shown in the "value used" slot at the foot once something is chosen. */
+      chosen: z.string().optional(),
+    })
+    .optional(),
+  /** A WHOLE APPLICATION, as the scene's environment.
+   *
+   * Not a browser window with rows in it: a product with a wordmark, a nav, an
+   * account, and SCREENS that replace one another the way a real one does.
+   * The shell persists while the screen changes, which is what lets a sequence
+   * stay in a single believable world and still recompose completely between
+   * beats — search, then results, then seat selection, then checkout, then a
+   * confirmation taking over the frame.
+   *
+   * The screen the audience sees is state, driven by the `screen` action, so
+   * the loop the engine actually runs is: an actor interacts, the environment
+   * responds, the state changes, and the composition changes with it. */
+  app: z
+    .object({
+      brand: z.string().min(1),
+      /** THE PRODUCT'S MARK. A fictional company still needs a real logo — a
+       * generic square with a triangle in it reads as a placeholder, and a
+       * placeholder tells the audience they are looking at a mockup instead of
+       * a product. Chosen per product, so every invented brand in the library
+       * gets its own identity: `wing` for travel and transport, `orbit` for
+       * platforms and networks, `spark` for tools, `layers` for data and
+       * storage, `pulse` for monitoring and health. Omit and one is picked from
+       * the name, so a brand is never markless. */
+      mark: z.enum(["wing", "orbit", "spark", "layers", "pulse", "incognito"]).optional(),
+      nav: z.array(z.string()).max(4).default([]),
+      account: z.string().optional(),
+      /** Keyed by screen id; the first is shown until a `screen` action moves. */
+      screens: z.record(
+        z.string(),
+        z.object({
+          title: z.string().optional(),
+          blocks: z.array(appBlockSchema).max(5),
+        }),
+      ),
+      /** Which screen is showing at the start. */
+      screen: z.string().min(1),
+      /** A layer ABOVE the screen — a date picker, a dialog — which dims what
+       * is behind it rather than replacing it. */
+      overlay: z.string().optional(),
     })
     .optional(),
   /** REAL DATA to encode, for a `qr` object.
@@ -1334,7 +1494,11 @@ const stageEdgeSchema = z.object({
 /** Canonical treatment per travelling-packet kind. The renderer, not each
  * script, decides what "this is a response" looks like, so request and response
  * can never read as the same thing moving in two directions. */
-const stageFlowKindSchema = z.enum(["request", "response", "data", "success", "error", "retry"]);
+/** What a travelling thing IS. `encrypted` is drawn as a sealed packet rather
+ * than a coloured one: encryption is the single most misexplained idea in
+ * consumer privacy, and a padlock on the thing in transit says "the carrier can
+ * see this going past and cannot read it" in one image. */
+const stageFlowKindSchema = z.enum(["request", "response", "data", "success", "error", "retry", "encrypted"]);
 
 /** A PERSISTENT packet — an object in its own right rather than a one-shot
  * animation. Declared once, then `send` moves it, `mutate` changes what it IS,
@@ -1798,6 +1962,111 @@ const stageTimelineActionSchema = z.discriminatedUnion("type", [
     amount: z.number().min(0).max(1).default(1),
     startSeconds: z.number().min(0),
     durationSeconds: z.number().min(0).default(0.5),
+  }),
+  /** A PROTECTIVE BOUNDARY drawn around part of the stage, with a name.
+   *
+   * Built for the commonest shape in security and privacy explanations: people
+   * believe a protection covers the whole system, and the teaching is showing
+   * exactly where its edge is. Re-issuing it over a different set of objects
+   * ANIMATES the boundary between them, so a shield the audience assumed
+   * covered everything can visibly contract onto the one thing it actually
+   * covers — which is a mechanism being corrected on screen rather than a
+   * caption saying "actually, it only does this".
+   *
+   * `over` is a set of object ids; the boundary wraps whatever they occupy at
+   * that moment, so it follows the composition rather than being drawn at fixed
+   * coordinates. An empty list dismisses it. */
+  z.object({
+    type: z.literal("shield"),
+    over: z.array(z.string().min(1)),
+    label: z.string().optional(),
+    /** `claimed` is what someone believes it protects — drawn provisionally,
+     * in outline. `actual` is what it really protects. */
+    tone: z.enum(["claimed", "actual"]).default("actual"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.9),
+  }),
+  /** THE ENVIRONMENT RESPONDS: an application moves to a different screen, or
+   * opens/closes a layer above the current one.
+   *
+   * This is the composition change that a state change causes. A product does
+   * not redraw itself into an unrelated picture between beats; it navigates,
+   * and the shell stays put while the content underneath it is replaced. */
+  z.object({
+    type: z.literal("screen"),
+    id: z.string().min(1),
+    /** Screen to show. Omit when only changing the overlay. */
+    to: z.string().optional(),
+    /** Layer above the screen. Empty string closes it. */
+    overlay: z.string().optional(),
+    transition: z.enum(["slide", "fade", "expand"]).default("slide"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.7),
+  }),
+  /** WHAT AN ACTOR DOES. One action with a verb, rather than twenty actions.
+   *
+   * The verb set is deliberately behavioural rather than visual — `observe`,
+   * `assume`, `call`, `retry` describe what is happening in the system, and the
+   * renderer decides what that looks like for the representation the actor was
+   * given. That separation is the point: a script says an agent assumed a value
+   * it never verified, and it stays true whether that agent is drawn as a
+   * cursor on a form, an avatar beside a service, or a process inside a
+   * machine.
+   *
+   *   move     — go to something
+   *   observe  — look at it, read a value, move on (no interaction)
+   *   click    — press it
+   *   type     — put `value` into it, character by character
+   *   select   — choose it among options
+   *   drag     — carry something to `to`
+   *   wait     — hold, visibly, while something else happens
+   *   decide   — commit to `value` (shown as a considered choice)
+   *   assume   — adopt `value` WITHOUT verifying it (drawn as unverified: this
+   *              is the verb most technical failures actually turn on)
+   *   call     — invoke `target` as a tool and hand it work
+   *   result   — receive what `target` returned
+   *   send     — pass something to `to`
+   *   receive  — take something from `target`
+   *   hand     — give what it is holding to `to`
+   *   modify   — change state on `target`
+   *   retry    — do the last thing again
+   *   succeed  — finish, correctly
+   *   fail     — finish, incorrectly */
+  z.object({
+    type: z.literal("act"),
+    actor: z.string().min(1),
+    verb: z.enum([
+      "move", "observe", "click", "type", "select", "drag", "wait", "decide",
+      "assume", "call", "result", "send", "receive", "hand", "modify", "retry",
+      "succeed", "fail",
+    ]),
+    /** What is being acted on. */
+    target: z.string().optional(),
+    /** A specific field or line within the target. */
+    row: z.string().optional(),
+    /** The value read, typed, decided or assumed. */
+    value: z.string().optional(),
+    /** Destination for drag / send / hand. */
+    to: z.string().optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.8),
+  }),
+  /** THE AGENT'S HAND. Moves a visible cursor across an interface to a row and
+   * arrives there.
+   *
+   * Without it, an interface fills itself in by magic and there is nobody in
+   * the scene — which makes it impossible to show an agent READING something,
+   * choosing something, or accepting a value it never questioned. The pointer
+   * is what turns a form into a thing being operated by someone. Pair it with
+   * `click` to land the press. */
+  z.object({
+    type: z.literal("pointer"),
+    id: z.string().min(1),
+    row: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0).default(0.7),
+    /** Pauses on the row without clicking — reading it, rather than using it. */
+    reading: z.boolean().default(false),
   }),
   /** A click on a UI row, with the press visibly landing. */
   z.object({
@@ -2829,7 +3098,7 @@ export const VISUAL_DEFINITIONS = [
        * Defaults to `network` — the most common Techijest topic shape, and the
        * one whose grammar (something travels from A to B) the medium is built
        * around. */
-      world: z.enum(["network", "storage", "security", "compute", "data", "scan", "city", "reasoning"]).optional(),
+      world: z.enum(["network", "storage", "security", "compute", "data", "scan", "city", "reasoning", "privacy"]).optional(),
       /** How alive the frame is between authored events. `calm` is nearly
        * static (for a scene where one thing must be read carefully), `busy`
        * keeps wires flowing and active objects breathing continuously.
@@ -2847,6 +3116,45 @@ export const VISUAL_DEFINITIONS = [
       /** Persistent packets — see stagePacketSchema. Prefer these over one-shot
        * `flow` whenever the same thing appears in more than one beat. */
       packets: z.array(stagePacketSchema).optional(),
+      /** ACTORS: things that DO something to the rest of the stage.
+       *
+       * An environment that fills itself in has nobody in it, and "nobody in
+       * it" is why a system explanation collapses into a diagram. An actor is
+       * whatever is operating the system — an agent, a user, a worker, a
+       * garbage collector, a browser process — and it is declared once and then
+       * driven by `act` verbs.
+       *
+       * `as` is REPRESENTATION, chosen per story rather than fixed: a cursor
+       * for anything that operates an interface, an avatar when the actor is a
+       * person or a service with an identity, a focus ring when the actor is
+       * attention itself rather than a body, a process chip for something
+       * running inside a machine. The same verbs drive all of them, so changing
+       * how an actor looks never means rewriting what it does. */
+      actors: z
+        .array(
+          z.object({
+            id: z.string().min(1),
+            label: z.string().optional(),
+            as: z.enum(["cursor", "avatar", "focus", "process"]).default("cursor"),
+            /** Object it starts at. Omit to start off-stage and enter on its
+             * first move. */
+            at: z.string().optional(),
+          }),
+        )
+        .optional(),
+      /** THE STANDING INSTRUCTION the actors are meant to satisfy, pinned in
+       * the corner for the whole scene.
+       *
+       * This is what lets an audience see a mistake before the narration says
+       * so: the asked-for value stays on screen while the system confidently
+       * does something else with a different one. Without it, a wrong result
+       * is only wrong once somebody says it is. */
+      instruction: z
+        .object({
+          label: z.string().min(1),
+          value: z.string().optional(),
+        })
+        .optional(),
       /** Puts the reacting mascot on screen, in the named corner, for this
        * scene. It sits OUTSIDE the stage's coordinate space and never takes
        * part in the mechanism — it is a storytelling device reacting to what

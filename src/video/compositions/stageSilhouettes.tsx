@@ -445,6 +445,103 @@ const Shape: React.FC<SilhouetteProps> = ({ box, stroke, fill, strokeWidth }) =>
   const line = { stroke, fill: "none", strokeWidth: strokeWidth * 0.8, strokeLinecap: "round" as const };
 
   switch (box.kind) {
+    // ---- environments -----------------------------------------------------
+    case "context":
+    case "app":
+      // Drawn entirely by AppSurface, which owns the product's own visual
+      // language. A stage silhouette underneath it would be a second frame
+      // around something that already has one.
+      return null;
+
+    // ---- reference --------------------------------------------------------
+    case "phonebook": {
+      // A BOOK, open on a spread, with entries down the left page and numbers
+      // down the right. `states` drive it — closed, open, found — so the lookup
+      // is something the object DOES rather than three boxes with arrows.
+      const state = box.states && box.states.length > 0 ? box.states[0] : "open";
+      const closed = state === "closed";
+      const found = state === "found";
+      const bw = w * (closed ? 0.5 : 0.94);
+      const bh = h * 0.86;
+      const bx = cx - bw / 2;
+      const by = cy - bh / 2;
+      const lines = 5;
+      return (
+        <g>
+          {/* covers */}
+          <rect x={bx} y={by} width={bw} height={bh} rx={h * 0.05} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+          {!closed ? (
+            <>
+              {/* the spine, and the two pages either side of it */}
+              <line x1={cx} y1={by + bh * 0.04} x2={cx} y2={by + bh * 0.96} stroke={stroke} strokeWidth={strokeWidth * 1.2} />
+              {Array.from({ length: lines }, (_, i) => {
+                const ly = by + bh * (0.22 + i * 0.15);
+                const hit = found && i === 2;
+                return (
+                  <g key={i}>
+                    {hit ? (
+                      <rect x={bx + bw * 0.05} y={ly - bh * 0.055} width={bw * 0.9} height={bh * 0.115} rx={bh * 0.02} fill={stroke} opacity={0.18} />
+                    ) : null}
+                    {/* the name, on the left page */}
+                    <rect
+                      x={bx + bw * 0.08}
+                      y={ly - bh * 0.018}
+                      width={bw * (hit ? 0.34 : 0.3)}
+                      height={bh * 0.036}
+                      rx={bh * 0.018}
+                      fill={stroke}
+                      opacity={hit ? 0.95 : 0.4}
+                    />
+                    {/* the number, on the right page */}
+                    <rect
+                      x={cx + bw * 0.05}
+                      y={ly - bh * 0.018}
+                      width={bw * (hit ? 0.38 : 0.32)}
+                      height={bh * 0.036}
+                      rx={bh * 0.018}
+                      fill={stroke}
+                      opacity={hit ? 0.95 : 0.4}
+                    />
+                  </g>
+                );
+              })}
+            </>
+          ) : (
+            // Closed: just the cover and a spine, so opening it is a real change.
+            <rect x={bx + bw * 0.1} y={by + bh * 0.12} width={bw * 0.8} height={bh * 0.06} rx={bh * 0.03} fill={stroke} opacity={0.5} />
+          )}
+        </g>
+      );
+    }
+
+    // ---- symbols ----------------------------------------------------------
+    case "incognito": {
+      // A HAT AND GLASSES. Every major browser uses some version of this for
+      // private browsing, so the audience arrives already knowing what it is
+      // supposed to mean — which is exactly the assumption this video takes
+      // apart. Drawn, not fetched: it is a generic UI symbol rather than any
+      // company's mark.
+      const s2 = Math.min(w, h);
+      const brimY = cy - s2 * 0.02;
+      return (
+        <g>
+          {/* hat */}
+          <path
+            d={`M ${cx - s2 * 0.22} ${brimY} L ${cx - s2 * 0.16} ${cy - s2 * 0.34} Q ${cx} ${cy - s2 * 0.42} ${cx + s2 * 0.16} ${cy - s2 * 0.34} L ${cx + s2 * 0.22} ${brimY} Z`}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            strokeLinejoin="round"
+          />
+          <rect x={cx - s2 * 0.38} y={brimY} width={s2 * 0.76} height={s2 * 0.07} rx={s2 * 0.035} fill={stroke} />
+          {/* glasses */}
+          <circle cx={cx - s2 * 0.17} cy={cy + s2 * 0.22} r={s2 * 0.13} fill="none" stroke={stroke} strokeWidth={strokeWidth * 1.1} />
+          <circle cx={cx + s2 * 0.17} cy={cy + s2 * 0.22} r={s2 * 0.13} fill="none" stroke={stroke} strokeWidth={strokeWidth * 1.1} />
+          <line x1={cx - s2 * 0.04} y1={cy + s2 * 0.2} x2={cx + s2 * 0.04} y2={cy + s2 * 0.2} stroke={stroke} strokeWidth={strokeWidth} />
+        </g>
+      );
+    }
+
     // ---- typography -------------------------------------------------------
     case "phrase":
       // NO SHAPE AT ALL. The words are the object; a frame around them would

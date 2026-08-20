@@ -20,6 +20,8 @@ import {
   type StageLayout,
   type StageObjectInput,
 } from "../../script/stageLayout";
+import { AppSurface } from "./AppSurface";
+import { ContextSurface } from "./ContextSurface";
 import { Silhouette, BrandMark, boxZones, labelOffsetFor, hexCells, hexPath, CityMap } from "./stageSilhouettes";
 import { tokenizeLine, CODE_COLORS } from "../../script/tokenizeCode";
 import type { SharedVisualProps, StageData } from "../sharedVisualProps";
@@ -82,7 +84,7 @@ function accentSet(primary: string, primaryRgb: string, neutral: string, neutral
  * "storage feels heavy" from "network feels quick". */
 const WORLDS: Record<
   string,
-  { accents: AccentSet; backdrop: "grid" | "scanlines" | "field" | "depth" | "scanner" | "streets" | "branches"; edge: string; tint: string; flow: number; pulse: number }
+  { accents: AccentSet; backdrop: "grid" | "scanlines" | "field" | "depth" | "scanner" | "streets" | "branches" | "none"; edge: string; tint: string; flow: number; pulse: number }
 > = {
   network: {
     accents: accentSet("#22d3ee", "34, 211, 238", "#4a5a72", "74, 90, 114"),
@@ -105,6 +107,21 @@ const WORLDS: Record<
     // Deliberate and mechanical: a scanner sweeps, it does not dart.
     flow: 0.8,
     pulse: 0.9,
+  },
+  // A world for PRIVACY AND EXPOSURE: browsers, connections, who can see what.
+  // Violet is the private side — the local session, the thing people believe is
+  // protected — and it is the only warm-cool anchor in the frame, so anything
+  // violet reads as "yours". Everything outside it sits in cold slate, which is
+  // the visual argument of the whole subject: your side is small and lit, the
+  // rest of the journey is not yours and never was.
+  privacy: {
+    accents: accentSet("#a78bfa", "167, 139, 250", "#46506b", "70, 80, 107"),
+    backdrop: "none",
+    edge: "rgba(150, 165, 205, 0.5)",
+    tint: "rgba(167, 139, 250, 0.05)",
+    // Traffic never stops on the internet, and that is the point being made.
+    flow: 1.15,
+    pulse: 0.85,
   },
   // A world for MACHINE REASONING: agents, planning, chains of steps, anything
   // where one decision leads to the next. Indigo because it is the register
@@ -182,6 +199,11 @@ const FLOW_STYLES: Record<string, { color: string; shape: "chevron" | "pill" | "
   data: { color: "#38bdf8", shape: "card" },
   error: { color: "#f43f5e", shape: "card", dashed: true, glyph: "✕" },
   retry: { color: "#fb923c", shape: "chevron", glyph: "↻" },
+  // Sealed: a card carrying a padlock. Deliberately a CARD rather than a
+  // chevron, because the point of encryption is that the thing is still
+  // travelling in plain view — you can watch the envelope go past, you just
+  // cannot read the letter.
+  encrypted: { color: "#5eead4", shape: "card", glyph: "🔒" },
 };
 
 const DIMMED = 0.28;
@@ -367,6 +389,61 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
   // one value covers the frame — but it must not stay at the frame's own unit,
   // or a half-width browser gets full-width chrome and text and spills out of
   // its own half.
+  // Verbs that mean the actor is merely LOOKING, not operating — drawn as a
+  // reading ring rather than a press.
+  const READING_VERBS = new Set(["observe", "wait", "decide", "assume"]);
+
+  const pointerFor = (objectId: string) => {
+    for (const [actorId, state] of actorState) {
+      if (state.target !== objectId || !state.row) continue;
+      const declared = (data.actors ?? []).find((a) => a.id === actorId);
+      if (declared && (declared.as ?? "cursor") !== "cursor") continue;
+      return { row: state.row, fromRow: state.fromRow, t: state.t, reading: READING_VERBS.has(state.verb) };
+    }
+    return undefined;
+  };
+
+  /** The label an actor shows while it is operating something — "assumed
+   * Thursday", "typing", "waiting". The verb carries the meaning, so the label
+   * never has to be written into the script. */
+  const actorLabelFor = (objectId: string) => {
+    for (const [actorId, state] of actorState) {
+      if (state.target !== objectId) continue;
+      const declared = (data.actors ?? []).find((a) => a.id === actorId);
+      const name = declared?.label ?? actorId;
+      if (state.verb === "assume") return { text: `${name} assumed ${state.value ?? "it"}`, tone: "warn" as const };
+      if (state.verb === "observe") return { text: `${name} reads ${state.value ?? ""}`.trim(), tone: "neutral" as const };
+      if (state.verb === "decide") return { text: `${name} chose ${state.value ?? ""}`.trim(), tone: "neutral" as const };
+      if (state.verb === "fail") return { text: `${name} failed`, tone: "danger" as const };
+      if (state.verb === "succeed") return { text: `${name} done`, tone: "success" as const };
+      if (state.verb === "wait") return { text: `${name} waiting`, tone: "neutral" as const };
+      return undefined;
+    }
+    return undefined;
+  };
+
+  /** NOTHING LEAVES THE FRAME.
+   *
+   * A packet parked beside its host, a fanned copy, a label sitting to one
+   * side — each of those is computed from the host's geometry and none of them
+   * knew where the edge was, so anything near the border pushed its own label
+   * off screen. Clamping at the point of drawing is the only place that can be
+   * guaranteed, because it catches every path into a position: parked, fanned,
+   * in flight, converging or emerging.
+   *
+   * The margin accounts for the packet's OWN width, not just its centre —
+   * placing a centre safely inside and letting a long label hang past the edge
+   * is the exact failure this exists to stop. */
+  const clampToFrame = (point: { x: number; y: number }, labelChars = 0) => {
+    const halfW = unit * 0.06 + labelChars * unit * 0.011;
+    const halfH = unit * 0.045;
+    const margin = unit * 0.02;
+    return {
+      x: Math.min(Math.max(point.x, safeArea.x + margin + halfW), safeArea.x + safeArea.width - margin - halfW),
+      y: Math.min(Math.max(point.y, safeArea.y + margin + halfH), safeArea.y + safeArea.height - margin - halfH),
+    };
+  };
+
   const boxUnit = data.splitScreen
     ? stagePaneUnit({ width, height }, data.splitScreen.orientation ?? "vertical")
     : unit;
@@ -434,6 +511,32 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
     livePackets.set(packet.id, { label: packet.label, kind: packet.kind ?? "request", at: packet.at, opacity: 1 });
   }
   const codeHighlights = new Map<string, number[]>();
+  /** Which actor, if any, is currently operating a given object — and how it
+   * should be drawn there. An interface does not need to know about actors in
+   * general, only about the one with its hands on it. */
+  /** THE PROTECTIVE BOUNDARY currently on stage, and the one it is moving from
+   * — a shield contracting from what people assume it covers onto what it
+   * actually covers is the whole teaching in a privacy explanation. */
+  let shield: { over: string[]; from?: string[]; label?: string; tone: string; t: number } | undefined;
+  /** WHICH SCREEN each application is showing, what it was showing before, and
+   * how far through the change it is — the state that drives composition. */
+  const appScreens = new Map<
+    string,
+    { screen?: string; previous?: string; t: number; kind: "slide" | "fade" | "expand"; overlay?: string; overlayT: number }
+  >();
+  /** WHERE EVERY ACTOR IS and what it is doing, derived from `act`. Held after
+   * each action so an actor stays where it left off rather than teleporting. */
+  const actorState = new Map<
+    string,
+    { target?: string; row?: string; fromTarget?: string; fromRow?: string; t: number; verb: string; value?: string }
+  >();
+  /** Values typed into application elements, keyed by element id. */
+  const appTyped = new Map<string, string>();
+  /** Values an actor has TYPED into a row, so the field shows what was entered. */
+  const typedValues = new Map<string, string>();
+  /** THE AGENT'S HAND on each interface: which row it is travelling to, which
+   * row it left, and how far through the move it is. */
+  const pointers = new Map<string, { row: string; fromRow?: string; t: number; reading: boolean }>();
   /** Hex maps showing ONE tile with the rest muted, and how far in. */
   const spotlights = new Map<string, number>();
   /** Which objects are being READ, and how far through. */
@@ -645,6 +748,84 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
       case "degrade": {
         const t = progress(atSeconds, action.startSeconds, action.durationSeconds ?? 3);
         degradation.set(action.id, action.from + (action.to - action.from) * t);
+        break;
+      }
+      case "shield": {
+        const t = progress(atSeconds, action.startSeconds, action.durationSeconds ?? 0.9);
+        shield =
+          action.over.length === 0 && t >= 1
+            ? undefined
+            : {
+                over: action.over,
+                from: shield && shield.over.join() !== action.over.join() ? shield.over : undefined,
+                label: action.label ?? shield?.label,
+                tone: action.tone ?? "actual",
+                t,
+              };
+        break;
+      }
+      case "screen": {
+        const dur = action.durationSeconds ?? 0.7;
+        const t = progress(atSeconds, action.startSeconds, dur);
+        const previous = appScreens.get(action.id);
+        // An overlay-only change must NOT invent a screen id. Leaving it
+        // undefined lets the renderer fall back to the object's declared
+        // screen; storing an empty string looked like a real id and sent the
+        // renderer looking for a screen that does not exist.
+        const nextScreen = action.to ?? previous?.screen;
+        const overlayGiven = action.overlay !== undefined;
+        appScreens.set(action.id, {
+          screen: nextScreen,
+          previous: action.to && previous && previous.screen !== action.to ? previous.screen : previous?.previous,
+          t: action.to ? t : 1,
+          kind: action.transition ?? "slide",
+          overlay: overlayGiven ? (action.overlay === "" ? undefined : action.overlay) : previous?.overlay,
+          // An overlay opening and an overlay closing are the same progress
+          // run in opposite directions.
+          overlayT: overlayGiven ? (action.overlay === "" ? 1 - t : t) : (previous?.overlayT ?? 0),
+        });
+        break;
+      }
+      case "act": {
+        const dur = action.durationSeconds ?? 0.8;
+        const t = progress(atSeconds, action.startSeconds, dur);
+        const previous = actorState.get(action.actor);
+        const movedTarget = action.target ?? previous?.target;
+        const movedRow = action.row ?? (action.target && action.target !== previous?.target ? undefined : previous?.row);
+        actorState.set(action.actor, {
+          target: movedTarget,
+          row: movedRow,
+          fromTarget: previous?.target !== movedTarget ? previous?.target : undefined,
+          fromRow: previous?.row !== movedRow ? previous?.row : undefined,
+          t,
+          verb: action.verb,
+          value: action.value ?? previous?.value,
+        });
+        // TYPE writes into the field as it goes, so the form fills in under the
+        // cursor instead of appearing complete the instant the actor arrives.
+        if (action.verb === "type" && action.target && action.row && action.value) {
+          const shown = action.value.slice(0, Math.max(0, Math.round(action.value.length * t)));
+          typedValues.set(`${action.target}:${action.row}`, shown);
+          appTyped.set(action.row, shown);
+        }
+        // The interaction verbs also drive the interface's own feedback.
+        if ((action.verb === "click" || action.verb === "select") && action.target && action.row) {
+          const p = rawProgress(atSeconds, action.startSeconds, dur);
+          if (p > 0 && p < 1) uiPress.set(`${action.target}:${action.row}`, p);
+        }
+        break;
+      }
+      case "pointer": {
+        const t = progress(atSeconds, action.startSeconds, action.durationSeconds ?? 0.7);
+        const previous = pointers.get(action.id);
+        // Held after arrival, so the hand stays where it landed instead of
+        // vanishing between actions — an agent that teleports reads as magic.
+        pointers.set(action.id, {
+          row: action.row,
+          fromRow: previous && previous.row !== action.row ? previous.row : undefined,
+          t,
+          reading: action.reading ?? false,
+        });
         break;
       }
       case "click": {
@@ -1069,6 +1250,96 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
             })()
           : null}
         <g transform={cameraTransform}>
+          {shield
+            ? (() => {
+                // Wraps whatever the named objects OCCUPY, so the boundary
+                // follows the composition instead of being drawn at fixed
+                // coordinates — and so contracting it is a real move between
+                // two real regions rather than a shape swap.
+                const bounds = (ids: string[]) => {
+                  // A shield protects things that are ON STAGE. Left anchored to
+                  // an object that has exited, it stayed on screen wrapping
+                  // empty space and stretched past the frame edge — a boundary
+                  // around nothing, which is worse than no boundary at all.
+                  const boxes = ids
+                    .map((id) => boxById.get(id))
+                    .filter((b): b is NonNullable<typeof b> => !!b && (opacityFor(b.id) > 0.05))
+                    .map(geometryFor);
+                  if (boxes.length === 0) return null;
+                  const pad = unit * 0.045;
+                  const left = Math.min(...boxes.map((b) => b.x - b.width / 2)) - pad;
+                  const right = Math.max(...boxes.map((b) => b.x + b.width / 2)) + pad;
+                  const top = Math.min(...boxes.map((b) => b.y - b.height / 2)) - pad * 1.5;
+                  const bottom = Math.max(...boxes.map((b) => b.y + b.height / 2)) + pad;
+                  return { x: left, y: top, w: right - left, h: bottom - top };
+                };
+                const to = bounds(shield.over);
+                if (!to) return null;
+                const from = shield.from ? bounds(shield.from) : null;
+                const e = from ? 1 - Math.pow(1 - shield.t, 3) : 1;
+                const raw = from
+                  ? {
+                      x: from.x + (to.x - from.x) * e,
+                      y: from.y + (to.y - from.y) * e,
+                      w: from.w + (to.w - from.w) * e,
+                      h: from.h + (to.h - from.h) * e,
+                    }
+                  : to;
+                // AND IT STAYS IN FRAME. A boundary drawn from object geometry
+                // inherits whatever those objects do, including sitting near an
+                // edge — so the rectangle is clipped to the safe area before it
+                // is drawn rather than trusted to land inside it.
+                const margin = unit * 0.025;
+                const left = Math.max(raw.x, safeArea.x + margin);
+                const top2 = Math.max(raw.y, safeArea.y + margin);
+                const right = Math.min(raw.x + raw.w, safeArea.x + safeArea.width - margin);
+                const bottom = Math.min(raw.y + raw.h, safeArea.y + safeArea.height - margin);
+                if (right <= left || bottom <= top2) return null;
+                const box = { x: left, y: top2, w: right - left, h: bottom - top2 };
+                const claimed = shield.tone === "claimed";
+                const colour = claimed ? "rgba(148,163,184,0.75)" : "#38bdf8";
+                return (
+                  <g opacity={from ? 1 : shield.t}>
+                    <rect
+                      x={box.x}
+                      y={box.y}
+                      width={box.w}
+                      height={box.h}
+                      rx={unit * 0.03}
+                      fill={claimed ? "rgba(148,163,184,0.05)" : "rgba(56,189,248,0.07)"}
+                      stroke={colour}
+                      strokeWidth={Math.max(2.5, unit * 0.004)}
+                      strokeDasharray={claimed ? "16 10" : undefined}
+                    />
+                    {shield.label ? (
+                      <g>
+                        <rect
+                          x={box.x + unit * 0.02}
+                          y={box.y - unit * 0.021}
+                          width={shield.label.length * unit * 0.0165 + unit * 0.035}
+                          height={unit * 0.042}
+                          rx={unit * 0.01}
+                          fill="#0b1017"
+                          stroke={colour}
+                          strokeWidth={1.8}
+                        />
+                        <text
+                          x={box.x + unit * 0.037}
+                          y={box.y + unit * 0.007}
+                          fill={colour}
+                          fontFamily={MONO_FONT}
+                          fontWeight={700}
+                          fontSize={unit * 0.024}
+                          letterSpacing="0.1em"
+                        >
+                          {shield.label.toUpperCase()}
+                        </text>
+                      </g>
+                    ) : null}
+                  </g>
+                );
+              })()
+            : null}
           {/* Connectors under everything — a wire is context, not a subject. */}
           {layout.edges.map((edge, i) => {
             const draw = connected.get(`${edge.from}->${edge.to}`) ?? 1;
@@ -1214,8 +1485,17 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                 ) : null}
                 {(() => {
                   const form = forms.get(box.id);
+                  // A SHAPE THAT HAS STATES needs to be drawn in the state it is
+                  // currently in. `phase` moves an object through its declared
+                  // lifecycle, and until now only the state CHIP knew about it —
+                  // the silhouette itself always drew the first state, so a book
+                  // told to open stayed shut.
+                  const staged =
+                    box.states && box.states.length > 0
+                      ? { ...box, states: [phases.get(box.id) ?? box.states[0]] }
+                      : box;
                   if (!form || form.t <= 0) {
-                    return <Silhouette box={box} stroke={accent.stroke} fill={accent.fill} strokeWidth={strokeBase * (isLead ? 1.3 : 1)} />;
+                    return <Silhouette box={staged} stroke={accent.stroke} fill={accent.fill} strokeWidth={strokeBase * (isLead ? 1.3 : 1)} />;
                   }
                   // BOTH representations exist during the change: the old one
                   // fades and contracts while the new one grows in its place.
@@ -1383,7 +1663,72 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                     })()
                   : null}
 
-                {box.ui ? <UiSurface box={box} unit={boxUnit} accent={accent.stroke} visible={uiVisible} press={uiPress} mapSeconds={atSeconds} values={rowCounters} /> : null}
+                {box.context
+                  ? (() => {
+                      // Entries appear as they arrive: `uiState` reveals them by
+                      // id, exactly as it reveals a row, so the context fills up
+                      // on the same clock as everything else in the medium.
+                      const revealed = new Set<string>();
+                      for (const entry of box.context.entries) {
+                        const state = uiVisible.get(`${box.id}:${entry.id}`);
+                        if (state === undefined ? !entry.hidden : state) revealed.add(entry.id);
+                      }
+                      const actor = [...actorState.values()].find((a) => a.target === box.id);
+                      const mode =
+                        actor?.verb === "assume"
+                          ? ("assume" as const)
+                          : actor?.verb === "select" || actor?.verb === "click"
+                            ? ("press" as const)
+                            : ("observe" as const);
+                      // What the model went with. An `assume` writes its value
+                      // into the slot; a `decide` does too, but reads as a
+                      // considered choice rather than an unchecked one.
+                      const chosenEntry = actor && (actor.verb === "assume" || actor.verb === "decide") ? actor.value : undefined;
+                      return (
+                        <ContextSurface
+                          box={box}
+                          unit={unit}
+                          accent={accent.stroke}
+                          visible={revealed}
+                          focusId={actor?.row}
+                          focusMode={actor ? mode : undefined}
+                          chosen={chosenEntry ?? box.context.chosen}
+                          chosenTone={actor?.verb === "assume" ? "warn" : actor?.verb === "decide" ? "good" : "neutral"}
+                        />
+                      );
+                    })()
+                  : null}
+
+                {box.app
+                  ? (() => {
+                      const state = appScreens.get(box.id);
+                      const actor = [...actorState.values()].find((a) => a.target === box.id);
+                      const mode =
+                        actor?.verb === "assume"
+                          ? ("assume" as const)
+                          : actor?.verb === "click" || actor?.verb === "select" || actor?.verb === "type"
+                            ? ("press" as const)
+                            : ("observe" as const);
+                      return (
+                        <AppSurface
+                          box={box}
+                          unit={unit}
+                          accent={accent.stroke}
+                          screen={state?.screen ?? box.app.screen}
+                          previousScreen={state?.previous}
+                          transition={state?.t ?? 1}
+                          transitionKind={state?.kind ?? "slide"}
+                          overlay={state?.overlay ?? box.app.overlay}
+                          overlayProgress={state?.overlayT ?? (box.app.overlay ? 1 : 0)}
+                          focusId={actor?.row}
+                          focusMode={actor ? mode : undefined}
+                          typed={appTyped}
+                        />
+                      );
+                    })()
+                  : null}
+
+                {box.ui ? <UiSurface box={box} unit={boxUnit} accent={accent.stroke} visible={uiVisible} press={uiPress} mapSeconds={atSeconds} values={rowCounters} typed={typedValues} pointer={pointerFor(box.id)} actorLabel={actorLabelFor(box.id)} /> : null}
 
                 {box.logoPath && box.captionBelow ? (
                   (() => {
@@ -1657,7 +2002,13 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                     })()
                   : null}
 
-                {box.states && box.states.length > 0
+                {/* SHAPES THAT SHOW THEIR OWN STATE do not also get the chip.
+                    A phone book that visibly opens does not need the word OPEN
+                    stencilled beside it and a row of progress dots — that is
+                    debug output sitting on top of the illustration, and it was
+                    the first thing anyone noticed about the frame. The chip
+                    exists for objects whose state is otherwise invisible. */}
+                {box.states && box.states.length > 0 && box.kind !== "phonebook"
                   ? (() => {
                       // The entity WEARS its state. A lifecycle that exists only
                       // in the timeline is invisible to the viewer; showing the
@@ -1860,11 +2211,12 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
               }
             }
             if (!point) return null;
+            const safePoint = clampToFrame(point, (p.label ?? "").length);
             return (
               <Packet
                 key={`pk-${id}`}
-                x={point.x}
-                y={point.y}
+                x={safePoint.x}
+                y={safePoint.y}
                 dir={dir}
                 speed={p.flight ? 0.5 : 0}
                 label={p.label}
@@ -1880,8 +2232,8 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
           {packets.map((packet) => (
             <Packet
               key={packet.key}
-              x={packet.point.x}
-              y={packet.point.y}
+              x={clampToFrame(packet.point, ((packet.isLead ? (packet.action.magnitude ?? packet.action.label) : "") ?? "").length).x}
+              y={clampToFrame(packet.point, ((packet.isLead ? (packet.action.magnitude ?? packet.action.label) : "") ?? "").length).y}
               dir={packet.dir}
               speed={packet.speed}
               // Only the lead copy carries the payload text. Twenty packets all
@@ -1898,6 +2250,94 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
           ))}
         </g>
       </svg>
+
+      {/* ACTORS THAT ARE NOT CURSORS. An avatar when the actor has an identity,
+          a focus ring when the actor IS attention rather than a body, a process
+          chip for something running inside a machine. Same verbs, different
+          representation — chosen by the story, not fixed by the engine. */}
+      {(data.actors ?? [])
+        .filter((actor) => (actor.as ?? "cursor") !== "cursor")
+        .map((actor) => {
+          const state = actorState.get(actor.id);
+          if (!state?.target) return null;
+          const host = boxById.get(state.target);
+          if (!host) return null;
+          const geom = geometryFor(host);
+          const size = unit * 0.055;
+          const x = geom.x - geom.width / 2 - size * 1.6;
+          const y = geom.y;
+          const busy = state.verb === "assume" || state.verb === "fail";
+          const colour = busy ? "#f59e0b" : state.verb === "succeed" ? "#22c55e" : ACCENTS[accents.get(host.id) ?? "primary"].stroke;
+          if ((actor.as ?? "cursor") === "focus") {
+            // Attention itself: a ring around what is being looked at.
+            return (
+              <g key={actor.id}>
+                <rect
+                  x={geom.x - geom.width / 2 - size * 0.4}
+                  y={geom.y - geom.height / 2 - size * 0.4}
+                  width={geom.width + size * 0.8}
+                  height={geom.height + size * 0.8}
+                  rx={size * 0.4}
+                  fill="none"
+                  stroke={colour}
+                  strokeWidth={Math.max(2, size * 0.12)}
+                  strokeDasharray={`${size * 0.5} ${size * 0.35}`}
+                  opacity={0.85}
+                />
+              </g>
+            );
+          }
+          return (
+            <g key={actor.id}>
+              {(actor.as ?? "cursor") === "avatar" ? (
+                <>
+                  <circle cx={x} cy={y - size * 0.5} r={size * 0.42} fill="none" stroke={colour} strokeWidth={2.4} />
+                  <path
+                    d={`M ${x - size * 0.55} ${y + size * 0.75} q ${size * 0.55} ${-size * 0.7} ${size * 1.1} 0`}
+                    fill="none"
+                    stroke={colour}
+                    strokeWidth={2.4}
+                    strokeLinecap="round"
+                  />
+                </>
+              ) : (
+                <rect x={x - size * 0.6} y={y - size * 0.4} width={size * 1.2} height={size * 0.8} rx={size * 0.2} fill="none" stroke={colour} strokeWidth={2.4} />
+              )}
+              {actor.label ? (
+                <text x={x} y={y + size * 1.6} textAnchor="middle" fill="#9fb0cc" fontFamily={MONO_FONT} fontSize={unit * 0.022}>
+                  {actor.label}
+                </text>
+              ) : null}
+            </g>
+          );
+        })}
+
+      {/* THE STANDING INSTRUCTION. Pinned for the whole scene so the audience
+          can hold the asked-for value in view while the system confidently
+          works with a different one. This is what makes a mistake visible
+          before anybody says it is a mistake. */}
+      {data.instruction ? (
+        <div
+          style={{
+            position: "absolute",
+            left: unit * 0.045,
+            top: unit * 0.045,
+            padding: `${unit * 0.012}px ${unit * 0.022}px`,
+            borderRadius: unit * 0.012,
+            border: "1.6px solid rgba(148,163,184,0.45)",
+            background: "rgba(9,12,18,0.88)",
+            fontFamily: MONO_FONT,
+            fontSize: unit * 0.024,
+            color: "#c9d6ee",
+            letterSpacing: "0.04em",
+          }}
+        >
+          {data.instruction.label}
+          {data.instruction.value ? (
+            <span style={{ color: "#ffd76a", fontWeight: 800 }}>{`  ${data.instruction.value}`}</span>
+          ) : null}
+        </div>
+      ) : null}
 
       {data.mascot ? (
         <Mascot
@@ -1975,7 +2415,10 @@ const UiSurface: React.FC<{
   press: Map<string, number>;
   mapSeconds: number;
   values: Map<string, string>;
-}> = ({ box, unit, accent, visible, press, mapSeconds, values }) => {
+  typed: Map<string, string>;
+  pointer?: { row: string; fromRow?: string; t: number; reading: boolean };
+  actorLabel?: { text: string; tone: "neutral" | "warn" | "danger" | "success" };
+}> = ({ box, unit, accent, visible, press, mapSeconds, values, typed, pointer, actorLabel }) => {
   const ui = box.ui!;
   const px = Math.max(26 * (unit / 1080), unit * 0.028);
   const chromeH = px * 2.2;
@@ -2148,6 +2591,9 @@ const UiSurface: React.FC<{
         const style = ROW_STYLE[row.kind] ?? ROW_STYLE.text;
         const pressed = press.get(`${box.id}:${row.id}`) ?? 0;
         const sheetTop = top + chromeH + mapH;
+        // What an actor has typed replaces the field's own text as it is
+        // entered, so a form fills in under the cursor.
+        const entered = typed.get(`${box.id}:${row.id}`);
 
         // The one committing action sits at the foot of the sheet, full width,
         // the way every "confirm" in every ride app does.
@@ -2191,7 +2637,7 @@ const UiSurface: React.FC<{
                 fontWeight={800}
                 fontSize={px * 0.92}
               >
-                {row.label}
+                {entered ?? row.label}
               </text>
             </g>
           );
@@ -2291,6 +2737,88 @@ const UiSurface: React.FC<{
           </g>
         );
       })}
+      {/* WHAT THE ACTOR IS DOING, in its own words, under the thing it is doing
+          it to. Derived from the verb rather than written per scene, so
+          "assumed" always reads as unverified wherever it happens. */}
+      {actorLabel ? (
+        <g>
+          <rect
+            x={box.x - box.width * 0.46}
+            y={top + box.height + px * 0.3}
+            width={box.width * 0.92}
+            height={px * 1.7}
+            rx={px * 0.35}
+            fill="rgba(9,12,18,0.9)"
+            stroke={
+              actorLabel.tone === "warn"
+                ? "#f59e0b"
+                : actorLabel.tone === "danger"
+                  ? "#f43f5e"
+                  : actorLabel.tone === "success"
+                    ? "#22c55e"
+                    : "rgba(148,163,184,0.5)"
+            }
+            strokeWidth={1.6}
+          />
+          <text
+            x={box.x}
+            y={top + box.height + px * 1.45}
+            textAnchor="middle"
+            fill={
+              actorLabel.tone === "warn"
+                ? "#ffd76a"
+                : actorLabel.tone === "danger"
+                  ? "#ffb4c0"
+                  : actorLabel.tone === "success"
+                    ? "#9ff0b8"
+                    : "#c9d6ee"
+            }
+            fontFamily={MONO_FONT}
+            fontWeight={600}
+            fontSize={px * 0.78}
+          >
+            {actorLabel.text}
+          </text>
+        </g>
+      ) : null}
+
+      {/* THE CURSOR. Travels between rows rather than jumping, because the
+          journey is the part that shows the agent choosing where to look. A
+          `reading` stop draws a soft ring instead of a click, which is how the
+          scene says "it looked at this and moved on" without a caption. */}
+      {pointer
+        ? (() => {
+            const rowY = (id: string) => {
+              const i = ui.rows.findIndex((r) => r.id === id);
+              if (i < 0) return null;
+              const stride = isPhone && ui.map ? rowH * 1.5 : rowH;
+              const base = top + chromeH + mapH + (isPhone && ui.map ? px * 1.1 : pad);
+              return base + i * stride + stride * 0.4;
+            };
+            const toY = rowY(pointer.row);
+            if (toY === null) return null;
+            const fromY = pointer.fromRow ? (rowY(pointer.fromRow) ?? toY) : toY;
+            // Ease out: quick departure, soft arrival, like a real hand.
+            const e = 1 - Math.pow(1 - Math.min(1, pointer.t), 3);
+            const y = fromY + (toY - fromY) * e;
+            const x = left + box.width * 0.62;
+            const size = px * 1.1;
+            return (
+              <g>
+                {pointer.reading && pointer.t >= 1 ? (
+                  <circle cx={x} cy={y} r={size * 1.5} fill="none" stroke={accent} strokeWidth={2} opacity={0.5} />
+                ) : null}
+                <path
+                  d={`M ${x} ${y} L ${x} ${y + size * 1.5} L ${x + size * 0.42} ${y + size * 1.1} L ${x + size * 0.72} ${y + size * 1.75} L ${x + size * 0.95} ${y + size * 1.6} L ${x + size * 0.66} ${y + size * 0.98} L ${x + size * 1.15} ${y + size * 0.86} Z`}
+                  fill="#ffffff"
+                  stroke="rgba(9,12,18,0.85)"
+                  strokeWidth={1.6}
+                  strokeLinejoin="round"
+                />
+              </g>
+            );
+          })()
+        : null}
     </g>
   );
 };
@@ -2611,7 +3139,7 @@ const Mascot: React.FC<{
 };
 
 const Backdrop: React.FC<{
-  kind: "grid" | "scanlines" | "field" | "depth" | "scanner" | "streets" | "branches";
+  kind: "grid" | "scanlines" | "field" | "depth" | "scanner" | "streets" | "branches" | "none";
   width: number;
   height: number;
   atSeconds: number;

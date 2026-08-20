@@ -89,6 +89,7 @@ function referencesIn(action: StageAction): StageReference[] {
     case "degrade":
     case "click":
     case "uiState":
+    case "pointer":
     case "occlude":
     case "scan":
     case "spotlight":
@@ -105,6 +106,12 @@ function referencesIn(action: StageAction): StageReference[] {
       return objects("focus.ids", ...action.ids);
     case "annotate":
       return objects("annotate.target", action.target);
+    case "shield":
+      return objects("shield.over", ...action.over);
+    case "act":
+      // `actor` is checked separately against the declared actors; the objects
+      // it touches are ordinary stage objects.
+      return objects("act", action.target, action.to);
     case "perspective":
       return objects("perspective.focus", action.focus);
     // Acts on a travelling packet, and often on the entity it moves between.
@@ -232,7 +239,25 @@ export function diagnoseSceneMedia(segments: TimedSegment[]): SceneDiagnostic[] 
   if (mediumSequence.length >= 3) {
     const distinct = new Set(mediumSequence.map((s) => s.medium));
     const run = mediumSequence.map((s) => s.medium).join(" -> ");
-    if (distinct.size === 1) {
+
+    // ONE SURFACE IS NOT AUTOMATICALLY MONOTONY. If a browser is the right way
+    // to explain the next fifteen seconds, the answer is to stay in the browser
+    // and make it behave — values changing, a cursor working, panels opening,
+    // state transitioning — not to cut to something else for the sake of
+    // variety. So a single-medium video is only reported when the scenes are
+    // also doing the SAME THINGS: if each scene brings action types the one
+    // before it did not, the surface is evolving and the choice was deliberate.
+    const vocabularies = segments
+      .filter((segment) => isStageSegment(segment))
+      .map((segment) => new Set(((segment as TimedSegment & { visual: StageVisual }).visual.timeline ?? []).map((a) => a.type)));
+    let freshening = 0;
+    for (let i = 1; i < vocabularies.length; i++) {
+      const previous = vocabularies[i - 1];
+      if ([...vocabularies[i]].some((type) => !previous.has(type))) freshening++;
+    }
+    const evolving = vocabularies.length > 1 && freshening / (vocabularies.length - 1) >= 0.5;
+
+    if (distinct.size === 1 && !evolving) {
       const only = mediumSequence[0].medium;
       found.push(
         diagnostic(
@@ -243,8 +268,10 @@ export function diagnoseSceneMedia(segments: TimedSegment[]): SceneDiagnostic[] 
           `All ${mediumSequence.length} scenes are ${MEDIUM_LABEL[only]} (${run}). Whatever strategies they declare, the viewer watches one surface for the whole Short. Lead with the medium the topic is actually experienced in, and cut to another to explain what it just did.`,
         ),
       );
-    } else {
-      // Three in a row is monotonous even when the video varies elsewhere.
+    } else if (!evolving) {
+      // Three in a row is monotonous only when those scenes are also doing the
+      // same things. A browser that keeps changing what it is doing is one
+      // environment behaving, which is a legitimate way to carry a video.
       for (let i = 2; i < mediumSequence.length; i++) {
         const [a, b, c] = [mediumSequence[i - 2], mediumSequence[i - 1], mediumSequence[i]];
         if (a.medium !== c.medium || b.medium !== c.medium) continue;
@@ -330,9 +357,11 @@ export function diagnoseStageScenes(segments: TimedSegment[], scriptName?: strin
     // `compose` there produces exactly the note this rule exists to prevent:
     // an object rescaled or shuffled for no reason, which on a phone reads as
     // the camera fidgeting rather than as the app doing anything.
-    const uiDominant =
-      visual.objects.every((object) => object.ui || object.kind === "phrase") &&
-      visual.objects.some((object) => object.ui || object.kind === "phrase");
+    // Surfaces that evolve through their own content rather than through
+    // re-composition: interfaces, applications navigating between screens, and
+    // typography being rewritten.
+    const selfEvolving = (object: (typeof visual.objects)[number]) => !!object.ui || !!object.app || !!object.context || object.kind === "phrase";
+    const uiDominant = visual.objects.every(selfEvolving) && visual.objects.some(selfEvolving);
     if (!uiDominant && duration > STATIC_COMPOSITION_LIMIT_SECONDS && composes.length === 0) {
       found.push(
         diagnostic(
@@ -480,20 +509,110 @@ export function diagnoseStageScenes(segments: TimedSegment[], scriptName?: strin
       );
     }
 
+    // --- an application shares the stage ----------------------------------
+    // An `app` fills the safe area by design: it IS the scene's environment.
+    // Anything else declared beside it therefore has nowhere to be, and ends up
+    // underneath the window where nobody will ever see it.
+    const appObjects = visual.objects.filter((object) => object.app);
+    if (appObjects.length > 0 && visual.objects.length > appObjects.length) {
+      const others = visual.objects.filter((object) => !object.app).map((object) => `\`${object.id}\``);
+      found.push(
+        diagnostic(
+          sceneIndex,
+          1,
+          "soft",
+          "object-behind-app",
+          `This scene has an \`app\`, which fills the frame, plus ${others.length} other object(s): ${others.join(", ")}. They are drawn underneath it and cannot be seen. Put what they represent inside the app, or give them their own scene.`,
+        ),
+      );
+    }
+
+    // --- actors that were never declared ----------------------------------
+    // An `act` naming an actor the scene does not declare does nothing at all:
+    // no hand appears, no field fills, and the beat passes in silence.
+    const actorIds = new Set((visual.actors ?? []).map((actor) => actor.id));
+    const missingActors = new Map<string, number>();
+    for (const action of timeline) {
+      if (action.type !== "act") continue;
+      if (actorIds.has(action.actor)) continue;
+      missingActors.set(action.actor, (missingActors.get(action.actor) ?? 0) + 1);
+    }
+    for (const [actor, uses] of missingActors) {
+      found.push(
+        diagnostic(
+          sceneIndex,
+          1,
+          "soft",
+          "undeclared-actor",
+          `\`${actor}\` performs ${uses} action(s) but is not in this scene's \`actors\`, so nothing is on screen doing them. Declared actors: ${actorIds.size > 0 ? [...actorIds].map((id) => `\`${id}\``).join(", ") : "none"}.`,
+        ),
+      );
+    }
+
     // --- rows and lines inside an object ----------------------------------
     // The same silence one level down. A `click` on a row the UI does not have
     // is a click the viewer never sees, and a `highlightLine` past the end of
     // the snippet lights up nothing.
     for (const action of timeline) {
       const rowRef =
-        action.type === "click" || action.type === "uiState"
+        action.type === "click" || action.type === "uiState" || action.type === "pointer"
           ? { id: action.id, row: action.row, field: action.type }
+          : action.type === "act" && action.target && action.row
+            ? { id: action.target, row: action.row, field: `act.${action.verb}` }
           : action.type === "detach" && action.row
             ? { id: action.from, row: action.row, field: "detach.row" }
             : undefined;
       if (!rowRef) continue;
       const target = objectsById.get(rowRef.id);
       if (!target) continue; // already reported above as an unresolved id
+
+      // An APPLICATION addresses its elements by id too — a field, a card, a
+      // button inside one of its screens. Those are just as real as UI rows and
+      // just as silently ignored when mistyped.
+      if (target.context) {
+        const entries = new Set(target.context.entries.map((entry) => entry.id));
+        if (!entries.has(rowRef.row)) {
+          found.push(
+            diagnostic(
+              sceneIndex,
+              1,
+              "soft",
+              "unknown-context-entry",
+              `\`${rowRef.id}\` has no context entry "${rowRef.row}" — it declares ${
+                entries.size > 0 ? [...entries].map((id) => `\`${id}\``).join(", ") : "none"
+              }.`,
+            ),
+          );
+        }
+        continue;
+      }
+
+      if (target.app) {
+        const elements = new Set<string>();
+        for (const screen of Object.values(target.app.screens ?? {})) {
+          for (const block of screen.blocks ?? []) {
+            if (block.kind === "fields") for (const item of block.items) elements.add(item.id);
+            else if (block.kind === "cards") for (const item of block.items) elements.add(item.id);
+            else if (block.kind === "button") elements.add(block.id);
+            else if (block.kind === "calendar") elements.add("date");
+          }
+        }
+        if (!elements.has(rowRef.row)) {
+          found.push(
+            diagnostic(
+              sceneIndex,
+              1,
+              "soft",
+              "unknown-app-element",
+              `\`${rowRef.id}\` has no element "${rowRef.row}" on any of its screens — it declares ${
+                elements.size > 0 ? [...elements].map((id) => `\`${id}\``).join(", ") : "none"
+              } — so this \`${rowRef.field}\` touches nothing.`,
+            ),
+          );
+        }
+        continue;
+      }
+
       if (!target.ui) {
         found.push(
           diagnostic(
@@ -668,9 +787,12 @@ export function diagnoseStageScenes(segments: TimedSegment[], scriptName?: strin
     const REQUIRES: Record<string, { ok: () => boolean; how: string }> = {
       comparison: { ok: () => !!visual.splitScreen, how: "needs `splitScreen` so both systems perform the same operation at once" },
       beforeAfter: { ok: () => !!visual.splitScreen, how: "needs `splitScreen` to hold the two states" },
-      uiInteraction: { ok: () => visual.objects.some((o) => o.ui), how: "needs an object carrying a `ui` surface" },
+      uiInteraction: { ok: () => visual.objects.some((o) => o.ui || o.app), how: "needs an object carrying a `ui` surface or an `app`" },
+      reveal: { ok: () => true, how: "" },
       transformation: { ok: () => has("transform"), how: "needs a `transform`" },
-      stateChange: { ok: () => has("phase") || has("setState"), how: "needs `phase` or `setState`" },
+      // An application changing screen is a state change of the most literal
+      // kind — the environment responding to what was done to it.
+      stateChange: { ok: () => has("phase") || has("setState") || has("screen"), how: "needs `phase`, `setState` or a `screen` change" },
       competition: { ok: () => has("collide"), how: "needs a `collide`" },
       splitting: { ok: () => has("split"), how: "needs a `split`" },
       merging: { ok: () => has("merge"), how: "needs a `merge`" },
