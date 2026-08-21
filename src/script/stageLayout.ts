@@ -76,7 +76,7 @@ export const STAGE_REGIONS: StageRegion[] = [
  * genuinely shrinking it reads as "further away". */
 export type StageEmphasis = "lead" | "normal" | "recede";
 
-export type StageAccent = "neutral" | "primary" | "warn" | "success" | "danger";
+export type StageAccent = "neutral" | "primary" | "warn" | "success" | "danger" | "profile";
 
 /** What the object IS. Kept to silhouettes a viewer can recognise WITHOUT a
  * label — the standing rule from the diagram medium's own shape work is that a
@@ -133,13 +133,23 @@ export type StageObjectKind =
   | "context"
   // symbols
   | "incognito"
-  | "phonebook";
+  | "phonebook"
+  // tracking and personalisation
+  | "map"
+  | "pin"
+  | "cookie"
+  | "profile"
+  | "prediction"
+  // reference frames
+  | "vector"
+  | "globe"
+  | "compass";
 
 /** Kinds that exist to CONTAIN other objects rather than to be a thing
  * themselves. A region is drawn as a quiet dashed frame behind its children,
  * never as another competing box — nesting should read as depth, not as more
  * boxes. */
-export const CONTAINER_KINDS: StageObjectKind[] = ["region"];
+export const CONTAINER_KINDS: StageObjectKind[] = ["region", "map"];
 
 /** Which half of a SPLIT stage an object lives in.
  *
@@ -255,6 +265,16 @@ export interface StageObjectInput {
   at: StageRegion;
   emphasis?: StageEmphasis;
   accent?: StageAccent;
+  /** Drawn as a dark anchor rather than a tinted outline, so a light
+   * composition has somewhere for the eye to land. Light theme only. */
+  surface?: "default" | "dark";
+  /** `vector` only — see the schema. "world" holds its direction while its host
+   * turns; "body" turns with it. */
+  frame?: "world" | "body";
+  /** `vector` only — degrees clockwise from straight up. */
+  dir?: number;
+  /** `vector` only — the object this direction is drawn from. */
+  attachTo?: string;
   /** Nests this object INSIDE another (which should be a `region`). The parent
    * is sized from its children and drawn behind them, so "this service lives in
    * eu-west-1" is expressed structurally instead of by putting two boxes near
@@ -353,6 +373,15 @@ export interface StageBox {
    * be kept clear of its neighbours. */
   captionWidth: number;
   parentId?: string;
+  /** Drawn as a dark anchor instead of a tinted outline (light theme only). */
+  surface?: "default" | "dark";
+  frame?: "world" | "body";
+  dir?: number;
+  attachTo?: string;
+  /** The region this object declared. Kept on the box so a NESTED object can
+   * be placed where it said it lives inside its parent, instead of being
+   * grid-packed in declaration order. */
+  homeRegion: StageRegion;
   /** True for a `region` — the renderer draws it as a quiet frame behind its
    * children rather than as a solid object. */
   isContainer: boolean;
@@ -485,6 +514,16 @@ const KIND_SIZE: Partial<Record<StageObjectKind, { w?: number; h?: number }>> = 
   context: { w: 3.1, h: 3.6 },
   incognito: { w: 0.85, h: 0.8 },
   phonebook: { w: 1.5, h: 1.15 },
+  map: { w: 2.4, h: 2.2 },
+  pin: { w: 0.42, h: 0.62 },
+  cookie: { w: 0.7, h: 0.7 },
+  profile: { w: 1.5, h: 1.7 },
+  prediction: { w: 1.15, h: 1.1 },
+  // Long and thin: a vector is read by its direction, not its bulk.
+  vector: { w: 0.45, h: 0.95 },
+  // A planet and a dial are both round: square footprints.
+  globe: { w: 1.5, h: 1.5 },
+  compass: { w: 1.2, h: 1.2 },
 };
 
 /** Readability floors in px at a 1080-short-side frame. Text is NOT derived
@@ -906,6 +945,11 @@ export function layoutStage(
       captionBelow: sized.captionBelow,
       captionHeight: sized.captionHeight,
       captionWidth: sized.captionWidth,
+      homeRegion: region,
+      surface: object.surface,
+      frame: object.frame,
+      dir: object.dir,
+      attachTo: object.attachTo,
     };
   });
 
@@ -935,12 +979,27 @@ export function layoutStage(
     const cellH = Math.max(...kids.map((k) => k.height));
     parent.width = Math.max(parent.width, acrossRow * cellW + (acrossRow - 1) * inner + padding * 2);
     parent.height = Math.max(parent.height, rows * cellH + (rows - 1) * inner + padding * 2 + header);
+    // Growing to fit the children must never grow PAST THE FRAME. A container
+    // at `lead` emphasis is already scaled up, and adding child-driven width on
+    // top of that pushed a map off both edges of a portrait canvas with its own
+    // title clipped in half. The safe area is the hard ceiling; if the children
+    // genuinely do not fit inside it they get scaled down to, not the container
+    // scaled up past it.
+    // Not merely inside the safe area — visibly inside it. A container sized
+    // to the safe area exactly runs to within a hair of the canvas edge, and
+    // with its own content drawn right up to its border it reads as a frame
+    // that has been cut off rather than one that fits. Leaving a real margin is
+    // the difference between "large" and "overflowing".
+    const CONTAINER_MAX_FRACTION = 0.9;
+    parent.width = Math.min(parent.width, safe.width * CONTAINER_MAX_FRACTION);
+    parent.height = Math.min(parent.height, safe.height * CONTAINER_MAX_FRACTION);
   }
 
   // Only top-level objects compete for regions; children ride their parent.
   const byRegion = new Map<string, StageBox[]>();
   boxes.forEach((box, index) => {
     if (box.parentId && byId.has(box.parentId)) return;
+    if (isDerivedVector(box)) return;
     const region = composition.place?.[objects[index].id] ?? objects[index].at;
     if (!byRegion.has(region)) byRegion.set(region, []);
     byRegion.get(region)!.push(box);
@@ -964,7 +1023,8 @@ export function layoutStage(
   // relative to their parent afterwards, so a nested object cannot be shoved
   // out of the container it belongs to.
   const topLevel = boxes.filter((b) => !b.parentId || !byId.has(b.parentId));
-  separate(topLevel, gutter, safe);
+  packRows(topLevel, gutter, safe);
+  separate(topLevel.filter((b) => !isDerivedVector(b)), gutter, safe);
   fitToSafeArea(topLevel, safe);
   placeChildren(childrenOf, byId, unit);
 
@@ -1008,24 +1068,171 @@ const FILL_TARGET = 0.94;
  * Runs AFTER separation, so it can never reintroduce an overlap — a uniform
  * scale about a common origin preserves the sign of every gap, and gaps only
  * grow when the scale is >= 1. */
+
+/** Which horizontal band a region belongs to. Regions carry both a row and a
+ * column; only the row matters for vertical packing. */
+const REGION_ROW: Record<string, number> = {
+  top: 0,
+  "top-left": 0,
+  "top-right": 0,
+  left: 1,
+  center: 1,
+  right: 1,
+  bottom: 2,
+  "bottom-left": 2,
+  "bottom-right": 2,
+};
+
+/** Collapses the dead space BETWEEN rows before the frame is filled.
+ *
+ * Region anchors are absolute fractions of the safe area — `top` is 10% down,
+ * `bottom` is 90% down — so any scene using both already spans nearly the whole
+ * height no matter how small its objects are. `fitToSafeArea` then measures that
+ * full-height bounding box, concludes the composition already fills the frame,
+ * and scales by 1. The result is the failure this engine kept producing: two or
+ * three small cards stranded in a column with enormous voids between them, which
+ * reads as a broken render rather than as a composition.
+ *
+ * The emptiness is INTERIOR — between the rows — so no amount of scaling the
+ * outer box can reach it. It has to be removed before the fit runs. Rows are
+ * packed against each other with a single gutter and centred; the fit step then
+ * has real room to grow into and the objects come out large.
+ *
+ * Only vertical: horizontal arrangement within a row is a relationship the
+ * author expressed (this is left of that) and must survive untouched. */
+/** A vector bound to a host is DERIVED geometry: the renderer recomputes where
+ * it sits from its host's position and its own reference frame every frame. Its
+ * laid-out coordinates are therefore meaningless, and letting them take part in
+ * placement is actively harmful — it would claim a region of its own, shove the
+ * object it describes out of the way, and stretch the bounding box the fill
+ * step measures. It still has to be SCALED with everything else, so it is
+ * excluded from placement decisions rather than from the layout. */
+function isDerivedVector(box: StageBox): boolean {
+  return box.kind === "vector" && !!box.attachTo;
+}
+
+/** Where a box actually OCCUPIES space, which for a derived vector is not where
+ * it was laid out.
+ *
+ * The renderer positions a bound vector from its host and its reference frame
+ * every frame, so its laid-out coordinates are a placeholder. Anything that
+ * measures the composition — the fill step, and the camera that auto-frames on
+ * it — has to use the real extent instead, or they disagree with the renderer:
+ * the camera once re-centred a scene on the placeholder position and pushed the
+ * arrow it was supposed to be framing clean off the canvas.
+ *
+ * A world-framed vector holds a fixed bearing, so its extent is exact. A
+ * body-framed one turns with its host and can end up anywhere on the circle it
+ * sweeps, so the whole circle is the only honest bound. */
+export function boxExtent(
+  box: StageBox,
+  byId: Map<string, StageBox>,
+  includeCaption = false,
+): { minX: number; maxX: number; minY: number; maxY: number } {
+  const capW = includeCaption ? Math.max(box.width, box.captionWidth) : box.width;
+  const capH = includeCaption ? box.captionHeight : 0;
+  if (!isDerivedVector(box)) {
+    return {
+      minX: box.x - capW / 2,
+      maxX: box.x + capW / 2,
+      minY: box.y - box.height / 2,
+      maxY: box.y + box.height / 2 + capH,
+    };
+  }
+  const host = byId.get(box.attachTo!);
+  if (!host) return { minX: box.x, maxX: box.x, minY: box.y, maxY: box.y };
+  // Matches what the renderer actually draws: the arrow's centre sits half its
+  // own height beyond the host's edge, and it extends another half-height to
+  // its tip. Under-reserving here is what let a caption get clamped back onto
+  // the arrowhead it was naming.
+  const reach = Math.max(host.width, host.height) / 2 + box.height;
+  // A caption past the tip needs BOTH its half-width along the direction and a
+  // line of height clear of the arrowhead.
+  const padX = includeCaption ? box.captionWidth / 2 + box.captionHeight : 0;
+  const padY = includeCaption ? box.captionHeight * 1.6 : 0;
+  if (box.frame !== "body") {
+    const a = ((box.dir ?? 0) - 90) * (Math.PI / 180);
+    const tipX = host.x + Math.cos(a) * (reach + padX);
+    const tipY = host.y + Math.sin(a) * (reach + padY);
+    return {
+      minX: Math.min(host.x, tipX),
+      maxX: Math.max(host.x, tipX),
+      minY: Math.min(host.y, tipY),
+      maxY: Math.max(host.y, tipY),
+    };
+  }
+  const r = reach + Math.max(padX, padY);
+  return { minX: host.x - r, maxX: host.x + r, minY: host.y - r, maxY: host.y + r };
+}
+
+function packRows(boxes: StageBox[], gutter: number, safe: { y: number; height: number }): void {
+  const visible = boxes.filter((b) => !b.hidden && !isDerivedVector(b));
+  if (visible.length < 2) return;
+
+  const rows = new Map<number, StageBox[]>();
+  for (const box of visible) {
+    const row = REGION_ROW[box.homeRegion] ?? 1;
+    if (!rows.has(row)) rows.set(row, []);
+    rows.get(row)!.push(box);
+  }
+  // One row has no gaps to close, and packing it would only re-centre a
+  // composition the author may have deliberately placed high or low.
+  if (rows.size < 2) return;
+
+  const ordered = [...rows.entries()].sort((a, b) => a[0] - b[0]);
+  // A row is as tall as its tallest member, caption included — the caption is
+  // part of the footprint, and ignoring it is what let labels collide with the
+  // row beneath.
+  const heights = ordered.map(([, group]) => Math.max(...group.map((b) => b.height + b.captionHeight)));
+  const total = heights.reduce((sum, h) => sum + h, 0) + gutter * (ordered.length - 1);
+
+  let cursor = safe.y + (safe.height - total) / 2;
+  ordered.forEach(([, group], index) => {
+    const rowHeight = heights[index];
+    const centre = cursor + rowHeight / 2;
+    for (const box of group) {
+      // Centred on the row by the SHAPE, not by the shape-plus-caption, so a
+      // captioned object and an uncaptioned one in the same row still line up
+      // along their silhouettes the way the eye expects.
+      box.y = centre - box.captionHeight / 2;
+    }
+    cursor += rowHeight + gutter;
+  });
+}
+
 function fitToSafeArea(boxes: StageBox[], safe: { x: number; y: number; width: number; height: number }): void {
   const visible = boxes.filter((b) => !b.hidden);
   if (visible.length === 0) return;
 
-  const minX = Math.min(...visible.map((b) => b.x - Math.max(b.width, b.captionWidth) / 2));
-  const maxX = Math.max(...visible.map((b) => b.x + Math.max(b.width, b.captionWidth) / 2));
-  const minY = Math.min(...visible.map((b) => b.y - b.height / 2));
-  const maxY = Math.max(...visible.map((b) => b.y + b.height / 2 + b.captionHeight));
+  // A derived vector has no meaningful laid-out position — the renderer works
+  // out where it sits from its host and its frame every frame — but it is still
+  // drawn, so it still has to be IN SHOT. And because a body-framed vector
+  // swings all the way round its host as that host turns, the only bound that
+  // holds for every frame is the whole circle it can sweep. Measuring its
+  // authored coordinates instead would fit a composition that is correct on
+  // frame one and hangs off the edge by frame sixty.
+  const byIdLocal = new Map(boxes.map((b) => [b.id, b]));
+  const bounds = visible.map((b) => boxExtent(b, byIdLocal, true));
+  const minX = Math.min(...bounds.map((b) => b.minX));
+  const maxX = Math.max(...bounds.map((b) => b.maxX));
+  const minY = Math.min(...bounds.map((b) => b.minY));
+  const maxY = Math.max(...bounds.map((b) => b.maxY));
   const contentW = maxX - minX;
   const contentH = maxY - minY;
   if (contentW <= 0 || contentH <= 0) return;
 
   const scale = Math.min(maxFillScale(visible.length), (safe.width * FILL_TARGET) / contentW, (safe.height * FILL_TARGET) / contentH);
-  // Only ever grow. Shrinking here would fight `separate`, which has already
-  // guaranteed the boxes fit; a scale below 1 would mean the safe area is
-  // smaller than the minimum legible layout, and the answer to that is fewer
-  // objects, not smaller type.
-  const applied = Math.max(1, scale);
+  // Normally only ever grow: `separate` has already guaranteed the placed boxes
+  // fit, so a scale below 1 would just shrink type for no reason.
+  //
+  // DERIVED VECTORS BREAK THAT GUARANTEE. They are positioned by the renderer
+  // from their host rather than by `separate`, so they can legitimately reach
+  // outside the safe area — and the "only grow" rule then left an arrowhead and
+  // its label hanging off the edge with nothing able to pull them back. When
+  // the content genuinely does not fit, shrinking is the correct answer, with a
+  // floor so a busy scene degrades into smaller type rather than nothing.
+  const hasDerived = boxes.some(isDerivedVector);
+  const applied = hasDerived ? Math.max(0.62, scale) : Math.max(1, scale);
 
   const centreX = (minX + maxX) / 2;
   const centreY = (minY + maxY) / 2;
@@ -1044,6 +1251,16 @@ function fitToSafeArea(boxes: StageBox[], safe: { x: number; y: number; width: n
   // Final containment pass. The scale is chosen to fit, but a HIDDEN box can
   // sit outside the visible bbox and would otherwise be flung further out.
   for (const box of boxes) {
+    // SIZE before position. A box wider than the safe area makes the clamp
+    // below meaningless — its lower bound lands to the RIGHT of its upper
+    // bound, so `min(max(...))` returns whichever nonsense the inverted range
+    // yields and the box keeps its oversized width regardless. Anything drawn
+    // from that width then runs off the canvas: a phrase's underline rule
+    // spanned the entire frame this way. Nothing may be larger than the space
+    // it has to live in.
+    box.width = Math.min(box.width, safe.width);
+    box.height = Math.min(box.height, safe.height);
+    box.captionWidth = Math.min(box.captionWidth, safe.width);
     box.x = Math.min(Math.max(box.x, safe.x + box.width / 2), safe.x + safe.width - box.width / 2);
     box.y = Math.min(Math.max(box.y, safe.y + box.height / 2), safe.y + safe.height - box.height / 2);
   }
@@ -1054,11 +1271,13 @@ function fitToSafeArea(boxes: StageBox[], safe: { x: number; y: number; width: n
 export function contentBounds(boxes: StageBox[]): { minX: number; minY: number; maxX: number; maxY: number } | null {
   const visible = boxes.filter((b) => !b.hidden);
   if (visible.length === 0) return null;
+  const byId = new Map(boxes.map((b) => [b.id, b]));
+  const extents = visible.map((b) => boxExtent(b, byId));
   return {
-    minX: Math.min(...visible.map((b) => b.x - b.width / 2)),
-    maxX: Math.max(...visible.map((b) => b.x + b.width / 2)),
-    minY: Math.min(...visible.map((b) => b.y - b.height / 2)),
-    maxY: Math.max(...visible.map((b) => b.y + b.height / 2)),
+    minX: Math.min(...extents.map((e) => e.minX)),
+    maxX: Math.max(...extents.map((e) => e.maxX)),
+    minY: Math.min(...extents.map((e) => e.minY)),
+    maxY: Math.max(...extents.map((e) => e.maxY)),
   };
 }
 
@@ -1109,6 +1328,39 @@ function placeChildren(childrenOf: Map<string, StageBox[]>, byId: Map<string, St
     const padding = parent.width * 0.06;
     const header = parent.height * 0.2;
     const inner = unit * 0.018;
+
+    // If the children declared DIFFERENT regions, they are describing a spatial
+    // arrangement inside their parent and it has to survive. Three pins on a
+    // map at top-left, centre and bottom-right mean three places in a city;
+    // grid-packing them put all three in a neat row, which says the opposite —
+    // the whole point of that scene is that the visits are scattered.
+    const distinct = new Set(kids.map((k) => k.homeRegion));
+    if (distinct.size > 1) {
+      const innerX = parent.x - parent.width / 2 + padding;
+      const innerY = parent.y - parent.height / 2 + padding + header;
+      const innerW = parent.width - padding * 2;
+      const innerH = parent.height - padding * 2 - header;
+      // Cap a nested child so it cannot swallow the region it lives in.
+      const maxW = innerW * 0.42;
+      const maxH = innerH * 0.42;
+      const seen = new Map<StageRegion, number>();
+      for (const kid of kids) {
+        const anchor = REGION_ANCHORS[kid.homeRegion] ?? REGION_ANCHORS.center;
+        kid.width = Math.min(kid.width, maxW);
+        kid.height = Math.min(kid.height, maxH);
+        // Two children genuinely sharing a region still must not stack.
+        const n = seen.get(kid.homeRegion) ?? 0;
+        seen.set(kid.homeRegion, n + 1);
+        const nudge = n === 0 ? 0 : (n % 2 === 1 ? 1 : -1) * Math.ceil(n / 2) * (kid.width + inner);
+        const cx = innerX + innerW * anchor.fx + nudge;
+        const cy = innerY + innerH * anchor.fy;
+        // Never outside the parent, whatever the anchor and nudge worked out to.
+        kid.x = Math.max(innerX + kid.width / 2, Math.min(innerX + innerW - kid.width / 2, cx));
+        kid.y = Math.max(innerY + kid.height / 2, Math.min(innerY + innerH - kid.height / 2, cy));
+      }
+      continue;
+    }
+
     const acrossRow = Math.min(kids.length, kids.length > 3 ? 2 : kids.length);
     const rows = Math.ceil(kids.length / acrossRow);
 

@@ -418,5 +418,35 @@
     "source": "https://api.iconify.design/simple-icons/microsoftedge.svg",
     "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
     "fetchedAt": "2026-08-19T12:42:18.541Z"
+  },
+  "google": {
+    "slug": "google",
+    "title": "Google",
+    "hex": "#4285F4",
+    "monochrome": true,
+    "staticPath": "assets/logos/google.svg",
+    "source": "https://cdn.simpleicons.org/google",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-20T16:01:38.749Z"
+  },
+  "tiktok": {
+    "slug": "tiktok",
+    "title": "TikTok",
+    "hex": "#000000",
+    "monochrome": true,
+    "staticPath": "assets/logos/tiktok.svg",
+    "source": "https://cdn.simpleicons.org/tiktok",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-20T16:01:38.860Z"
+  },
+  "instagram": {
+    "slug": "instagram",
+    "title": "Instagram",
+    "hex": "#FF0069",
+    "monochrome": true,
+    "staticPath": "assets/logos/instagram.svg",
+    "source": "https://cdn.simpleicons.org/instagram",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-20T16:01:39.525Z"
   }
 }

@@ -322,3 +322,25 @@ describe("diagnoseStageScenes — mechanics declared on one side only", () => {
     expect(categories(scene)).not.toContain("react-without-mascot");
   });
 });
+
+describe("caption width against the frame edge", () => {
+  it("reports a long label on an object parked in an edge region", () => {
+    const found = categories(
+      stageScene({
+        objects: [{ id: "p2", kind: "profile", label: "someone you have never met", at: "right" }],
+        timeline: [{ type: "enter", id: "p2", startSeconds: 0.4 }],
+      }),
+    );
+    expect(found).toContain("caption-too-wide");
+  });
+
+  it("stays quiet for the same label on a centred object", () => {
+    const found = categories(
+      stageScene({
+        objects: [{ id: "p2", kind: "profile", label: "someone you have never met", at: "center" }],
+        timeline: [{ type: "enter", id: "p2", startSeconds: 0.4 }],
+      }),
+    );
+    expect(found).not.toContain("caption-too-wide");
+  });
+});

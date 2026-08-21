@@ -120,10 +120,14 @@ describe("layoutStage", () => {
   });
 
   it("moves an object when a composition places it elsewhere", () => {
-    const objects = objectsFor(["top-left", "bottom-right"]);
+    // n1 stays in the middle row in both layouts, so n0 genuinely changes row
+    // (above it, then below it). Comparing against a second object that also
+    // moved would compare two re-centred compositions and prove nothing.
+    const objects = objectsFor(["top-left", "center"]);
     const home = layoutStage(objects, [], {}, { frame: PORTRAIT });
     const moved = layoutStage(objects, [], { place: { n0: "bottom-right" }, emphasis: { n0: "lead" } }, { frame: PORTRAIT });
-    expect(moved.boxes[0].y).toBeGreaterThan(home.boxes[0].y);
+    expect(home.boxes[0].y).toBeLessThan(home.boxes[1].y);
+    expect(moved.boxes[0].y).toBeGreaterThan(moved.boxes[1].y);
     expect(moved.boxes[0].width).toBeGreaterThan(home.boxes[0].width);
   });
 
@@ -177,8 +181,8 @@ describe("pointOnStageEdge", () => {
   it("returns the endpoints at t=0 and t=1", () => {
     const [edge] = routeStageEdges(
       [
-        { id: "a", kind: "client", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, captionBelow: false, captionHeight: 0, captionWidth: 0, hidden: false, x: 100, y: 100, width: 50, height: 50 },
-        { id: "b", kind: "server", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, captionBelow: false, captionHeight: 0, captionWidth: 0, hidden: false, x: 400, y: 100, width: 50, height: 50 },
+        { id: "a", kind: "client", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, homeRegion: "center", captionBelow: false, captionHeight: 0, captionWidth: 0, hidden: false, x: 100, y: 100, width: 50, height: 50 },
+        { id: "b", kind: "server", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, homeRegion: "center", captionBelow: false, captionHeight: 0, captionWidth: 0, hidden: false, x: 400, y: 100, width: 50, height: 50 },
       ],
       [{ from: "a", to: "b" }],
       1080,
@@ -521,5 +525,42 @@ describe("layoutStage — a split pane sizes against the pane, not the canvas", 
     const widthOf = (layout: typeof split, id: string) => layout.boxes.find((b) => b.id === id)!.width;
     expect(widthOf(split, "you")).toBeLessThan(widthOf(whole, "you"));
     expect(widthOf(split, "them")).toBeLessThan(widthOf(whole, "them"));
+  });
+});
+
+describe("a container never grows past the frame", () => {
+  it("keeps a lead container with several children inside the safe area", () => {
+    const layout = layoutStage(
+      [
+        { id: "map", kind: "map", label: "your week", at: "center", emphasis: "lead" },
+        { id: "a", kind: "pin", label: "gym", at: "top-left", parent: "map" },
+        { id: "b", kind: "pin", label: "gym again", at: "right", parent: "map" },
+        { id: "c", kind: "pin", label: "sports shop", at: "bottom-left", parent: "map" },
+      ],
+      [],
+      {},
+      { frame: PORTRAIT },
+    );
+    const safe = defaultSafeArea(PORTRAIT);
+    const map = layout.boxes.find((b) => b.id === "map")!;
+    expect(map.x - map.width / 2).toBeGreaterThanOrEqual(safe.x - 1);
+    expect(map.x + map.width / 2).toBeLessThanOrEqual(safe.x + safe.width + 1);
+  });
+
+  it("scatters nested children by their declared region instead of packing a row", () => {
+    const layout = layoutStage(
+      [
+        { id: "map", kind: "map", label: "your week", at: "center", emphasis: "lead" },
+        { id: "a", kind: "pin", label: "gym", at: "top-left", parent: "map" },
+        { id: "b", kind: "pin", label: "shop", at: "bottom-right", parent: "map" },
+      ],
+      [],
+      {},
+      { frame: PORTRAIT },
+    );
+    const a = layout.boxes.find((b) => b.id === "a")!;
+    const b = layout.boxes.find((b) => b.id === "b")!;
+    expect(b.x).toBeGreaterThan(a.x);
+    expect(b.y).toBeGreaterThan(a.y);
   });
 });

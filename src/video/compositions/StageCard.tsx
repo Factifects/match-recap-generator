@@ -65,6 +65,7 @@ function accentSet(primary: string, primaryRgb: string, neutral: string, neutral
     warn: { stroke: "#f59e0b", fill: "rgba(245, 158, 11, 0.14)", glow: "rgba(245, 158, 11, 0.30)" },
     success: { stroke: "#22c55e", fill: "rgba(34, 197, 94, 0.14)", glow: "rgba(34, 197, 94, 0.30)" },
     danger: { stroke: "#f43f5e", fill: "rgba(244, 63, 94, 0.16)", glow: "rgba(244, 63, 94, 0.34)" },
+    profile: { stroke: "#c084fc", fill: "rgba(192, 132, 252, 0.15)", glow: "rgba(192, 132, 252, 0.32)" },
   };
 }
 
@@ -206,7 +207,31 @@ const FLOW_STYLES: Record<string, { color: string; shape: "chevron" | "pill" | "
   encrypted: { color: "#5eead4", shape: "card", glyph: "🔒" },
 };
 
+/** Kinds whose silhouette already draws whatever state they are in, so the
+ * state chip would only restate it. */
+const SELF_EVIDENT_STATE = new Set(["phonebook", "globe", "profile", "prediction"]);
 const DIMMED = 0.28;
+/** On cream, 28% opacity is invisible. A receded object still has to READ as a
+ * receded object rather than disappear, so the light floor is much higher. */
+const DIMMED_LIGHT = 0.55;
+
+/** LIGHT-GROUND ACCENTS. The dark palette is built from colours that glow on
+ * black — bright cyan, pale violet, soft amber — and every one of them washes
+ * out on cream. These are their counterparts: dark, saturated strokes that hold
+ * their own against a warm ivory canvas, with fills opaque enough to separate a
+ * shape from the background instead of tinting it invisibly.
+ *
+ * The meanings are fixed so a viewer learns them: navy is structure and
+ * reality, blue is a digital signal, orange is advertising and commercial
+ * intent, green is a control the viewer holds, red is the misconception. */
+const LIGHT_ACCENTS: AccentSet = {
+  neutral: { stroke: "#1f2a44", fill: "#e7e9ef", glow: "rgba(31, 42, 68, 0)" },
+  primary: { stroke: "#1d4ed8", fill: "#dbe6fb", glow: "rgba(29, 78, 216, 0.22)" },
+  warn: { stroke: "#c2410c", fill: "#fbdfc9", glow: "rgba(194, 65, 12, 0.24)" },
+  success: { stroke: "#15803d", fill: "#d7efdf", glow: "rgba(21, 128, 61, 0.22)" },
+  danger: { stroke: "#b91c1c", fill: "#fadada", glow: "rgba(185, 28, 28, 0.24)" },
+  profile: { stroke: "#6d28d9", fill: "#e6dcfa", glow: "rgba(109, 40, 217, 0.24)" },
+};
 /** How long a callout holds at full strength before clearing. Long enough to
  * read a short phrase, short enough that the next beat starts clean. */
 const ANNOTATION_HOLD_SECONDS = 2.2;
@@ -363,8 +388,22 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
   const gridArrivesAt = (data.timeline ?? []).find((a) => a.type === "expand")?.startSeconds;
   const cityClock = gridArrivesAt !== undefined && atSeconds > gridArrivesAt ? gridArrivesAt : atSeconds;
 
+  /** THE GROUND AND THE INK. Every hardcoded white in this file assumed a
+   * near-black canvas; on a cream one they vanish. Deriving both from a single
+   * theme keeps a scene internally consistent instead of half-converted. */
+  const light = (data.theme ?? "dark") === "light";
+  const INK = light ? "#1a2338" : "#ffffff";
+  const INK_SOFT = light ? "rgba(26, 35, 56, 0.62)" : "#9fb0cc";
+  const INK_FAINT = light ? "rgba(26, 35, 56, 0.28)" : "rgba(160, 174, 202, 0.28)";
+  const PLATE = light ? "rgba(255, 251, 242, 0.86)" : "rgba(9, 11, 15, 0.8)";
+  /** The dark body a `surface: "dark"` object fills with. Deep navy rather than
+   * black: black on cream reads as a hole punched in the page, navy reads as an
+   * object sitting on it. */
+  const DARK_ANCHOR = "#16203a";
+  const BACKING = light ? "rgba(253, 248, 238, 0.95)" : "rgba(9, 12, 18, 0.95)";
+
   const world = WORLDS[data.world ?? "network"] ?? WORLDS.network;
-  const ACCENTS = world.accents;
+  const ACCENTS = light ? LIGHT_ACCENTS : world.accents;
   const EDGE_COLOR = world.edge;
   const energy = ENERGY[data.energy ?? "active"] ?? 1;
 
@@ -541,6 +580,14 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
   const spotlights = new Map<string, number>();
   /** Which objects are being READ, and how far through. */
   const scans = new Map<string, { t: number; locked: boolean }>();
+  /** Radios currently radiating, and which way. Held per object rather than
+   * per action so two broadcasts on the same subject cannot draw two ring
+   * families on top of each other. */
+  const broadcasts = new Map<string, { t: number; direction: "out" | "in"; reach: number; rings: number; accent?: StageAccent }>();
+  /** Current heading per object, in degrees clockwise from upright, plus the
+   * heading it started this turn from so a trail can draw the arc actually
+   * swept rather than a full circle. */
+  const rotations = new Map<string, { angle: number; from: number; trail: boolean }>();
   /** What is COVERING each object, and how completely. */
   const occlusions = new Map<string, { area: string; amount: number }>();
   /** When each packet was last acted on, so one left parked can time out. */
@@ -738,6 +785,40 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
         // Held after it completes, so a locked-on reticle stays around the
         // subject instead of vanishing the instant it succeeds.
         if (t > 0) scans.set(action.id, { t: Math.min(1, t), locked: t >= 1 });
+        break;
+      }
+      case "rotate": {
+        const dur = action.durationSeconds ?? 1.4;
+        const t = progress(atSeconds, action.startSeconds, dur);
+        // Successive rotates chain. The timeline is replayed in order every
+        // frame, so by the time this action is reached the map already holds
+        // the heading every earlier rotate left the object at — which is what
+        // this one sweeps FROM. Treating `to` as an absolute heading rather
+        // than a delta is what keeps that replay stable.
+        const from = rotations.get(action.id)?.angle ?? 0;
+        rotations.set(action.id, {
+          angle: from + (action.to - from) * t,
+          from,
+          trail: action.trail ?? false,
+        });
+        break;
+      }
+      case "broadcast": {
+        const dur = action.durationSeconds ?? 2.4;
+        const t = rawProgress(atSeconds, action.startSeconds, dur);
+        // Only while it is actually radiating. A transmitter that keeps
+        // pulsing after its beat has passed is decoration, and on a board of
+        // several radios it would make every one of them look live at once —
+        // destroying the one comparison the whole scene exists to make.
+        if (t > 0 && t < 1) {
+          broadcasts.set(action.id, {
+            t,
+            direction: action.direction ?? "out",
+            reach: action.reach ?? 2.4,
+            rings: action.rings ?? 3,
+            accent: action.accent,
+          });
+        }
         break;
       }
       case "occlude": {
@@ -938,7 +1019,11 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
           decimals > 0
             ? raw.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
             : Math.round(raw).toLocaleString("en-US");
-        const text = `${action.prefix ?? ""}${shown}${action.suffix ? ` ${action.suffix}` : ""}`;
+        const suffix = action.suffix ?? "";
+        // "71 % likely" is not how a percentage is written. A suffix beginning
+        // with a symbol binds tight to the digits; only a word gets a space.
+        const glued = /^[^A-Za-z0-9]/.test(suffix);
+        const text = `${action.prefix ?? ""}${shown}${suffix ? `${glued ? "" : " "}${suffix}` : ""}`;
         // A row-targeted count writes into the interface; an object-targeted
         // one writes on the object, as before.
         if (action.row) rowCounters.set(`${action.id}:${action.row}`, text);
@@ -1042,14 +1127,44 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
     };
   };
 
+
+  /** Anchors a `vector` to the object it belongs to and points it where its
+   * reference frame says. Non-vectors pass through untouched. */
+  const vectorAngle = (box: StageBox): number => {
+    if (box.kind !== "vector") return rotations.get(box.id)?.angle ?? 0;
+    const own = box.dir ?? 0;
+    // Only a BODY-framed vector inherits its host's rotation. A world-framed
+    // one deliberately ignores it — that indifference is the lesson.
+    const hostSpin = box.frame === "body" && box.attachTo ? (rotations.get(box.attachTo)?.angle ?? 0) : 0;
+    return own + hostSpin;
+  };
+  const resolveVector = (box: StageBox): StageBox => {
+    if (box.kind !== "vector" || !box.attachTo) return box;
+    const host = boxById.get(box.attachTo);
+    if (!host) return box;
+    const hostGeo = geometryFor(host);
+    // Drawn growing OUT of its host rather than through it: the base sits at
+    // the host's edge and the head points away, which is how a force or a
+    // field reads. Centred on the host, the arrow would look like a skewer.
+    const angle = (vectorAngle(box) - 90) * (Math.PI / 180);
+    const reach = Math.max(hostGeo.width, hostGeo.height) / 2 + box.height / 2;
+    return { ...box, x: hostGeo.x + Math.cos(angle) * reach, y: hostGeo.y + Math.sin(angle) * reach };
+  };
+
   const opacityFor = (id: string): number => {
     // Everything that is NOT the expanded entity clears out of its way.
     if (expandedId && id !== expandedId) return (visibility.get(id) ?? 1) * (1 - expansionAmount);
     const present = visibility.get(id) ?? 1;
-    const focused = focusIds.length === 0 || focusIds.includes(id) ? 1 : DIMMED;
+    // Opacity is a DARK-GROUND lever. Fading toward black still leaves a shape
+    // readable; fading toward cream erases it, which is how a receded object
+    // became "light on light". On the light ground de-emphasis therefore runs a
+    // much shallower range, and carries most of its weight through saturation
+    // and stroke weight instead.
+    const dim = light ? DIMMED_LIGHT : DIMMED;
+    const focused = focusIds.length === 0 || focusIds.includes(id) ? 1 : dim;
     let emphasisOpacity = 1;
-    if (recededIds.has(id)) emphasisOpacity = 0.42;
-    else if (leadIds.size > 0 && !leadIds.has(id)) emphasisOpacity = 0.62;
+    if (recededIds.has(id)) emphasisOpacity = light ? 0.74 : 0.42;
+    else if (leadIds.size > 0 && !leadIds.has(id)) emphasisOpacity = light ? 0.86 : 0.62;
     return present * focused * emphasisOpacity;
   };
 
@@ -1181,7 +1296,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
 
   return (
     <SceneFrame
-      backgroundColor={backgroundColor}
+      backgroundColor={light ? "light" : backgroundColor}
       backgroundImage={backgroundImage}
       backgroundImageMode={backgroundImageMode}
       backgroundImageSide={backgroundImageSide}
@@ -1235,7 +1350,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                           // headline lands. Both drop inside their own half.
                           y={vertical ? areas[key].y - px * 0.5 : areas[key].y + px * 1.7}
                           textAnchor="middle"
-                          fill="#8fa2bf"
+                          fill={light ? "rgba(26, 35, 56, 0.58)" : "#8fa2bf"}
                           fontFamily={MONO_FONT}
                           fontWeight={700}
                           fontSize={px}
@@ -1340,6 +1455,82 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                 );
               })()
             : null}
+          {/* ANGULAR DISPLACEMENT, drawn as the arc actually swept. A turning
+              object shows THAT it turned; the arc behind it shows BY HOW MUCH,
+              which is the difference between rotation and a measurement of
+              rotation — and the whole reason a gyroscope is worth a scene. */}
+          {[...rotations.entries()].map(([id, rot]) => {
+            if (!rot.trail || Math.abs(rot.angle - rot.from) < 0.5) return null;
+            const laid = boxById.get(id);
+            if (!laid) return null;
+            const op = opacityFor(id);
+            if (op <= 0.05) return null;
+            const geo = geometryFor(laid);
+            const r = Math.max(geo.width, geo.height) * 0.66;
+            // SVG angles run clockwise from three o'clock; headings run
+            // clockwise from twelve. The -90 lines the two up so the arc starts
+            // where the object's own "up" was pointing when the turn began.
+            const a0 = (rot.from - 90) * (Math.PI / 180);
+            const a1 = (rot.angle - 90) * (Math.PI / 180);
+            const sweep = Math.abs(rot.angle - rot.from);
+            const large = sweep > 180 ? 1 : 0;
+            const dir = rot.angle >= rot.from ? 1 : 0;
+            const p0 = { x: geo.x + Math.cos(a0) * r, y: geo.y + Math.sin(a0) * r };
+            const p1 = { x: geo.x + Math.cos(a1) * r, y: geo.y + Math.sin(a1) * r };
+            return (
+              <g key={`tr-${id}`} opacity={op * 0.85} fill="none">
+                <path
+                  d={`M ${p0.x} ${p0.y} A ${r} ${r} 0 ${large} ${dir} ${p1.x} ${p1.y}`}
+                  stroke={ACCENTS.warn.stroke}
+                  strokeWidth={unit * 0.008}
+                  strokeLinecap="round"
+                />
+                <circle cx={p1.x} cy={p1.y} r={unit * 0.011} fill={ACCENTS.warn.stroke} />
+              </g>
+            );
+          })}
+          {/* RADIO FIELDS, under the objects that make them: a transmission is
+              something the space around a device is doing, so the rings pass
+              beneath the device rather than over it. Drawn here, next to the
+              connectors, because both are the medium rather than the subject. */}
+          {[...broadcasts.entries()].map(([id, bc]) => {
+            const box = boxById.get(id);
+            if (!box) return null;
+            const op = opacityFor(id);
+            if (op <= 0.05) return null;
+            const geo = geometryFor(box);
+            const base = Math.max(geo.width, geo.height) / 2;
+            const stroke = (bc.accent ? ACCENTS[bc.accent] : ACCENTS[box.accent]).stroke;
+            return (
+              <g key={`bc-${id}`} opacity={op} fill="none" strokeLinecap="round">
+                {Array.from({ length: bc.rings }).map((_, i) => {
+                  // Each ring is the same journey started at a different time,
+                  // so they chase each other outward instead of pulsing in
+                  // unison — a single synchronised throb reads as the object
+                  // breathing, which is decoration, not transmission.
+                  const phase = (bc.t * 1.6 + i / bc.rings) % 1;
+                  // OUT: born at the object, travelling away, fading as it goes.
+                  // IN: born far away, arriving, strengthening as it lands.
+                  // That inversion is the whole statement — a receiver sits in
+                  // someone else's field and never fills one of its own.
+                  const travel = bc.direction === "out" ? phase : 1 - phase;
+                  const r = base * (1 + travel * bc.reach);
+                  const strength = bc.direction === "out" ? 1 - phase : phase;
+                  return (
+                    <circle
+                      key={i}
+                      cx={geo.x}
+                      cy={geo.y}
+                      r={r}
+                      stroke={stroke}
+                      strokeWidth={unit * 0.005 * (0.5 + strength)}
+                      opacity={0.1 + strength * 0.62}
+                    />
+                  );
+                })}
+              </g>
+            );
+          })}
           {/* Connectors under everything — a wire is context, not a subject. */}
           {layout.edges.map((edge, i) => {
             const draw = connected.get(`${edge.from}->${edge.to}`) ?? 1;
@@ -1400,10 +1591,37 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
           {[...layout.boxes]
             .sort((a, b) => Number(b.isContainer) - Number(a.isContainer))
             .map((laidOut) => {
-            const box = geometryFor(laidOut);
+            const laidOutGeo = geometryFor(laidOut);
+            // A VECTOR IS RESOLVED AGAINST ITS FRAME, not placed like an
+            // ordinary object. It grows out of the thing it describes, and
+            // which way it aims is the whole statement:
+            //   world — holds its heading while its host turns (gravity keeps
+            //           pointing down, magnetic north keeps pointing north);
+            //   body  — turns with its host (the device's own screen-up axis).
+            // Showing both on one rotating object is the demonstration; saying
+            // "this one is absolute and this one is relative" is not.
+            const box = resolveVector(laidOutGeo);
             const op = opacityFor(box.id);
             if (op <= 0.01) return null;
-            const accent = ACCENTS[accents.get(box.id) ?? "neutral"];
+            const rawAccent = ACCENTS[accents.get(box.id) ?? "neutral"];
+            // A DARK ANCHOR keeps its accent as the outline — so an ad card is
+            // still unmistakably the orange thing — but fills with deep navy
+            // instead of a pale tint. Only on light: on a dark canvas a dark
+            // body is just a hole.
+            const darkSurface = light && box.surface === "dark";
+            const accent = darkSurface ? { ...rawAccent, fill: DARK_ANCHOR } : rawAccent;
+            // The one place light-on-light inverts correctly: light type on a
+            // genuinely dark body.
+            // ROTATION TURNS THE SHAPE, NOT THE LABEL. A phone lying on its
+            // side is still called "your phone", and spinning its caption with
+            // it would make the one piece of text in frame unreadable at
+            // exactly the moment the object is doing something worth
+            // explaining. The backing pass shares the transform — a shadow that
+            // stays upright under a turning object reads as a rendering fault.
+            const spin = vectorAngle(box);
+            const shapeTransform = spin === 0 ? undefined : `rotate(${spin} ${box.x} ${box.y})`;
+            const boxInk = darkSurface ? "#fbf7ee" : INK;
+            const boxInkSoft = darkSurface ? "rgba(251, 247, 238, 0.66)" : INK_SOFT;
             const present = visibility.get(box.id) ?? 1;
             // Entering objects scale up slightly into place; a pure fade reads
             // as a slide deck, a slight overshoot reads as arrival.
@@ -1419,7 +1637,20 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
             // pulses is a QR nobody can scan.
             const inanimate = !!box.ui || box.kind === "qr";
             const breathe = isLeadBox && !inanimate ? Math.sin(atSeconds * 2.1 * world.pulse) * 0.012 * energy : 0;
-            const enterScale = (0.9 + 0.1 * present) * (1 + pop * 0.14 + breathe);
+            const rawScale = (0.9 + 0.1 * present) * (1 + pop * 0.14 + breathe);
+            // A pop is an emphasis, and an emphasis must not cost containment.
+            // An object already sized close to the safe area — a container, a
+            // map, anything at `lead` — has nowhere to grow into, so a 14% pop
+            // pushed its edges clean off the canvas and drew its border as two
+            // full-bleed lines across the frame. Growth is capped at whatever
+            // room the object actually has; when there is none it simply does
+            // not grow, which is the correct answer for something already
+            // filling the screen.
+            const roomScale =
+              box.width > 0 && box.height > 0
+                ? Math.min(safeArea.width / box.width, safeArea.height / box.height)
+                : Infinity;
+            const enterScale = Math.min(rawScale, Math.max(1, roomScale));
             // FAILURE AS A PROCESS. A system going down judders and loses
             // colour before it stops; flipping it to red asserts the outage,
             // this one shows it happening.
@@ -1457,7 +1688,13 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                     opacity={impacts.get(box.id)!}
                   />
                 ) : null}
-                {isLead || pop > 0 ? (
+                {/* A GLOW IS A DARK-GROUND DEVICE. On black a soft halo reads
+                    as light coming off the subject; on cream the same rectangle
+                    reads as a stray box drawn around it — and around a sphere or
+                    a dial it is plainly wrong. A deliberate `pop` still flashes,
+                    because that is a momentary emphasis rather than a resting
+                    state. */}
+                {(isLead && !light) || pop > 0 ? (
                   <rect
                     x={box.x - box.width / 2 - 10 - pop * 14}
                     y={box.y - box.height / 2 - 10 - pop * 14}
@@ -1479,9 +1716,16 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                     their labels became unreadable. An object has to separate
                     from whatever it stands on, whatever that happens to be. */}
                 {!box.ui && box.kind !== "hexmap" && box.kind !== "region" ? (
-                  <g opacity={0.9}>
-                    <Silhouette box={box} stroke="rgba(9, 12, 18, 0.95)" fill="rgba(9, 12, 18, 0.95)" strokeWidth={strokeBase * 2.2} />
-                  </g>
+                  light ? (
+                    // Neo-brutalist: one solid offset copy, no blur, no tint.
+                    <g opacity={0.16} transform={`translate(${unit * 0.007} ${unit * 0.007}) ${shapeTransform ?? ""}`}>
+                      <Silhouette box={box} stroke="#1a2338" fill="#1a2338" strokeWidth={strokeBase * 2.2} />
+                    </g>
+                  ) : (
+                    <g opacity={0.9} transform={shapeTransform}>
+                      <Silhouette box={box} stroke={BACKING} fill={BACKING} strokeWidth={strokeBase * 2.2} />
+                    </g>
+                  )
                 ) : null}
                 {(() => {
                   const form = forms.get(box.id);
@@ -1495,7 +1739,11 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                       ? { ...box, states: [phases.get(box.id) ?? box.states[0]] }
                       : box;
                   if (!form || form.t <= 0) {
-                    return <Silhouette box={staged} stroke={accent.stroke} fill={accent.fill} strokeWidth={strokeBase * (isLead ? 1.3 : 1)} />;
+                    return (
+                      <g transform={shapeTransform}>
+                        <Silhouette box={staged} stroke={accent.stroke} fill={accent.fill} strokeWidth={strokeBase * (isLead ? 1.3 : 1)} />
+                      </g>
+                    );
                   }
                   // BOTH representations exist during the change: the old one
                   // fades and contracts while the new one grows in its place.
@@ -1503,7 +1751,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                   // "this became that", which is the actual claim.
                   const after = { ...box, kind: (form.kind ?? box.kind) as typeof box.kind, code: form.code ?? box.code };
                   return (
-                    <g>
+                    <g transform={shapeTransform}>
                       {form.t < 1 ? (
                         <g opacity={1 - form.t} transform={`translate(${box.x} ${box.y}) scale(${1 - form.t * 0.12}) translate(${-box.x} ${-box.y})`}>
                           <Silhouette box={box} stroke={accent.stroke} fill={accent.fill} strokeWidth={strokeBase} />
@@ -1535,13 +1783,13 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                     return (
                       <g>
                         {box.logoPath ? (
-                          <BrandMark box={box} size={markSize} cx={bandX + markSize / 2} cy={bandY - markSize * 0.28} />
+                          <BrandMark box={box} size={markSize} cx={bandX + markSize / 2} cy={bandY - markSize * 0.28} ground={light ? "light" : "dark"} />
                         ) : null}
                         <text
                           x={bandX + (box.logoPath ? markSize * 1.35 : 0)}
                           y={bandY}
                           textAnchor="start"
-                          fill="#8fa2bf"
+                          fill={light ? "rgba(26, 35, 56, 0.58)" : "#8fa2bf"}
                           fontFamily={MONO_FONT}
                           fontWeight={600}
                           fontSize={boxUnit * 0.026}
@@ -1561,7 +1809,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                   return shown.code && shown.code.length > 0 ? (
                     <g opacity={form ? Math.max(0, form.t > 0.5 ? 1 : 1 - form.t * 2) : 1}>
                       {shown.kind === "phrase" ? (
-                        <PhraseLines box={shown} unit={boxUnit} highlighted={codeHighlights.get(box.id)} accent={accent.stroke} />
+                        <PhraseLines box={shown} unit={boxUnit} highlighted={codeHighlights.get(box.id)} accent={accent.stroke} ink={INK} inkFaint={INK_FAINT} />
                       ) : (
                         <CodePane box={shown} unit={boxUnit} highlighted={codeHighlights.get(box.id)} accent={accent.stroke} liftedLine={lifted?.line} liftedAmount={lifted?.t} />
                       )}
@@ -1577,20 +1825,62 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                       const shownSub = form && form.t > 0.5 && form.sublabel !== undefined ? form.sublabel : box.sublabel;
                       const counterText = counters.get(box.id);
                       const subText = counterText ?? shownSub;
-                      const top = box.y + box.height / 2 + labelPx * 0.95;
+                      // A VECTOR IS NAMED AT ITS TIP. Captioning it underneath
+                      // like an ordinary object puts every arrow's label in the
+                      // same place regardless of where the arrow points, so
+                      // three vectors on one host stack their names on top of
+                      // each other. Following the direction separates them by
+                      // the very thing that distinguishes them.
+                      const tipAngle = (spin - 90) * (Math.PI / 180);
+                      // Clearing the tip means clearing the CAPTION's own
+                      // extent along the direction it is offset in. A vertical
+                      // arrow only needs a line's height; a horizontal one needs
+                      // half its label's width, or the text lands on the
+                      // arrowhead it is supposed to be naming.
+                      const tipReach =
+                        box.height / 2 + labelPx * 1.1 + Math.abs(Math.cos(tipAngle)) * (box.captionWidth / 2);
+                      const anchorX = box.kind === "vector" ? box.x + Math.cos(tipAngle) * tipReach : box.x;
+                      const top =
+                        box.kind === "vector"
+                          ? box.y + Math.sin(tipAngle) * tipReach + labelPx * 0.34
+                          : box.y + box.height / 2 + labelPx * 0.95;
+                      // A caption is centred on its object, but an object near
+                      // the frame edge has a caption WIDER than the room left
+                      // beside it — and a centred caption then runs straight off
+                      // the canvas. Nothing may leave the viewport, and clipping
+                      // it is not a fix, so the text slides inward just far
+                      // enough to fit while staying under its own object.
+                      // CLAMPED TO WHAT THE CAMERA CAN SEE, not to the safe
+                      // area. Captions live inside the camera-transformed group,
+                      // so measuring them against the stage's own coordinates is
+                      // only correct while the camera sits at the origin at zoom
+                      // 1 — the moment it pans or zooms, a caption that "fits"
+                      // in world space is off screen. This is the same bound
+                      // annotations already use.
+                      const half = Math.max(box.captionWidth, 0) / 2;
+                      const capViewLeft = fx - width / (2 * zoom);
+                      const capViewRight = fx + width / (2 * zoom);
+                      const capGap = unit * 0.02;
+                      const capX =
+                        half <= 0
+                          ? anchorX
+                          : Math.max(
+                              capViewLeft + capGap + half,
+                              Math.min(capViewRight - capGap - half, anchorX),
+                            );
                       return (
                         <g>
                           {shownLabel ? (
-                            <text x={box.x} y={top} textAnchor="middle" fill="#ffffff" fontFamily={STAGE_FONT} fontWeight={800} fontSize={labelPx}>
+                            <text x={capX} y={top} textAnchor="middle" fill={INK} fontFamily={STAGE_FONT} fontWeight={800} fontSize={labelPx}>
                               {shownLabel}
                             </text>
                           ) : null}
                           {subText ? (
                             <text
-                              x={box.x}
+                              x={capX}
                               y={top + subPx * 1.25}
                               textAnchor="middle"
-                              fill={counterText ? "#ffffff" : "#9fb0cc"}
+                              fill={counterText ? boxInk : boxInkSoft}
                               fontFamily={MONO_FONT}
                               fontWeight={counterText ? 700 : 500}
                               fontSize={counterText ? subPx * 1.15 : subPx}
@@ -1630,7 +1920,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                               width={zones.plate.width}
                               height={zones.plate.height}
                               rx={labelPx * 0.3}
-                              fill="rgba(9, 11, 15, 0.8)"
+                              fill={darkSurface ? "rgba(255,255,255,0.07)" : PLATE}
                             />
                           ) : null}
                           {/* A UI surface wears its brand as a favicon in its own
@@ -1638,10 +1928,10 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                               put a second, much larger copy behind the chrome —
                               one identity, one placement. */}
                           {zones.logo && !box.ui ? (
-                            <BrandMark box={box} size={zones.logo.size} cx={zones.logo.cx} cy={zones.logo.cy} />
+                            <BrandMark box={box} size={zones.logo.size} cx={zones.logo.cx} cy={zones.logo.cy} ground={light && !darkSurface ? "light" : "dark"} />
                           ) : null}
                           {shownLabel ? (
-                            <text x={box.x} y={zones.labelY} textAnchor="middle" fill="#ffffff" fontFamily={STAGE_FONT} fontWeight={800} fontSize={labelPx}>
+                            <text x={box.x} y={zones.labelY} textAnchor="middle" fill={boxInk} fontFamily={STAGE_FONT} fontWeight={800} fontSize={labelPx}>
                               {shownLabel}
                             </text>
                           ) : null}
@@ -1650,7 +1940,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                               x={box.x}
                               y={zones.sublabelY}
                               textAnchor="middle"
-                              fill={counterText ? "#ffffff" : "#9fb0cc"}
+                              fill={counterText ? INK : INK_SOFT}
                               fontFamily={MONO_FONT}
                               fontWeight={counterText ? 700 : 500}
                               fontSize={counterText ? subPx * 1.15 : subPx}
@@ -1728,7 +2018,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                     })()
                   : null}
 
-                {box.ui ? <UiSurface box={box} unit={boxUnit} accent={accent.stroke} visible={uiVisible} press={uiPress} mapSeconds={atSeconds} values={rowCounters} typed={typedValues} pointer={pointerFor(box.id)} actorLabel={actorLabelFor(box.id)} /> : null}
+                {box.ui ? <UiSurface box={box} unit={boxUnit} canvasGround={light ? "light" : "dark"} accent={accent.stroke} visible={uiVisible} press={uiPress} mapSeconds={atSeconds} values={rowCounters} typed={typedValues} pointer={pointerFor(box.id)} actorLabel={actorLabelFor(box.id)} /> : null}
 
                 {box.logoPath && box.captionBelow ? (
                   (() => {
@@ -1745,7 +2035,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                       ? Math.min(box.width * 0.62, box.height * 0.46)
                       : Math.min(box.width * 0.3, box.height * 0.26);
                     const cy = isDevice ? box.y - box.height * 0.04 : box.y - box.height / 2 + size * 0.85;
-                    return <BrandMark box={box} size={size} cx={box.x} cy={cy} />;
+                    return <BrandMark box={box} size={size} cx={box.x} cy={cy} ground={light && !darkSurface ? "light" : "dark"} />;
                   })()
                 ) : null}
 
@@ -2008,7 +2298,13 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                     debug output sitting on top of the illustration, and it was
                     the first thing anyone noticed about the frame. The chip
                     exists for objects whose state is otherwise invisible. */}
-                {box.states && box.states.length > 0 && box.kind !== "phonebook"
+                {/* SELF-EVIDENT STATE gets no chip. A globe that visibly grows
+                    magnetic field lines does not also need the word FIELD
+                    stencilled beside it in a little window — that is debug
+                    output printed over the illustration, and it is the first
+                    thing anyone notices. The chip exists only for objects whose
+                    state would otherwise be invisible. */}
+                {box.states && box.states.length > 0 && !SELF_EVIDENT_STATE.has(box.kind)
                   ? (() => {
                       // The entity WEARS its state. A lifecycle that exists only
                       // in the timeline is invisible to the viewer; showing the
@@ -2053,7 +2349,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                 {/* A hex map expresses its meter as lit TILES, drawn above.
                     Drawing the bar as well states the same number twice, and
                     the bar is the weaker of the two statements. */}
-                {meters.has(box.id) && box.kind !== "hexmap" ? (
+                {meters.has(box.id) && box.kind !== "hexmap" && box.kind !== "prediction" ? (
                   <g>
                     <rect
                       x={box.x - box.width * 0.38}
@@ -2061,7 +2357,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                       width={box.width * 0.76}
                       height={Math.max(5, box.height * 0.028)}
                       rx={3}
-                      fill="rgba(255,255,255,0.10)"
+                      fill={light ? "rgba(31, 42, 68, 0.14)" : "rgba(255,255,255,0.10)"}
                     />
                     <rect
                       x={box.x - box.width * 0.38}
@@ -2084,7 +2380,12 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
             // while the pane it labels filled the screen.
             const laidOut = boxById.get(annotation.target);
             if (!laidOut) return null;
-            const box = geometryFor(laidOut);
+            // Through the SAME resolution the object itself is drawn with. A
+            // derived vector's laid-out coordinates are a placeholder, so a
+            // callout positioned from them is anchored to a box that is not
+            // where the arrow actually is — which put a caption straight across
+            // the phone the arrow was attached to.
+            const box = resolveVector(geometryFor(laidOut));
             // Capped against the FRAME, not the box. Deriving it from box
             // height alone meant an expanded entity — which fills the stage —
             // rendered its callout at display size, swamping the thing it was
@@ -2136,7 +2437,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                 x={ax}
                 y={box.y - box.height / 2 - px * (box.isContainer ? 0.9 : 0.2)}
                 textAnchor={side === "right" ? "start" : side === "left" ? "end" : "middle"}
-                fill="#ffd76a"
+                fill={light ? "#9a3412" : "#ffd76a"}
                 fontFamily={MONO_FONT}
                 fontWeight={600}
                 fontSize={fitted}
@@ -2304,7 +2605,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                 <rect x={x - size * 0.6} y={y - size * 0.4} width={size * 1.2} height={size * 0.8} rx={size * 0.2} fill="none" stroke={colour} strokeWidth={2.4} />
               )}
               {actor.label ? (
-                <text x={x} y={y + size * 1.6} textAnchor="middle" fill="#9fb0cc" fontFamily={MONO_FONT} fontSize={unit * 0.022}>
+                <text x={x} y={y + size * 1.6} textAnchor="middle" fill={light ? "rgba(26, 35, 56, 0.58)" : "#9fb0cc"} fontFamily={MONO_FONT} fontSize={unit * 0.022}>
                   {actor.label}
                 </text>
               ) : null}
@@ -2334,7 +2635,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
         >
           {data.instruction.label}
           {data.instruction.value ? (
-            <span style={{ color: "#ffd76a", fontWeight: 800 }}>{`  ${data.instruction.value}`}</span>
+            <span style={{ color: light ? "#9a3412" : "#ffd76a", fontWeight: 800 }}>{`  ${data.instruction.value}`}</span>
           ) : null}
         </div>
       ) : null}
@@ -2392,7 +2693,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
         </div>
       ) : null}
 
-      {beat ? <BeatText beat={beat} width={width} height={height} unit={unit} /> : null}
+      {beat ? <BeatText beat={beat} width={width} height={height} unit={unit} ink={INK} light={light} /> : null}
     </SceneFrame>
   );
 };
@@ -2418,7 +2719,13 @@ const UiSurface: React.FC<{
   typed: Map<string, string>;
   pointer?: { row: string; fromRow?: string; t: number; reading: boolean };
   actorLabel?: { text: string; tone: "neutral" | "warn" | "danger" | "success" };
-}> = ({ box, unit, accent, visible, press, mapSeconds, values, typed, pointer, actorLabel }) => {
+  /** What the CANVAS behind this surface is. The surface's own body is always
+   * dark, but a phone wears its brand mark above the handset, on the canvas —
+   * so that one mark follows the theme while everything drawn on the screen
+   * does not. */
+  canvasGround?: "light" | "dark";
+}> = ({ box, unit, accent, visible, press, mapSeconds, values, typed, pointer, actorLabel, canvasGround = "dark" }) => {
+  const uiGround = canvasGround;
   const ui = box.ui!;
   const px = Math.max(26 * (unit / 1080), unit * 0.028);
   const chromeH = px * 2.2;
@@ -2504,6 +2811,7 @@ const UiSurface: React.FC<{
           size={isPhone ? px * 3.4 : px * 1.25}
           cx={box.x}
           cy={isPhone ? top - px * 2.2 : top + chromeH * 0.5}
+          ground={isPhone ? uiGround : "dark"}
         />
       ) : null}
       {ui.chrome === "browser" && ui.url ? (
@@ -2851,7 +3159,9 @@ const PhraseLines: React.FC<{
   unit: number;
   highlighted?: number[];
   accent: string;
-}> = ({ box, unit, highlighted, accent }) => {
+  ink: string;
+  inkFaint: string;
+}> = ({ box, unit, highlighted, accent, ink, inkFaint }) => {
   const lines = box.code ?? [];
   if (lines.length === 0) return null;
   const px = Math.max(38 * (unit / 1080), unit * 0.044);
@@ -2869,7 +3179,7 @@ const PhraseLines: React.FC<{
             x={box.x}
             y={top + i * lead}
             textAnchor="middle"
-            fill={isLit ? "#ffffff" : "rgba(160, 174, 202, 0.28)"}
+            fill={isLit ? ink : inkFaint}
             fontFamily={STAGE_FONT}
             fontWeight={isLit ? 800 : 600}
             fontSize={px}
@@ -3027,8 +3337,19 @@ const BeatText: React.FC<{
   width: number;
   height: number;
   unit: number;
-}> = ({ beat, height, unit }) => {
-  const toneColor = beat.tone === "alert" ? "#f43f5e" : beat.tone === "reveal" ? "#22d3ee" : "#ffffff";
+  ink: string;
+  light: boolean;
+}> = ({ beat, height, unit, ink, light }) => {
+  const toneColor =
+    beat.tone === "alert"
+      ? light
+        ? "#c81e3c"
+        : "#f43f5e"
+      : beat.tone === "reveal"
+        ? light
+          ? "#0b6b78"
+          : "#0ea5b7"
+        : ink;
   const rise = (1 - beat.progress) * unit * 0.03;
   const huge = beat.size === "huge";
   // `huge` type is the dominant element of the frame, not a caption above it.
@@ -3069,9 +3390,19 @@ const BeatText: React.FC<{
           color: toneColor,
           textAlign: "center",
           textTransform: "uppercase",
-          textShadow: huge
-            ? "0 10px 46px rgba(0,0,0,0.95), 0 2px 12px rgba(0,0,0,0.9)"
-            : "0 6px 34px rgba(0,0,0,0.85)",
+          // On a dark ground a blurred shadow lifts type off the background.
+          // On a light one it reads as smudge. Light scenes get a HARD offset
+          // instead — no blur, one solid colour, sitting slightly down and
+          // right, which is the neo-brutalist treatment and the only kind of
+          // shadow that stays crisp on cream.
+          // No shadow at all on a light ground. Dark ink on cream has all the
+          // contrast it needs, and anything behind it — blurred or offset —
+          // only muddies the letterforms.
+          textShadow: light
+            ? "none"
+            : huge
+              ? "0 10px 46px rgba(0,0,0,0.95), 0 2px 12px rgba(0,0,0,0.9)"
+              : "0 6px 34px rgba(0,0,0,0.85)",
         }}
       >
         {beat.text}

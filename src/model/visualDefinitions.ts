@@ -1128,7 +1128,14 @@ const stageRegionSchema = z.enum([
  * nothing feels important — this is the field that buys visual contrast. */
 const stageEmphasisSchema = z.enum(["lead", "normal", "recede"]);
 
-const stageAccentSchema = z.enum(["neutral", "primary", "warn", "success", "danger"]);
+/** Semantic colour, not decoration: once a colour carries a meaning it keeps it
+ * for the whole video, so the viewer reads the palette subconsciously.
+ * neutral = structure and reality · primary = a digital signal · warn =
+ * advertising and commercial intent · success = a control the viewer holds ·
+ * danger = the misconception · profile = behavioural inference and prediction,
+ * which is a distinct idea from "something has gone wrong" and needs its own
+ * colour rather than borrowing danger's. */
+const stageAccentSchema = z.enum(["neutral", "primary", "warn", "success", "danger", "profile"]);
 
 /** What the object IS, chosen so the silhouette is recognisable WITHOUT its
  * label — a shape must be recognisable, not merely distinct. Everything here is
@@ -1208,6 +1215,37 @@ const stageObjectKindSchema = z.enum([
   // A book that opens and is read explains the lookup with the sound off; a
   // labelled box does not.
   "phonebook",
+  // THE SHAPE OF BEING TRACKED. Five things that recur in every explanation of
+  // advertising, profiling and personalisation, and that are routinely drawn as
+  // labelled rectangles because the engine had nothing better: a map you can
+  // move across, a marker that sits somewhere, a cookie, a profile that fills
+  // up, and a prediction that is explicitly a probability rather than a fact.
+  "map",
+  "pin",
+  "cookie",
+  "profile",
+  "prediction",
+  // ---- reference frames -------------------------------------------------
+  /** A DIRECTION, drawn as an arrow with a head — a quantity that points.
+   *
+   * Its whole reason to exist is the `frame` field beside it. A vector fixed to
+   * the WORLD keeps pointing the same way however the thing it is attached to
+   * turns; a vector fixed to the BODY turns with it. Gravity stays down while a
+   * phone spins, and the phone's own screen-up axis does not — showing those
+   * two arrows on one rotating object teaches the difference between a local
+   * and a global reference frame without a word of narration, which no
+   * arrangement of static icons can do. */
+  "vector",
+  /** THE PLANET, drawn as a sphere with meridians rather than a flat disc —
+   * the one object that establishes "this is happening in the world, not on a
+   * screen". Its `states` carry what is being said about it: `field` draws the
+   * dipole loops of a magnetic field around it, which is the difference between
+   * asserting the Earth has a field and showing one. */
+  "globe",
+  /** A COMPASS ROSE with a needle. Not decoration: it is the everyday object
+   * that already means "which way am I facing" to every viewer, so it can carry
+   * a whole scene without a label explaining it. */
+  "compass",
   // structure — a `region` is a CONTAINER, drawn as a quiet dashed frame
   // behind whatever declares it as `parent`
   "region",
@@ -1295,6 +1333,34 @@ const stageObjectSchema = z.object({
   at: stageRegionSchema,
   emphasis: stageEmphasisSchema.optional(),
   accent: stageAccentSchema.optional(),
+  /** Draws this object as a DARK ANCHOR rather than a tinted outline.
+   *
+   * On a cream canvas every object rendered as "dark outline + pale tint"
+   * eventually flattens the frame: cream, then a slightly-less-cream card,
+   * then more cream. A composition needs somewhere for the eye to land, and
+   * the cheapest way to get it is to let a few objects be genuinely dark —
+   * a profile card with a navy body, an ad in a dark frame — so the rhythm
+   * runs cream -> dark anchor -> colour -> cream.
+   *
+   * Its label flips to light automatically; light text on a dark body is the
+   * one place light text is correct here. Use it for the two or three objects
+   * per video that carry the most weight, never as the default. */
+  surface: z.enum(["default", "dark"]).optional(),
+  /** `vector` only — WHICH REFERENCE FRAME this direction belongs to.
+   *
+   * "world" is fixed to the scene: gravity points down and magnetic north
+   * points north no matter what the object it is drawn on is doing. "body" is
+   * fixed to its host and turns with it, the way a phone's own screen-up axis
+   * does. Drawing both on one rotating object is the entire demonstration of
+   * local versus global reference frames. */
+  frame: z.enum(["world", "body"]).optional(),
+  /** `vector` only — the direction it points, in degrees clockwise from
+   * straight up. For a "body" vector this is measured from its host's current
+   * heading rather than from the screen. */
+  dir: z.number().optional(),
+  /** `vector` only — the object this direction belongs to. The arrow is drawn
+   * from that object's centre, and a "body" vector inherits its rotation. */
+  attachTo: z.string().optional(),
   /** Nests this object inside another (which should be a `region`). The parent
    * is SIZED FROM ITS CHILDREN and drawn behind them, so "this service lives in
    * us-east-1" is structural rather than two boxes placed near each other in
@@ -1941,11 +2007,60 @@ const stageTimelineActionSchema = z.discriminatedUnion("type", [
    * scanning, parsing and recognition fall back to captions saying "scanning".
    * A sweep that visibly crosses the subject and then locks is the difference
    * between asserting that something was read and showing it. */
+  /** TURNS an object in place, by a real angle, over real time.
+   *
+   * Not a `style` tweak and not decorative spin: rotation is the subject
+   * whenever a thing's ORIENTATION is what is being explained. Everything
+   * attached to the object in its own frame turns with it while everything
+   * fixed to the world does not, so one `rotate` is what makes a `vector`'s
+   * `frame` field mean something on screen.
+   *
+   * `trail` leaves the arc swept behind, which turns "it turned" into "it
+   * turned by this much" — the difference between showing rotation and showing
+   * angular displacement. */
+  z.object({
+    type: z.literal("rotate"),
+    id: z.string().min(1),
+    /** Absolute heading in degrees clockwise from upright, not a delta, so a
+     * scene can be read at any moment without replaying what came before. */
+    to: z.number(),
+    trail: z.boolean().default(false),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.4),
+  }),
   z.object({
     type: z.literal("scan"),
     id: z.string().min(1),
     startSeconds: z.number().min(0),
     durationSeconds: z.number().min(0.1).default(1.6),
+  }),
+  /** RADIATES, as expanding rings leaving an object — or, with
+   * `direction: "in"`, as rings converging onto it.
+   *
+   * `emit` and `send` both move a packet to a NAMED destination, which is the
+   * wrong statement for a radio: a transmitter does not address anyone, it
+   * fills the space around it, and a receiver does not fetch anything, it
+   * simply sits in someone else's field. Reaching for `send` here would have
+   * drawn an arrow to a tower and taught the opposite of the mechanism.
+   *
+   * The direction is the entire point wherever transmitting and receiving are
+   * different acts — airplane mode, GPS, NFC, radar, sonar, a beacon, a
+   * pub/sub broadcast. Outbound and inbound rings on the same board say which
+   * radios talk and which only listen without a word of narration.
+   *
+   * `reach` scales how far the rings travel relative to the object, so a
+   * short-range radio and a long-range one are visibly different radios. */
+  z.object({
+    type: z.literal("broadcast"),
+    id: z.string().min(1),
+    direction: z.enum(["out", "in"]).default("out"),
+    /** Ring travel distance as a multiple of the object's own size. */
+    reach: z.number().min(0.5).max(6).default(2.4),
+    /** Rings in flight at once. More reads as busier traffic, not louder. */
+    rings: z.number().int().min(1).max(5).default(3),
+    accent: z.enum(["neutral", "primary", "warn", "success", "danger", "profile"]).optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.4),
   }),
   /** COVERS part of an object, the way a sticker, a scratch, a thumb or a
    * redaction covers part of a real thing.
@@ -3075,6 +3190,15 @@ export const VISUAL_DEFINITIONS = [
         )
         .min(1)
         .optional(),
+      /** LIGHT OR DARK GROUND.
+       *
+       * The medium was built dark-first, which suits systems and infrastructure
+       * and is wrong for whole categories of subject — anything playful,
+       * consumer-facing or illustrative reads better on a warm light canvas
+       * with dark ink. This flips the ground, the ink, the plates and the
+       * captions together, so a scene stays legible rather than becoming white
+       * text on cream. Objects keep their accent colours either way. */
+      theme: z.enum(["dark", "light"]).default("dark"),
       /** THE TOPIC'S VISUAL WORLD. A video about caching should not look like
        * a video about TLS or about image decoding — one uniform dark-grid
        * template across every topic is what makes a channel's output read as

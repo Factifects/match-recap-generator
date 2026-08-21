@@ -53,12 +53,12 @@ export const WordCaptionOverlay: React.FC<{
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "center",
-          gap: "0 14px",
+          gap: "0 26px",
         }}
       >
         {line.words.map((word, index) => {
           const isActive = frame >= word.startFrame && frame < word.endFrame;
-          const scale = isActive ? pulse(frame - word.startFrame, 40, 1, 1.1) : 1;
+          const scale = isActive ? pulse(frame - word.startFrame, 40, 1, 1.06) : 1;
           return (
             <span
               key={index}

@@ -92,6 +92,8 @@ function referencesIn(action: StageAction): StageReference[] {
     case "pointer":
     case "occlude":
     case "scan":
+    case "rotate":
+    case "broadcast":
     case "spotlight":
       return objects(action.type, action.id);
     case "connect":
@@ -351,7 +353,13 @@ export function diagnoseStageScenes(segments: TimedSegment[], scriptName?: strin
     }
 
     // --- composition never evolves ---------------------------------------
-    const composes = timeline.filter((a) => a.type === "compose");
+    // A `rotate` reconfigures the frame just as surely as a `compose` does —
+    // more so, since everything attached to the object in its own reference
+    // frame moves with it while everything world-fixed deliberately does not.
+    // A scene built on rotation is the opposite of a fixed arrangement, and
+    // demanding a `compose` alongside it would mean shuffling objects around
+    // for no reason during the one moment the viewer is watching something turn.
+    const composes = timeline.filter((a) => a.type === "compose" || a.type === "rotate");
     // A UI-DOMINANT scene is exempt. Its frame evolves through the interface —
     // rows appearing, values changing, a tap landing — and demanding a
     // `compose` there produces exactly the note this rule exists to prevent:
@@ -523,6 +531,32 @@ export function diagnoseStageScenes(segments: TimedSegment[], scriptName?: strin
           "soft",
           "object-behind-app",
           `This scene has an \`app\`, which fills the frame, plus ${others.length} other object(s): ${others.join(", ")}. They are drawn underneath it and cannot be seen. Put what they represent inside the app, or give them their own scene.`,
+        ),
+      );
+    }
+
+    // --- captions too wide for the space beside their object --------------
+    // A caption is centred under its object, so an object parked in an edge
+    // region has only the narrow strip beside it to put a long label in. The
+    // renderer refuses to let text leave the frame and slides it inward
+    // instead, which keeps the composition legal but drags the caption away
+    // from the thing it names. Caught here because the author can simply write
+    // a shorter label, which is the better fix in every case.
+    const EDGE_REGIONS = new Set(["left", "right", "top-left", "top-right", "bottom-left", "bottom-right"]);
+    // Roughly the longest caption that still fits beside an edge-region object
+    // at normal emphasis; past this the renderer has to start pushing it.
+    const MAX_EDGE_CAPTION_CHARS = 24;
+    for (const object of visual.objects ?? []) {
+      const label = object.label ?? "";
+      if (!EDGE_REGIONS.has(object.at ?? "center")) continue;
+      if (label.length <= MAX_EDGE_CAPTION_CHARS) continue;
+      found.push(
+        diagnostic(
+          sceneIndex,
+          3,
+          "soft",
+          "caption-too-wide",
+          `\`${object.id}\` sits at "${object.at}" with a ${label.length}-character label ("${label}"). A caption that wide does not fit beside an edge region, so it will be pushed toward the centre and stop reading as that object's name. Shorten it to about ${MAX_EDGE_CAPTION_CHARS} characters, or move the object inward.`,
         ),
       );
     }

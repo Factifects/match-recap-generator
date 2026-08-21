@@ -1,6 +1,7 @@
 import React from "react";
 import { staticFile, Img } from "remotion";
 import { luminance } from "../brandTile";
+import { DISPLAY_FONT_FAMILY } from "../theme";
 import type { StageBox } from "../../script/stageLayout";
 
 // The Stage medium's object vocabulary, as drawn shapes.
@@ -46,7 +47,7 @@ export const Silhouette: React.FC<SilhouetteProps> = ({ box, stroke, fill, strok
  * (a service going red takes its logo with it) instead of sitting on top as a
  * sticker; a multi-colour mark is left alone, because recolouring a brand's own
  * palette misrepresents it. */
-export const BrandMark: React.FC<{ box: StageBox; size: number; cx: number; cy: number }> = ({ box, size, cx, cy }) => {
+export const BrandMark: React.FC<{ box: StageBox; size: number; cx: number; cy: number; ground?: "light" | "dark" }> = ({ box, size, cx, cy, ground = "dark" }) => {
   if (!box.logoPath) return null;
   const href = staticFile(box.logoPath);
   // CONTRAST, decided from the brand's OWN colour rather than guessed.
@@ -59,10 +60,23 @@ export const BrandMark: React.FC<{ box: StageBox; size: number; cx: number; cy: 
   //     elements we must not repaint, so it gets a light plate behind it.
   // This is the same rule brandTile.ts already applies on the diagram side; the
   // two now agree instead of each deciding contrast for themselves.
+  // WHICH WAY CONTRAST RUNS DEPENDS ON THE GROUND. Every rule below was
+  // originally written for a near-black stage, where "this mark is too dark to
+  // see, so paint it light" is correct. On a cream canvas that same rule paints
+  // a black mark white on a pale surface and it disappears completely — which
+  // is what happened to TikTok. The mark has to be told what it is sitting on.
+  const onLight = ground === "light";
   const brandLum = box.logoHex ? luminance(box.logoHex) : 1;
-  const tooDarkForStage = brandLum < 0.06;
+  const tooDarkForStage = !onLight && brandLum < 0.06;
+  // On light, a mark that is nearly white is the one that vanishes, and the fix
+  // is the mirror image: give it a dark plate to sit on rather than repainting
+  // it, because a brand's own colour is its identity.
+  const tooLightForLight = onLight && brandLum > 0.72;
   const paint = box.logoHex && !tooDarkForStage ? `#${box.logoHex.replace("#", "")}` : "#f2f6ff";
-  const needsPlate = !box.logoMonochrome;
+  // A full-colour mark needs a plate to sit on so its dark parts survive; on a
+  // light ground it already has one in the surface underneath it.
+  const needsPlate = (!box.logoMonochrome && !onLight) || tooLightForLight;
+  const plateFill = tooLightForLight ? "rgba(22, 32, 58, 0.94)" : "rgba(244, 247, 255, 0.94)";
   // A monochrome Simple Icons mark is a BLACK shape on a transparent ground.
   // Drawing it directly onto a near-black stage renders it invisible — which is
   // exactly what happened to Cassandra. It has to be TINTED, and the only way
@@ -81,7 +95,7 @@ export const BrandMark: React.FC<{ box: StageBox; size: number; cx: number; cy: 
           width={size * 1.24}
           height={size * 1.24}
           rx={size * 0.2}
-          fill="rgba(244, 247, 255, 0.94)"
+          fill={plateFill}
         />
       ) : null}
     <foreignObject x={cx - size / 2} y={cy - size / 2} width={size} height={size}>
@@ -453,6 +467,163 @@ const Shape: React.FC<SilhouetteProps> = ({ box, stroke, fill, strokeWidth }) =>
       // around something that already has one.
       return null;
 
+    // ---- tracking and personalisation -------------------------------------
+    case "map": {
+      // A MAP THAT READS AS A MAP. Not a lattice of grey boxes: the things that
+      // make anyone recognise a map at a glance are white roads with darker
+      // casing, a green park, water, and blocks that are not all the same size.
+      // It carries its OWN palette rather than the stage accent, so a state
+      // change tints the markers on it instead of turning the whole city cyan.
+      // Every one of these has to separate from a CREAM canvas and from each
+      // other. The first pass picked tones that looked map-like in isolation
+      // and came out as four shades of the same beige once they were on the
+      // page — paper, block and background were within a few percent of each
+      // other, so the street grid vanished and the whole thing read as a tray
+      // of blank cards. The casing is what carries the structure, so it is the
+      // darkest thing here by a wide margin.
+      const PAPER = "#efe8d9";
+      const BLOCK = "#cbc2ae";
+      const ROAD = "#fffdf6";
+      const CASING = "#8a8171";
+      const PARK = "#a9cf94";
+      const WATER = "#8dc2dd";
+      const road = Math.max(3, w * 0.022);
+      const vx = [0.26, 0.52, 0.78];
+      const hy = [0.22, 0.46, 0.72];
+      return (
+        <g>
+          <rect x={x} y={y} width={w} height={h} rx={w * 0.035} fill={PAPER} stroke={stroke} strokeWidth={strokeWidth * 1.4} />
+          <g clipPath="none">
+            {/* blocks of uneven size */}
+            <g fill={BLOCK}>
+              <rect x={x + w * 0.04} y={y + h * 0.05} width={w * 0.18} height={h * 0.13} rx={w * 0.008} />
+              <rect x={x + w * 0.3} y={y + h * 0.05} width={w * 0.18} height={h * 0.13} rx={w * 0.008} />
+              <rect x={x + w * 0.56} y={y + h * 0.05} width={w * 0.2} height={h * 0.13} rx={w * 0.008} />
+              <rect x={x + w * 0.04} y={y + h * 0.27} width={w * 0.18} height={h * 0.15} rx={w * 0.008} />
+              <rect x={x + w * 0.3} y={y + h * 0.27} width={w * 0.18} height={h * 0.15} rx={w * 0.008} />
+              <rect x={x + w * 0.04} y={y + h * 0.53} width={w * 0.18} height={h * 0.16} rx={w * 0.008} />
+              <rect x={x + w * 0.3} y={y + h * 0.53} width={w * 0.18} height={h * 0.16} rx={w * 0.008} />
+              <rect x={x + w * 0.56} y={y + h * 0.53} width={w * 0.2} height={h * 0.16} rx={w * 0.008} />
+              <rect x={x + w * 0.3} y={y + h * 0.78} width={w * 0.18} height={h * 0.14} rx={w * 0.008} />
+            </g>
+            {/* a park, and water down one side */}
+            <rect x={x + w * 0.56} y={y + h * 0.27} width={w * 0.2} height={h * 0.15} rx={w * 0.01} fill={PARK} />
+            <path
+              d={`M ${x + w * 0.86} ${y} C ${x + w * 0.92} ${y + h * 0.28}, ${x + w * 0.8} ${y + h * 0.5}, ${x + w * 0.9} ${y + h * 0.74} L ${x + w} ${y + h * 0.74} L ${x + w} ${y} Z`}
+              fill={WATER}
+              opacity={0.85}
+            />
+            {/* roads: casing first, then the white lane on top */}
+            <g stroke={CASING} strokeWidth={road * 1.7} strokeLinecap="square">
+              {vx.map((v, i) => (
+                <line key={`vc${i}`} x1={x + w * v} y1={y} x2={x + w * v} y2={y + h} />
+              ))}
+              {hy.map((hh, i) => (
+                <line key={`hc${i}`} x1={x} y1={y + h * hh} x2={x + w} y2={y + h * hh} />
+              ))}
+            </g>
+            <g stroke={ROAD} strokeWidth={road} strokeLinecap="square">
+              {vx.map((v, i) => (
+                <line key={`v${i}`} x1={x + w * v} y1={y} x2={x + w * v} y2={y + h} />
+              ))}
+              {hy.map((hh, i) => (
+                <line key={`h${i}`} x1={x} y1={y + h * hh} x2={x + w} y2={y + h * hh} />
+              ))}
+            </g>
+          </g>
+          <rect x={x} y={y} width={w} height={h} rx={w * 0.035} fill="none" stroke={stroke} strokeWidth={strokeWidth * 1.4} />
+        </g>
+      );
+    }
+    case "pin": {
+      // A MAP MARKER. The one shape that says "somewhere" without a caption.
+      const pw = Math.min(w, h * 0.7);
+      const top3 = cy - h * 0.42;
+      return (
+        <g>
+          <path
+            d={`M ${cx} ${cy + h * 0.46} C ${cx - pw * 0.62} ${cy - h * 0.02} ${cx - pw * 0.55} ${top3} ${cx} ${top3} C ${cx + pw * 0.55} ${top3} ${cx + pw * 0.62} ${cy - h * 0.02} ${cx} ${cy + h * 0.46} Z`}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth * 1.2}
+            strokeLinejoin="round"
+          />
+          <circle cx={cx} cy={top3 + pw * 0.42} r={pw * 0.2} fill="none" stroke={stroke} strokeWidth={strokeWidth * 1.2} />
+        </g>
+      );
+    }
+    case "cookie": {
+      // A BISCUIT, with a bite out of it. Playful on purpose — a browser cookie
+      // drawn as a grey rectangle is the reason nobody remembers what one is.
+      const r2 = Math.min(w, h) * 0.44;
+      return (
+        <g>
+          <path
+            d={`M ${cx + r2} ${cy} a ${r2} ${r2} 0 1 1 ${-r2 * 0.7} ${-r2 * 0.72} a ${r2 * 0.3} ${r2 * 0.3} 0 0 0 ${r2 * 0.42} ${r2 * 0.3} a ${r2 * 0.28} ${r2 * 0.28} 0 0 0 ${r2 * 0.28} ${r2 * 0.42} Z`}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            strokeLinejoin="round"
+          />
+          {[[-0.34, 0.18], [0.1, 0.36], [0.26, -0.1], [-0.06, -0.16]].map(([dx, dy], i) => (
+            <circle key={i} cx={cx + r2 * dx} cy={cy + r2 * dy} r={r2 * 0.11} fill={stroke} />
+          ))}
+        </g>
+      );
+    }
+    case "profile": {
+      // A PROFILE THAT FILLS UP. `states` drive how much of it is known, so a
+      // scene can show it going from a couple of guesses to a detailed picture
+      // without the card being redeclared.
+      const state = box.states && box.states.length > 0 ? box.states[0] : "full";
+      const filled = state === "empty" ? 0 : state === "partial" ? 2 : 4;
+      const rowH2 = h * 0.13;
+      const topY = cy - h * 0.1;
+      return (
+        <g>
+          <rect x={x} y={y} width={w} height={h} rx={w * 0.07} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+          <circle cx={cx} cy={y + h * 0.2} r={h * 0.1} fill="none" stroke={stroke} strokeWidth={strokeWidth * 1.1} />
+          <path d={`M ${cx - h * 0.13} ${y + h * 0.36} q ${h * 0.13} ${-h * 0.11} ${h * 0.26} 0`} fill="none" stroke={stroke} strokeWidth={strokeWidth * 1.1} strokeLinecap="round" />
+          {Array.from({ length: 4 }, (_, i) => (
+            <rect
+              key={i}
+              x={x + w * 0.12}
+              y={topY + i * rowH2}
+              width={w * 0.76}
+              height={rowH2 * 0.56}
+              rx={rowH2 * 0.28}
+              fill={i < filled ? stroke : "none"}
+              stroke={stroke}
+              strokeWidth={strokeWidth * 0.8}
+              opacity={i < filled ? 0.85 : 0.3}
+            />
+          ))}
+        </g>
+      );
+    }
+    case "prediction": {
+      // A PROBABILITY, drawn as a dial that is explicitly part-full. The whole
+      // honesty of behavioural advertising lives in this shape: it is a guess
+      // with a number on it, not a fact, and a full bar would say the opposite.
+      const r3 = Math.min(w * 0.30, h * 0.40);
+      const arc = (frac: number, radius: number) => {
+        const a0 = Math.PI * 0.85;
+        const a1 = a0 + Math.PI * 1.3 * frac;
+        const large = Math.PI * 1.3 * frac > Math.PI ? 1 : 0;
+        return `M ${cx + Math.cos(a0) * radius} ${cy + Math.sin(a0) * radius} A ${radius} ${radius} 0 ${large} 1 ${cx + Math.cos(a1) * radius} ${cy + Math.sin(a1) * radius}`;
+      };
+      return (
+        <g>
+          {/* The card is a SURFACE; the dial is the statement. Filling the card at
+              full accent made a saturated slab that competed with the arc drawn
+              on top of it — everything bright means nothing is important. */}
+          <rect x={x} y={y} width={w} height={h} rx={h * 0.16} fill={fill} stroke={stroke} strokeWidth={strokeWidth * 1.2} fillOpacity={0.34} />
+          <path d={arc(1, r3)} fill="none" stroke={stroke} strokeWidth={strokeWidth * 3.2} opacity={0.18} strokeLinecap="round" />
+          <path d={arc(0.7, r3)} fill="none" stroke={stroke} strokeWidth={strokeWidth * 3.4} strokeLinecap="round" />
+        </g>
+      );
+    }
+
     // ---- reference --------------------------------------------------------
     case "phonebook": {
       // A BOOK, open on a spread, with entries down the left page and numbers
@@ -543,6 +714,124 @@ const Shape: React.FC<SilhouetteProps> = ({ box, stroke, fill, strokeWidth }) =>
     }
 
     // ---- typography -------------------------------------------------------
+    // ---- the world --------------------------------------------------------
+    case "globe": {
+      // THE PLANET, and the one fact about it this medium exists to show: its
+      // magnetic axis is not its spin axis. The geographic pole is drawn
+      // upright; the field is built around an axis tilted off it. That offset
+      // is what "magnetic north is not true north" actually means, and a
+      // viewer can read it off the picture without being told.
+      const R = Math.min(w, h) * 0.4;
+      const state = box.states && box.states.length > 0 ? box.states[0] : "plain";
+      const showField = state === "field";
+      // Real enough to be honest, exaggerated enough to be visible at phone size.
+      const TILT = 16;
+      return (
+        <g>
+          <circle cx={cx} cy={cy} r={R} {...common} />
+          {[0.94, 0.6, 0.24].map((k, i) => (
+            <ellipse key={`m${i}`} cx={cx} cy={cy} rx={R * k} ry={R} fill="none" stroke={stroke} strokeWidth={strokeWidth * 0.5} opacity={0.45} />
+          ))}
+          {[-0.55, 0, 0.55].map((k, i) => {
+            const y = cy + R * k;
+            const half = Math.sqrt(Math.max(0, R * R - R * k * (R * k)));
+            return <line key={`p${i}`} x1={cx - half} y1={y} x2={cx + half} y2={y} stroke={stroke} strokeWidth={strokeWidth * 0.5} opacity={0.45} />;
+          })}
+          {/* TRUE NORTH: the spin axis, straight up, where every map's north is. */}
+          <line x1={cx} y1={cy - R * 1.3} x2={cx} y2={cy + R * 1.3} stroke={stroke} strokeWidth={strokeWidth * 0.7} opacity={0.45} strokeDasharray={`${R * 0.1} ${R * 0.08}`} />
+          {showField ? (
+            <g transform={`rotate(${TILT} ${cx} ${cy})`}>
+              {[0.5, 0.9, 1.35].map((spread, i) => (
+                <g key={`f${i}`} fill="none" stroke={stroke} strokeWidth={strokeWidth * 0.9} opacity={0.7 - i * 0.15}>
+                  <path d={`M ${cx} ${cy - R * 1.02} C ${cx + R * spread * 1.9} ${cy - R * 0.7}, ${cx + R * spread * 1.9} ${cy + R * 0.7}, ${cx} ${cy + R * 1.02}`} />
+                  <path d={`M ${cx} ${cy - R * 1.02} C ${cx - R * spread * 1.9} ${cy - R * 0.7}, ${cx - R * spread * 1.9} ${cy + R * 0.7}, ${cx} ${cy + R * 1.02}`} />
+                </g>
+              ))}
+              {/* MAGNETIC NORTH: the pole the compass actually answers to. */}
+              <circle cx={cx} cy={cy - R * 1.02} r={R * 0.09} fill={stroke} />
+            </g>
+          ) : null}
+        </g>
+      );
+    }
+
+    case "compass": {
+      // A COMPASS ROSE. The everyday object that already means "which way am I
+      // facing", so it carries a scene without a caption explaining itself.
+      // The needle's north half is filled and its south half hollow — the way
+      // every real compass distinguishes them, and the only way the viewer can
+      // tell which end is the answer.
+      const R = Math.min(w, h) * 0.42;
+      const needle = R * 0.74;
+      return (
+        <g>
+          <circle cx={cx} cy={cy} r={R} {...common} />
+          <circle cx={cx} cy={cy} r={R * 0.88} fill="none" stroke={stroke} strokeWidth={strokeWidth * 0.45} opacity={0.5} />
+          {Array.from({ length: 16 }, (_, i) => {
+            const a = (Math.PI / 8) * i;
+            const major = i % 4 === 0;
+            const inner = R * (major ? 0.7 : 0.79);
+            return (
+              <line
+                key={`t${i}`}
+                x1={cx + Math.sin(a) * inner}
+                y1={cy - Math.cos(a) * inner}
+                x2={cx + Math.sin(a) * R * 0.86}
+                y2={cy - Math.cos(a) * R * 0.86}
+                stroke={stroke}
+                strokeWidth={strokeWidth * (major ? 0.9 : 0.45)}
+                opacity={major ? 0.9 : 0.5}
+                strokeLinecap="round"
+              />
+            );
+          })}
+          <text
+            x={cx}
+            y={cy - R * 0.44}
+            textAnchor="middle"
+            fill={stroke}
+            fontFamily={DISPLAY_FONT_FAMILY}
+            fontWeight={800}
+            fontSize={R * 0.3}
+          >
+            N
+          </text>
+          <path d={`M ${cx} ${cy - needle} L ${cx - needle * 0.19} ${cy} L ${cx + needle * 0.19} ${cy} Z`} fill={stroke} stroke={stroke} strokeWidth={strokeWidth * 0.5} strokeLinejoin="round" />
+          <path d={`M ${cx} ${cy + needle} L ${cx - needle * 0.19} ${cy} L ${cx + needle * 0.19} ${cy} Z`} fill="none" stroke={stroke} strokeWidth={strokeWidth * 0.7} strokeLinejoin="round" />
+          <circle cx={cx} cy={cy} r={R * 0.075} fill={stroke} />
+        </g>
+      );
+    }
+
+    // ---- reference frames -------------------------------------------------
+    case "vector": {
+      // A DIRECTION. Drawn pointing straight up from the object's centre; the
+      // renderer rotates the whole arrow to whatever its frame resolves to, so
+      // this only has to describe the shape of "an arrow", not where it aims.
+      //
+      // Deliberately a SHAFT WITH A HEAD rather than a line: a line has no
+      // direction, and the entire point of a vector is that it points. The
+      // head is generous because these are read while the thing under them is
+      // turning, at phone size, in a fraction of a second.
+      const len = Math.min(w, h) * 0.92;
+      const shaft = Math.max(strokeWidth * 2.2, len * 0.055);
+      const head = len * 0.3;
+      const tipY = cy - len / 2;
+      const baseY = cy + len / 2;
+      return (
+        <g>
+          <line x1={cx} y1={baseY} x2={cx} y2={tipY + head * 0.72} stroke={stroke} strokeWidth={shaft} strokeLinecap="round" />
+          <path
+            d={`M ${cx} ${tipY} L ${cx - head * 0.46} ${tipY + head * 0.86} L ${cx + head * 0.46} ${tipY + head * 0.86} Z`}
+            fill={stroke}
+            stroke={stroke}
+            strokeWidth={strokeWidth * 0.6}
+            strokeLinejoin="round"
+          />
+        </g>
+      );
+    }
+
     case "phrase":
       // NO SHAPE AT ALL. The words are the object; a frame around them would
       // turn a sentence back into a card, which is the thing this kind exists
