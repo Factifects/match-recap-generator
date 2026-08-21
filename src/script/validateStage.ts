@@ -93,6 +93,7 @@ function referencesIn(action: StageAction): StageReference[] {
     case "occlude":
     case "scan":
     case "rotate":
+    case "nudge":
     case "broadcast":
     case "spotlight":
       return objects(action.type, action.id);
@@ -945,7 +946,11 @@ export function diagnoseStageScenes(segments: TimedSegment[], scriptName?: strin
   }
 
   // --- the video must open on a mystery, not an explanation ---------------
-  if (firstStageIndex >= 0) {
+  // Only when the first STAGE scene is also the first scene of the video. A
+  // script that opens in another medium — a 3D `spatial` shot, say — has
+  // already made its opening move somewhere this checker cannot see, and
+  // judging its third scene as the opener produces a confident, wrong note.
+  if (firstStageIndex === 0) {
     const first = segments[firstStageIndex];
     if (isStageSegment(first)) {
       const act = first.visual.act;

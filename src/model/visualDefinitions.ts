@@ -2018,6 +2018,22 @@ const stageTimelineActionSchema = z.discriminatedUnion("type", [
    * `trail` leaves the arc swept behind, which turns "it turned" into "it
    * turned by this much" — the difference between showing rotation and showing
    * angular displacement. */
+  /** A physical SHOVE: the object lurches in a direction and springs back.
+   *
+   * The alternative was an arrow captioned "being shoved", which is the exact
+   * failure this project exists to avoid — a label asserting a motion instead
+   * of the motion happening. Force is something a viewer reads from movement,
+   * and a thing that visibly lurches has been pushed whether or not anything is
+   * written beside it. Reusable for impacts, taps, knocks and recoil. */
+  z.object({
+    type: z.literal("nudge"),
+    id: z.string().min(1),
+    direction: z.enum(["left", "right", "up", "down"]).default("right"),
+    /** How far it travels, as a fraction of its own size. */
+    amount: z.number().min(0.05).max(2).default(0.45),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(0.9),
+  }),
   z.object({
     type: z.literal("rotate"),
     id: z.string().min(1),
@@ -2258,6 +2274,167 @@ const stageTimelineActionSchema = z.discriminatedUnion("type", [
     durationSeconds: z.number().min(0).default(0.4),
   }),
 ]);
+
+
+// ---------------------------------------------------------------------------
+// `spatial` — a REAL 3D stage.
+//
+// The 2D Stage medium can say that a phone turned. It cannot move a camera
+// through anything, give an object a side profile, separate a device into its
+// layers, or put a field in space with depth in front of and behind the thing
+// it surrounds. Those are not polish on a flat renderer; they need volume, a
+// camera that occupies a position, and lighting.
+//
+// Its reason to exist is the same distinction the 2D `vector` introduced, now
+// in three dimensions and far more legible: a quantity fixed to the WORLD holds
+// its direction while the body it is drawn on tumbles, and a quantity fixed to
+// the BODY tumbles with it. In 3D the viewer can orbit that and see it from any
+// side, which is the difference between being told a phone has an orientation
+// and watching one have it.
+// ---------------------------------------------------------------------------
+
+const vec3Schema = z.tuple([z.number(), z.number(), z.number()]);
+
+const spatialObjectSchema = z.object({
+  id: z.string().min(1),
+  /** What the thing physically IS. Every one of these is a real mesh with
+   * volume — never a picture of the thing standing in for it. */
+  kind: z.enum([
+    /** The planet: sphere, graticule, spin axis, and a magnetic dipole tilted
+     * off that axis when its state says so. */
+    "globe",
+    /** A body with solar panels and a dish — the object that makes an orbit
+     * read as an orbit rather than as a dot going round a circle. */
+    "satellite",
+    /** A handset with real thickness, a glass face and a metal frame, so it can
+     * be turned edge-on and still be a phone. */
+    "phone",
+    /** A labelled set of XYZ axes. Its `frame` decides whether it belongs to
+     * the world or to the body it is attached to — showing both at once is the
+     * whole lesson of orientation. */
+    "axes",
+    /** A direction with magnitude: shaft plus cone head. */
+    "vector",
+    /** A plain marker for a place in space. */
+    "node",
+    /** A FLAT SURFACE — a map, a table, a ground plane. Laid horizontally and
+     * viewed at an angle it gives a scene a floor, which is what makes travel
+     * across it read as travel rather than as a sprite sliding on glass. */
+    "plane",
+    /** A LOCATION PIN, standing up off whatever it is placed on. */
+    "pin",
+  ]),
+  label: z.string().optional(),
+  /** Where it sits, in scene units. */
+  at: vec3Schema.default([0, 0, 0]),
+  scale: z.number().min(0.05).max(20).default(1),
+  accent: z.enum(["neutral", "primary", "warn", "success", "danger", "profile"]).optional(),
+  /** `vector` and `axes` — which reference frame this belongs to. "world" holds
+   * its direction however its host turns; "body" turns with it. */
+  frame: z.enum(["world", "body"]).optional(),
+  /** The object this is bound to, for `frame` and for `orbit`. */
+  attachTo: z.string().optional(),
+  /** `vector` — the direction it points, as a 3D vector. Normalised on use. */
+  dir: vec3Schema.optional(),
+  /** `vector` — its length in scene units. */
+  length: z.number().min(0.1).max(20).default(2),
+  /** Lifecycle states the mesh draws differently, e.g. a globe's "field". */
+  states: z.array(z.string().min(1)).min(2).optional(),
+});
+
+const spatialActionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("enter"), id: z.string().min(1), startSeconds: z.number().min(0), durationSeconds: z.number().min(0.1).default(0.7) }),
+  z.object({ type: z.literal("exit"), id: z.string().min(1), startSeconds: z.number().min(0), durationSeconds: z.number().min(0.1).default(0.6) }),
+  /** CONTINUOUS rotation about an axis — a planet turning, a rotor running.
+   * Distinct from `rotate`, which goes to a stated attitude and stops. */
+  z.object({
+    type: z.literal("spin"),
+    id: z.string().min(1),
+    axis: vec3Schema.default([0, 1, 0]),
+    turns: z.number().default(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(4),
+  }),
+  /** Rotates to an absolute attitude, in degrees, so a frame can be read on its
+   * own without replaying everything before it. */
+  z.object({
+    type: z.literal("rotate"),
+    id: z.string().min(1),
+    to: vec3Schema,
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.6),
+  }),
+  /** Travels a closed path around another object. The inclination is what stops
+   * every orbit looking like the same flat ring. */
+  z.object({
+    type: z.literal("orbit"),
+    id: z.string().min(1),
+    around: z.string().min(1),
+    radius: z.number().min(0.2).default(4),
+    /** Degrees the orbital plane is tipped out of the horizontal. */
+    inclination: z.number().default(24),
+    turns: z.number().default(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(6),
+  }),
+  /** Travels an object from where it is to a stated point, in scene units.
+   * Straight-line movement through the space, as distinct from `orbit`, which
+   * is a closed path around something else. */
+  z.object({
+    type: z.literal("travel"),
+    id: z.string().min(1),
+    to: vec3Schema,
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2),
+  }),
+  /** Moves the actual camera. Not a zoom on a flat picture: it occupies a
+   * position in the scene and travels, which is what makes depth readable. */
+  z.object({
+    type: z.literal("camera"),
+    /** orbit — swings around the subject; push/pull — closes on or backs off
+     * it; frame — settles on a stated position. */
+    move: z.enum(["orbit", "push", "pull", "frame"]).default("orbit"),
+    /** What it looks at. Defaults to whatever it was already watching. */
+    focus: z.string().optional(),
+    /** Distance from the focus, in scene units. */
+    distance: z.number().min(0.5).max(80).optional(),
+    /** Degrees swept, for `orbit`. */
+    degrees: z.number().optional(),
+    /** Degrees above the horizon. */
+    elevation: z.number().optional(),
+    /** Where the camera stands around the subject, in degrees. Matters most for
+     * a wide flat subject: a tilted plane always projects wider than it is
+     * tall, so on a portrait frame its long axis has to run INTO the screen
+     * rather than across it, and that is a choice of azimuth. */
+    azimuth: z.number().optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.5),
+  }),
+  z.object({ type: z.literal("phase"), id: z.string().min(1), to: z.string().min(1), startSeconds: z.number().min(0) }),
+  /** A short callout pinned to an object, for the one moment it is relevant.
+   *
+   * Deliberately an ACTION rather than a property of the object: in three
+   * dimensions the mesh already says what the thing is, so a permanent label on
+   * every object is clutter that fights the picture. Text earns its place by
+   * saying something the shape cannot — and only while that is being said. */
+  z.object({
+    type: z.literal("annotate"),
+    target: z.string().min(1),
+    text: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.4),
+  }),
+  z.object({
+    type: z.literal("beat"),
+    text: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.2),
+    tone: z.enum(["neutral", "alert", "reveal"]).default("neutral"),
+    at: z.enum(["top", "center", "bottom"]).default("top"),
+    size: z.enum(["normal", "huge"]).default("normal"),
+  }),
+]);
+
 
 export const VISUAL_DEFINITIONS = [
   {
@@ -3550,6 +3727,20 @@ export const VISUAL_DEFINITIONS = [
       phases: z.array(canvasPhase3DSchema).min(1).optional(),
       camera: canvasCamera3DSchema.optional(),
       cameraStyle: cameraStyle3DSchema,
+    }),
+  },
+  {
+    kind: "spatial",
+    category: "generic-diagrams",
+    label: "Spatial",
+    description:
+      "A real 3D stage: volumetric objects (globe, satellite, phone, axes, vectors) in a lit scene with a camera that occupies a position and travels through it. Built for subjects where the physics IS three-dimensional — orientation, fields, orbits — and where the teaching move is that a world-fixed quantity holds its direction while the body it is drawn on tumbles. Unlike canvas-3d, which places flat billboards at 3D coordinates, every object here has volume and can be viewed from any side.",
+    sceneTypeKey: "spatial",
+    schema: z.object({
+      kind: z.literal("spatial"),
+      theme: z.enum(["light", "dark"]).default("dark"),
+      objects: z.array(spatialObjectSchema).min(1),
+      timeline: z.array(spatialActionSchema).default([]),
     }),
   },
 ] as const satisfies readonly VisualDefinition[];

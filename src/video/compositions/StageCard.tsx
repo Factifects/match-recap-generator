@@ -588,6 +588,8 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
    * heading it started this turn from so a trail can draw the arc actually
    * swept rather than a full circle. */
   const rotations = new Map<string, { angle: number; from: number; trail: boolean }>();
+  /** Current shove displacement per object, in pixels. */
+  const nudges = new Map<string, { dx: number; dy: number }>();
   /** What is COVERING each object, and how completely. */
   const occlusions = new Map<string, { area: string; amount: number }>();
   /** When each packet was last acted on, so one left parked can time out. */
@@ -785,6 +787,32 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
         // Held after it completes, so a locked-on reticle stays around the
         // subject instead of vanishing the instant it succeeds.
         if (t > 0) scans.set(action.id, { t: Math.min(1, t), locked: t >= 1 });
+        break;
+      }
+      case "nudge": {
+        const dur = action.durationSeconds ?? 0.9;
+        const p = rawProgress(atSeconds, action.startSeconds, dur);
+        if (p > 0 && p < 1) {
+          // Out fast, back slower — the asymmetry is what makes it read as a
+          // shove rather than as an object wobbling on a spring. A symmetric
+          // there-and-back reads as decoration; a sharp displacement followed
+          // by a settle reads as something having been DONE to it.
+          const out = p < 0.32 ? p / 0.32 : 1 - (p - 0.32) / 0.68;
+          const eased = Math.sin(out * Math.PI * 0.5);
+          const box = boxById.get(action.id);
+          const dir = action.direction ?? "right";
+          // Measured along the axis it actually travels. Sizing a sideways
+          // shove against the phone's HEIGHT threw a tall handset clean off the
+          // frame — a nudge is a fraction of the object's own width when it
+          // moves sideways and of its height when it moves up or down.
+          const horizontal = dir === "left" || dir === "right";
+          const span = box ? (horizontal ? box.width : box.height) : unit * 0.3;
+          const reach = span * (action.amount ?? 0.45) * eased;
+          nudges.set(action.id, {
+            dx: dir === "right" ? reach : dir === "left" ? -reach : 0,
+            dy: dir === "down" ? reach : dir === "up" ? -reach : 0,
+          });
+        }
         break;
       }
       case "rotate": {
@@ -1147,7 +1175,16 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
     // the host's edge and the head points away, which is how a force or a
     // field reads. Centred on the host, the arrow would look like a skewer.
     const angle = (vectorAngle(box) - 90) * (Math.PI / 180);
-    const reach = Math.max(hostGeo.width, hostGeo.height) / 2 + box.height / 2;
+    // AXIS-AWARE, not one radius for every direction. Using the host's LONGEST
+    // side meant a horizontal arrow on a tall phone started a whole phone-height
+    // away from it, floating in space with a visible gap. This is the exact
+    // ray/box hit: how far the surface is along the direction it leaves in.
+    const hw = hostGeo.width / 2;
+    const hh = hostGeo.height / 2;
+    const cx = Math.abs(Math.cos(angle));
+    const sy = Math.abs(Math.sin(angle));
+    const surface = Math.min(cx > 1e-4 ? hw / cx : Infinity, sy > 1e-4 ? hh / sy : Infinity);
+    const reach = (Number.isFinite(surface) ? surface : Math.max(hw, hh)) + box.height / 2;
     return { ...box, x: hostGeo.x + Math.cos(angle) * reach, y: hostGeo.y + Math.sin(angle) * reach };
   };
 
@@ -1669,7 +1706,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                 key={box.id}
                 opacity={op * (1 - decay * 0.45)}
                 style={decay > 0 ? { filter: `saturate(${1 - decay * 0.8})` } : undefined}
-                transform={`translate(${box.x + jitter} ${box.y}) scale(${enterScale}) translate(${-box.x} ${-box.y})`}
+                transform={`translate(${box.x + jitter + (nudges.get(box.id)?.dx ?? 0)} ${box.y + (nudges.get(box.id)?.dy ?? 0)}) scale(${enterScale}) translate(${-box.x} ${-box.y})`}
               >
                 {impacts.has(box.id) ? (
                   // The target visibly TAKES the hit — a ring blowing outward
