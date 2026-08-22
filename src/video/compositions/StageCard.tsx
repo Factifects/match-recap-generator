@@ -224,6 +224,20 @@ const DIMMED_LIGHT = 0.55;
  * The meanings are fixed so a viewer learns them: navy is structure and
  * reality, blue is a digital signal, orange is advertising and commercial
  * intent, green is a control the viewer holds, red is the misconception. */
+/** THE MACHINE PALETTE. Cooler and harder than the illustrated one: this world
+ * is a desktop, not a page. Blue is memory in active use, orange is pressure,
+ * green is memory handed back, charcoal is structure — the semantics the
+ * subject actually needs, rather than the advertising set inherited from a
+ * different episode. */
+const COOL_ACCENTS: AccentSet = {
+  neutral: { stroke: "#39414d", fill: "#e2e6ec", glow: "rgba(57, 65, 77, 0)" },
+  primary: { stroke: "#1668d8", fill: "#d8e6fb", glow: "rgba(22, 104, 216, 0.22)" },
+  warn: { stroke: "#d1600a", fill: "#fbe6d2", glow: "rgba(209, 96, 10, 0.24)" },
+  success: { stroke: "#11855a", fill: "#d5efe5", glow: "rgba(17, 133, 90, 0.22)" },
+  danger: { stroke: "#c02434", fill: "#fbdcdf", glow: "rgba(192, 36, 52, 0.24)" },
+  profile: { stroke: "#5b48b8", fill: "#e2ddf7", glow: "rgba(91, 72, 184, 0.24)" },
+};
+
 const LIGHT_ACCENTS: AccentSet = {
   neutral: { stroke: "#1f2a44", fill: "#e7e9ef", glow: "rgba(31, 42, 68, 0)" },
   primary: { stroke: "#1d4ed8", fill: "#dbe6fb", glow: "rgba(29, 78, 216, 0.22)" },
@@ -391,19 +405,26 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
   /** THE GROUND AND THE INK. Every hardcoded white in this file assumed a
    * near-black canvas; on a cream one they vanish. Deriving both from a single
    * theme keeps a scene internally consistent instead of half-converted. */
-  const light = (data.theme ?? "dark") === "light";
-  const INK = light ? "#1a2338" : "#ffffff";
-  const INK_SOFT = light ? "rgba(26, 35, 56, 0.62)" : "#9fb0cc";
-  const INK_FAINT = light ? "rgba(26, 35, 56, 0.28)" : "rgba(160, 174, 202, 0.28)";
-  const PLATE = light ? "rgba(255, 251, 242, 0.86)" : "rgba(9, 11, 15, 0.8)";
+  // THREE WORLDS, not two. "cool" is a machine grey — a desktop, an operating
+  // system's own surfaces — so a video about software running on a computer
+  // does not open on the same warm illustrated paper as one about a cat
+  // photograph. It behaves as a light ground everywhere contrast is decided;
+  // only the ground, the ink and the accents differ.
+  const ground = data.theme ?? "dark";
+  const cool = ground === "cool";
+  const light = ground === "light" || cool;
+  const INK = cool ? "#12161c" : light ? "#1a2338" : "#ffffff";
+  const INK_SOFT = cool ? "rgba(18, 22, 28, 0.6)" : light ? "rgba(26, 35, 56, 0.62)" : "#9fb0cc";
+  const INK_FAINT = cool ? "rgba(18, 22, 28, 0.24)" : light ? "rgba(26, 35, 56, 0.28)" : "rgba(160, 174, 202, 0.28)";
+  const PLATE = cool ? "rgba(255, 255, 255, 0.9)" : light ? "rgba(255, 251, 242, 0.86)" : "rgba(9, 11, 15, 0.8)";
   /** The dark body a `surface: "dark"` object fills with. Deep navy rather than
    * black: black on cream reads as a hole punched in the page, navy reads as an
    * object sitting on it. */
   const DARK_ANCHOR = "#16203a";
-  const BACKING = light ? "rgba(253, 248, 238, 0.95)" : "rgba(9, 12, 18, 0.95)";
+  const BACKING = cool ? "rgba(238, 240, 244, 0.95)" : light ? "rgba(253, 248, 238, 0.95)" : "rgba(9, 12, 18, 0.95)";
 
   const world = WORLDS[data.world ?? "network"] ?? WORLDS.network;
-  const ACCENTS = light ? LIGHT_ACCENTS : world.accents;
+  const ACCENTS = cool ? COOL_ACCENTS : light ? LIGHT_ACCENTS : world.accents;
   const EDGE_COLOR = world.edge;
   const energy = ENERGY[data.energy ?? "active"] ?? 1;
 
@@ -590,6 +611,12 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
   const rotations = new Map<string, { angle: number; from: number; trail: boolean }>();
   /** Current shove displacement per object, in pixels. */
   const nudges = new Map<string, { dx: number; dy: number }>();
+  /** Current bar lengths per `bars` object, 0..1. */
+  const barScores = new Map<string, number[]>();
+  /** How far each browser has opened itself up, 0..1. */
+  const peels = new Map<string, number>();
+  /** Current memory allocation per workspace. */
+  const allocations = new Map<string, { label: string; blocks: number; state: "active" | "reusable" | "reclaimable" }[]>();
   /** What is COVERING each object, and how completely. */
   const occlusions = new Map<string, { area: string; amount: number }>();
   /** When each packet was last acted on, so one left parked can time out. */
@@ -787,6 +814,37 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
         // Held after it completes, so a locked-on reticle stays around the
         // subject instead of vanishing the instant it succeeds.
         if (t > 0) scans.set(action.id, { t: Math.min(1, t), locked: t >= 1 });
+        break;
+      }
+      case "peel": {
+        const p = progress(atSeconds, action.startSeconds, action.durationSeconds ?? 2.6);
+        const from = peels.get(action.id) ?? 0;
+        peels.set(action.id, from + (action.to - from) * p);
+        break;
+      }
+      case "allocate": {
+        const p = progress(atSeconds, action.startSeconds, action.durationSeconds ?? 1.8);
+        const declared = objects.find((o) => o.id === action.id)?.regions ?? [];
+        const start = allocations.get(action.id) ?? declared;
+        allocations.set(
+          action.id,
+          action.to.map((r) => {
+            const was = start.find((x) => x.label === r.label);
+            const from = was ? was.blocks : 0;
+            return { label: r.label, blocks: Math.round(from + (r.blocks - from) * p), state: r.state };
+          }),
+        );
+        break;
+      }
+      case "score": {
+        const dur = action.durationSeconds ?? 2;
+        const p = progress(atSeconds, action.startSeconds, dur);
+        const declared = objects.find((o) => o.id === action.id)?.series ?? [];
+        const start = barScores.get(action.id) ?? declared.map((x) => x.value);
+        barScores.set(
+          action.id,
+          action.to.map((v, i) => (start[i] ?? 0) + (v - (start[i] ?? 0)) * p),
+        );
         break;
       }
       case "nudge": {
@@ -1333,7 +1391,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
 
   return (
     <SceneFrame
-      backgroundColor={light ? "light" : backgroundColor}
+      backgroundColor={cool ? "cool" : light ? "light" : backgroundColor}
       backgroundImage={backgroundImage}
       backgroundImageMode={backgroundImageMode}
       backgroundImageSide={backgroundImageSide}
@@ -1672,7 +1730,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
             // not as the app being active — and the app shows it is active
             // through its own content. Same for a printed code: a QR that
             // pulses is a QR nobody can scan.
-            const inanimate = !!box.ui || box.kind === "qr";
+            const inanimate = !!box.ui || box.kind === "qr" || box.kind === "bars";
             const breathe = isLeadBox && !inanimate ? Math.sin(atSeconds * 2.1 * world.pulse) * 0.012 * energy : 0;
             const rawScale = (0.9 + 0.1 * present) * (1 + pop * 0.14 + breathe);
             // A pop is an emphasis, and an emphasis must not cost containment.
@@ -1752,7 +1810,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                     streets and blocks showed straight through the objects and
                     their labels became unreadable. An object has to separate
                     from whatever it stands on, whatever that happens to be. */}
-                {!box.ui && box.kind !== "hexmap" && box.kind !== "region" ? (
+                {!box.ui && box.kind !== "hexmap" && box.kind !== "region" && box.kind !== "bars" && box.kind !== "memory" && box.kind !== "browserWindow" ? (
                   light ? (
                     // Neo-brutalist: one solid offset copy, no blur, no tint.
                     <g opacity={0.16} transform={`translate(${unit * 0.007} ${unit * 0.007}) ${shapeTransform ?? ""}`}>
@@ -1764,7 +1822,265 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                     </g>
                   )
                 ) : null}
-                {(() => {
+                {box.kind === "memory"
+                  ? (() => {
+                      /** THE MEMORY WORKSPACE — a wall of blocks that fills.
+                       *
+                       * States carry behaviour, not just colour, because that is
+                       * the difference between a legend and a picture of a
+                       * working system: active blocks breathe out of phase
+                       * because work is happening in them, reusable sits calm,
+                       * reclaimable goes amber and still, and free space reddens
+                       * as the field runs out of room — so pressure is seen
+                       * before it is said.
+                       *
+                       * Regions are shaded apart from their neighbours so the
+                       * field answers "of what", which is the question the whole
+                       * episode turns on. */
+                      const capacity = box.capacity ?? 180;
+                      const regions = allocations.get(box.id) ?? box.regions ?? [];
+                      // Columns derived from the box's own aspect so the blocks
+                      // come out square and the field fills the space it was
+                      // given, instead of the grid deciding its own shape and
+                      // leaving the rest of the box empty.
+                      const aspect = box.width / Math.max(1, box.height);
+                      const COLS = Math.max(6, Math.round(Math.sqrt(capacity * aspect)));
+                      const rows = Math.max(1, Math.ceil(capacity / COLS));
+                      const cw = box.width / COLS;
+                      const ch = Math.min(cw, box.height / rows);
+                      const gridW = cw * COLS;
+                      const gridH = ch * rows;
+                      const ox = box.x - gridW / 2;
+                      const oy = box.y - gridH / 2;
+                      const STATE: Record<string, string> = {
+                        active: ACCENTS.primary.stroke,
+                        reusable: ACCENTS.profile.stroke,
+                        reclaimable: ACCENTS.warn.stroke,
+                      };
+                      const owner: { label: string; state: string; index: number }[] = [];
+                      regions.forEach((r, ri) => {
+                        for (let k = 0; k < r.blocks && owner.length < capacity; k++) owner.push({ label: r.label, state: r.state, index: ri });
+                      });
+                      const pressure = Math.max(0, Math.min(1, (owner.length / capacity - 0.72) / 0.28));
+                      return (
+                        <g>
+                          {Array.from({ length: capacity }).map((_, i) => {
+                            const gx = i % COLS;
+                            const gy = Math.floor(i / COLS);
+                            const x = ox + gx * cw;
+                            const y = oy + gy * ch;
+                            const slot = owner[i];
+                            if (!slot) {
+                              return (
+                                <rect
+                                  key={i}
+                                  x={x + cw * 0.08}
+                                  y={y + ch * 0.08}
+                                  width={cw * 0.84}
+                                  height={ch * 0.84}
+                                  rx={cw * 0.16}
+                                  fill={pressure > 0.02 ? ACCENTS.danger.stroke : INK}
+                                  opacity={0.06 + pressure * 0.3}
+                                />
+                              );
+                            }
+                            const beat = slot.state === "active" ? 0.5 + 0.5 * Math.sin(atSeconds * 3.1 + i * 0.7) : 0;
+                            const inset = slot.state === "active" ? 0.04 + (1 - beat) * 0.05 : slot.state === "reclaimable" ? 0.16 : 0.09;
+                            return (
+                              <rect
+                                key={i}
+                                x={x + cw * inset}
+                                y={y + ch * inset}
+                                width={cw * (1 - inset * 2)}
+                                height={ch * (1 - inset * 2)}
+                                rx={cw * 0.16}
+                                fill={STATE[slot.state] ?? ACCENTS.neutral.stroke}
+                                opacity={slot.index % 2 === 0 ? 1 : 0.72}
+                              />
+                            );
+                          })}
+                        </g>
+                      );
+                    })()
+                  : null}
+                {box.kind === "browserWindow"
+                  ? (() => {
+                      /** THE PEELING BROWSER — the front stage.
+                       *
+                       * Closed it is deliberately unremarkable, because the whole
+                       * thesis is that this ordinary-looking thing hides an
+                       * enormous amount of work. Opening it is one continuous
+                       * move: the chrome lifts off the page, the tabs detach and
+                       * fan, and the page's own regions come away as the work
+                       * behind them. Its motion language — peel, detach, unfold —
+                       * is deliberately unlike the workspace's fill and reclaim,
+                       * so the two objects read as different kinds of thing. */
+                      const peel = peels.get(box.id) ?? 0;
+                      const lift = Math.min(1, peel / 0.35);
+                      const detach = Math.max(0, Math.min(1, (peel - 0.25) / 0.35));
+                      const unfold = Math.max(0, Math.min(1, (peel - 0.5) / 0.5));
+                      // The window itself takes the left of the box; the work it
+                      // sheds takes the right. Both are inside the declared
+                      // footprint, so the layout can keep other objects clear.
+                      const W = box.width * 0.56;
+                      const H = box.height;
+                      const L = box.x - box.width / 2;
+                      const T = box.y - H / 2;
+                      const chromeH = H * 0.17;
+                      const tabs = box.tabs ?? [];
+                      const px = Math.min(H * 0.075, W * 0.045);
+                      const pageTop = T + chromeH;
+                      return (
+                        <g>
+                          {/* the page */}
+                          <rect x={L} y={pageTop} width={W} height={H - chromeH} rx={W * 0.012} fill={cool ? "#ffffff" : PLATE} stroke={INK_FAINT} strokeWidth={strokeBase} />
+                          <rect x={L + W * 0.06} y={pageTop + H * 0.1} width={W * 0.52} height={H * 0.055} rx={H * 0.02} fill={INK_FAINT} />
+                          <rect x={L + W * 0.06} y={pageTop + H * 0.2} width={W * 0.34} height={H * 0.03} rx={H * 0.015} fill={INK_FAINT} opacity={0.6} />
+                          <rect
+                            x={L + W * 0.06}
+                            y={pageTop + H * 0.24}
+                            width={W * 0.34 * (1 - unfold)}
+                            height={H * 0.3 * (1 - unfold)}
+                            rx={W * 0.012}
+                            fill={ACCENTS.primary.stroke}
+                            opacity={0.5 * (1 - unfold)}
+                          />
+                          <rect
+                            x={L + W * 0.46}
+                            y={pageTop + H * 0.24}
+                            width={W * 0.42 * (1 - unfold)}
+                            height={H * 0.3 * (1 - unfold)}
+                            rx={W * 0.012}
+                            fill={ACCENTS.danger.stroke}
+                            opacity={0.45 * (1 - unfold)}
+                          />
+                          {/* chrome lifts away */}
+                          <g transform={`translate(0 ${-lift * H * 0.3})`} opacity={1 - unfold * 0.35}>
+                            <rect x={L} y={T} width={W} height={chromeH} rx={W * 0.012} fill={cool ? "#c9cfd8" : BACKING} stroke={INK_FAINT} strokeWidth={strokeBase} />
+                            <rect x={L + W * 0.3} y={T + chromeH * 0.34} width={W * 0.5} height={chromeH * 0.34} rx={chromeH * 0.17} fill={cool ? "#eef1f5" : PLATE} />
+                            {tabs.map((label, i) => {
+                              const n = Math.max(1, tabs.length);
+                              const homeX = L + W * 0.03 + i * (W * 0.19);
+                              const fanX = box.x + (i - (n - 1) / 2) * (W * 0.3) - W * 0.085;
+                              const tx = homeX + (fanX - homeX) * detach;
+                              return (
+                                <g key={label} transform={`translate(${tx - homeX} ${-detach * H * 0.16})`}>
+                                  <rect
+                                    x={homeX}
+                                    y={T + chromeH * 0.14}
+                                    width={W * 0.17}
+                                    height={chromeH * 0.6}
+                                    rx={chromeH * 0.14}
+                                    fill={i === 0 ? ACCENTS.primary.stroke : cool ? "#dfe3ea" : PLATE}
+                                    opacity={i === 0 ? 0.92 : 0.9}
+                                  />
+                                  <text
+                                    x={homeX + W * 0.085}
+                                    y={T + chromeH * 0.58}
+                                    textAnchor="middle"
+                                    fill={i === 0 ? (cool ? "#ffffff" : INK) : INK_SOFT}
+                                    fontFamily={STAGE_FONT}
+                                    fontWeight={700}
+                                    fontSize={px * 0.72}
+                                  >
+                                    {label}
+                                  </text>
+                                </g>
+                              );
+                            })}
+                          </g>
+                          {/* The work the page turns out to be doing is authored as
+                              its own objects, so the layout engine places and
+                              separates it. Drawing it inside this box put it on
+                              top of whatever sat to the right. */}
+                        </g>
+                      );
+                    })()
+                  : null}
+                {box.kind === "bars"
+                  ? (() => {
+                      /** COMPETING QUANTITIES, READ BY LENGTH.
+                       *
+                       * Flat on purpose. In three dimensions a camera move
+                       * skewed the very comparison the chart exists to make,
+                       * and its labels had to be projected back out of the
+                       * scene. Depth earns its place when something is
+                       * physically happening in space; a bar chart is read, not
+                       * inhabited.
+                       *
+                       * Labels sit in their own gutter and the WHOLE block —
+                       * gutter plus tracks — is centred, because centring only
+                       * the bars leaves the names hanging off one side and the
+                       * composition visibly off-axis. */
+                      const series = box.series ?? [];
+                      if (series.length === 0) return null;
+                      const values = barScores.get(box.id) ?? series.map((x) => x.value);
+                      const rowH = box.height / series.length;
+                      const barH = Math.min(rowH * 0.5, box.height * 0.16);
+                      const px = Math.min(rowH * 0.44, box.width * 0.075);
+                      // THE GUTTER IS MEASURED, NOT ASSUMED. A fixed fraction of
+                      // the box was narrower than the longest label, so the names
+                      // overhung to the left while the centring maths believed
+                      // they fitted — which put the whole block visibly right of
+                      // centre. Sizing it to the widest label makes the computed
+                      // extent the real extent.
+                      const longest = Math.max(...series.map((x) => x.label.length));
+                      const gutter = longest * px * 0.62;
+                      const gap = box.width * 0.045;
+                      const numW = px * 2.1;
+                      const trackW = Math.max(box.width * 0.34, box.width - gutter - gap * 2 - numW);
+                      const total = gutter + gap + trackW + gap + numW;
+                      const left = box.x - total / 2;
+                      const trackX = left + gutter + gap;
+                      return (
+                        <g>
+                          {series.map((sr, i) => {
+                            const v = Math.max(0, Math.min(1, values[i] ?? sr.value));
+                            const cy = box.y - box.height / 2 + rowH * (i + 0.5);
+                            const acc = ACCENTS[sr.accent ?? (i === 0 ? "success" : i === 1 ? "warn" : i === 2 ? "primary" : "profile")];
+                            const leading = v >= Math.max(...values.map((x) => x ?? 0));
+                            return (
+                              <g key={sr.label}>
+                                <text
+                                  x={left + gutter}
+                                  y={cy + px * 0.35}
+                                  textAnchor="end"
+                                  fill={INK}
+                                  fontFamily={STAGE_FONT}
+                                  fontWeight={800}
+                                  fontSize={px}
+                                >
+                                  {sr.label}
+                                </text>
+                                <rect x={trackX} y={cy - barH / 2} width={trackW} height={barH} rx={barH * 0.22} fill={light ? "rgba(26, 35, 56, 0.11)" : "rgba(160, 174, 202, 0.2)"} />
+                                <rect
+                                  x={trackX}
+                                  y={cy - barH / 2}
+                                  width={Math.max(barH * 0.35, trackW * v)}
+                                  height={barH}
+                                  rx={barH * 0.22}
+                                  fill={acc.stroke}
+                                  opacity={leading ? 1 : 0.62}
+                                />
+                                <text
+                                  x={trackX + trackW + gap}
+                                  y={cy + px * 0.35}
+                                  textAnchor="start"
+                                  fill={INK_SOFT}
+                                  fontFamily={MONO_FONT}
+                                  fontWeight={700}
+                                  fontSize={px * 0.86}
+                                >
+                                  {Math.round(v * 100)}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </g>
+                      );
+                    })()
+                  : null}
+                {box.kind === "bars" || box.kind === "memory" || box.kind === "browserWindow" ? null : (() => {
                   const form = forms.get(box.id);
                   // A SHAPE THAT HAS STATES needs to be drawn in the state it is
                   // currently in. `phase` moves an object through its declared

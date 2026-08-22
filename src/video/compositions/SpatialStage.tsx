@@ -48,6 +48,17 @@ const ACCENTS_DARK: Record<string, string> = {
   danger: "#ef4444",
   profile: "#a855f7",
 };
+/** The machine palette: blue is memory in use, orange is pressure, green is
+ * memory handed back. Harder and cooler than the illustrated set, because this
+ * world is a desktop rather than a page. */
+const ACCENTS_COOL: Record<string, string> = {
+  neutral: "#39414d",
+  primary: "#1668d8",
+  warn: "#d1600a",
+  success: "#11855a",
+  danger: "#c02434",
+  profile: "#5b48b8",
+};
 const ACCENTS_LIGHT: Record<string, string> = {
   neutral: "#1f2a44",
   primary: "#1d4ed8",
@@ -84,10 +95,23 @@ const HALF_EXTENTS: Record<string, [number, number, number]> = {
   globe: [1, 1, 1],
   satellite: [0.9, 0.35, 1.05],
   node: [0.16, 0.16, 0.16],
-  plane: [8.25, 0.05, 14.85],
+  plane: [8.25, 0.05, 21.45],
   pin: [0.3, 1.0, 0.3],
   axes: [0, 0, 0],
   vector: [0, 0, 0],
+  image: [1.5, 1.5, 0.02],
+  pixelGrid: [1.5, 1.5, 0.02],
+  terrain: [1.5, 0.9, 1.5],
+  edgeMap: [1.5, 1.5, 0.02],
+  scatter: [1.6, 1.6, 1.6],
+  bars: [1.75, 1.3, 0.05],
+  memory: [2.15, 1.0, 0.1],
+  browserWindow: [1.4, 0.95, 0.1],
+  laptop: [1.75, 1.2, 1.2],
+  workload: [1.05, 0.65, 0.02],
+  tabCard: [0.8, 0.5, 0.02],
+  decode: [2.5, 1.15, 0.02],
+  layers: [1.3, 1.3, 2.2],
 };
 
 /** Distance from a body's centre to its surface along `d` — an exact ray/box
@@ -411,7 +435,7 @@ const StreetMap: React.FC<{ light: boolean }> = ({ light }) => {
   // is longer than it is wide, and the answer to empty space is more town, not
   // a tighter lens.
   const COLS = 5;
-  const ROWS = 9;
+  const ROWS = 13;
   const BLOCK = 2.1;
   const ROAD = 1.2;
   const PITCH = BLOCK + ROAD;
@@ -536,6 +560,1135 @@ const LocationPin: React.FC<{ color: string }> = ({ color }) => (
   </group>
 );
 
+
+// ---------------------------------------------------------------------------
+// One picture, several representations
+// ---------------------------------------------------------------------------
+
+/** THE SOURCE PICTURE, painted once to a canvas.
+ *
+ * Everything downstream — the pixel grid, the terrain, the edge map — SAMPLES
+ * this. That is not an implementation convenience, it is the whole argument of
+ * the episode: a viewer is being told that a photograph, a wall of numbers and
+ * a landscape are the same information wearing different clothes, and that
+ * claim is only honest if they genuinely are. Redrawing each stage by hand
+ * would make the video an assertion with illustrations.
+ *
+ * Deliberately shaded rather than flat: brightness is what the heightfield
+ * reads as altitude, so a flat-colour cat would extrude into a plateau and the
+ * signature shot would have nothing to fly over. */
+function drawCat(ctx: CanvasRenderingContext2D, W: number, H: number, variant: "cat" | "cat-alt" | "dog"): void {
+  const cat = variant !== "dog";
+  const coat = variant === "cat" ? ["#d98b4a", "#c2762f", "#a55f22"] : variant === "cat-alt" ? ["#5c6470", "#474e58", "#343a42"] : ["#b98a5e", "#a0714a", "#835a38"];
+
+  // Ground: a soft vignette so the subject sits in a scene rather than floating.
+  const bg = ctx.createRadialGradient(W * 0.5, H * 0.42, W * 0.1, W * 0.5, H * 0.5, W * 0.72);
+  bg.addColorStop(0, "#39404e");
+  bg.addColorStop(1, "#20252f");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W * 0.5;
+  const cy = H * 0.54;
+  const r = W * 0.26;
+
+  // Ears first, so the head overlaps their bases.
+  const ear = (side: number) => {
+    ctx.beginPath();
+    if (cat) {
+      ctx.moveTo(cx + side * r * 0.82, cy - r * 0.52);
+      ctx.lineTo(cx + side * r * 1.02, cy - r * 1.5);
+      ctx.lineTo(cx + side * r * 0.16, cy - r * 0.95);
+    } else {
+      ctx.moveTo(cx + side * r * 0.9, cy - r * 0.6);
+      ctx.quadraticCurveTo(cx + side * r * 1.5, cy - r * 0.1, cx + side * r * 1.05, cy + r * 0.55);
+      ctx.quadraticCurveTo(cx + side * r * 0.8, cy + r * 0.1, cx + side * r * 0.7, cy - r * 0.35);
+    }
+    ctx.closePath();
+    ctx.fillStyle = coat[2];
+    ctx.fill();
+    if (cat) {
+      ctx.beginPath();
+      ctx.moveTo(cx + side * r * 0.78, cy - r * 0.62);
+      ctx.lineTo(cx + side * r * 0.92, cy - r * 1.28);
+      ctx.lineTo(cx + side * r * 0.34, cy - r * 0.92);
+      ctx.closePath();
+      ctx.fillStyle = "#e6a394";
+      ctx.fill();
+    }
+  };
+  ear(-1);
+  ear(1);
+
+  // Head, lit from upper left so the surface has relief to extrude.
+  const face = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  face.addColorStop(0, coat[0]);
+  face.addColorStop(0.55, coat[1]);
+  face.addColorStop(1, coat[2]);
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r * 1.12, r, 0, 0, Math.PI * 2);
+  ctx.fillStyle = face;
+  ctx.fill();
+
+  // Muzzle.
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + r * 0.42, r * 0.62, r * 0.42, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#f0e6d8";
+  ctx.fill();
+
+  // Eyes: the highest-contrast thing in the frame, which is what makes the
+  // edge map and the terrain both legible.
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.ellipse(cx + side * r * 0.42, cy - r * 0.12, r * 0.2, r * 0.24, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#f7f4ec";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx + side * r * 0.42, cy - r * 0.12, r * (cat ? 0.075 : 0.12), r * 0.2, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#1b1f26";
+    ctx.fill();
+  }
+
+  // Nose and mouth.
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + r * 0.34);
+  ctx.lineTo(cx - r * 0.13, cy + r * 0.16);
+  ctx.lineTo(cx + r * 0.13, cy + r * 0.16);
+  ctx.closePath();
+  ctx.fillStyle = "#c4636a";
+  ctx.fill();
+  ctx.strokeStyle = "#3a3129";
+  ctx.lineWidth = W * 0.006;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + r * 0.34);
+  ctx.lineTo(cx, cy + r * 0.5);
+  ctx.stroke();
+
+  if (cat) {
+    ctx.lineWidth = W * 0.004;
+    ctx.strokeStyle = "rgba(58, 49, 41, 0.75)";
+    for (const side of [-1, 1]) {
+      for (const k of [-1, 0, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(cx + side * r * 0.4, cy + r * 0.4 + k * r * 0.09);
+        ctx.lineTo(cx + side * r * 1.25, cy + r * 0.3 + k * r * 0.22);
+        ctx.stroke();
+      }
+    }
+    // Tabby markings — texture for the pattern stage to find.
+    ctx.strokeStyle = "rgba(90, 60, 25, 0.5)";
+    ctx.lineWidth = W * 0.012;
+    for (const k of [-1, 0, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(cx + k * r * 0.22, cy - r * 0.78);
+      ctx.lineTo(cx + k * r * 0.3, cy - r * 0.45);
+      ctx.stroke();
+    }
+  }
+}
+
+interface ImageData2 {
+  /** Downsampled cells: colour and brightness for each. */
+  cells: { r: number; g: number; b: number; lum: number }[];
+  detail: number;
+  texture: THREE.CanvasTexture | null;
+}
+
+/** Paints the source picture and reads it back at whatever resolution a
+ * representation needs. One draw, many readings. */
+function useSourceImage(variant: "cat" | "cat-alt" | "dog", detail: number): ImageData2 {
+  return React.useMemo(() => {
+    if (typeof document === "undefined") return { cells: [], detail, texture: null };
+    const W = 512;
+    const H = 512;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return { cells: [], detail, texture: null };
+    drawCat(ctx, W, H, variant);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    // Read the picture back at grid resolution by averaging each cell, which
+    // is exactly what downsampling an image is — not a stylised approximation
+    // of it.
+    const cells: { r: number; g: number; b: number; lum: number }[] = [];
+    const step = Math.floor(W / detail);
+    const raw = ctx.getImageData(0, 0, W, H).data;
+    for (let gy = 0; gy < detail; gy++) {
+      for (let gx = 0; gx < detail; gx++) {
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let n = 0;
+        for (let y = gy * step; y < (gy + 1) * step; y += 2) {
+          for (let x = gx * step; x < (gx + 1) * step; x += 2) {
+            const i = (y * W + x) * 4;
+            r += raw[i];
+            g += raw[i + 1];
+            b += raw[i + 2];
+            n++;
+          }
+        }
+        r /= n;
+        g /= n;
+        b /= n;
+        cells.push({ r, g, b, lum: (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 });
+      }
+    }
+    let lo = 1;
+    let hi = 0;
+    for (const c of cells) {
+      lo = Math.min(lo, c.lum);
+      hi = Math.max(hi, c.lum);
+    }
+    const span = Math.max(0.001, hi - lo);
+    for (const c of cells) c.lum = (c.lum - lo) / span;
+    return { cells, detail, texture };
+  }, [variant, detail]);
+}
+
+
+/** THE PICTURE, as a picture. Nothing clever — it exists so the viewer has
+ * something to recognise before it is taken apart, and so the taking-apart has
+ * a "before" to be measured against. */
+const SourceImage: React.FC<{ variant: "cat" | "cat-alt" | "dog" }> = ({ variant }) => {
+  const img = useSourceImage(variant, 8);
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[3, 3]} />
+      {img.texture ? (
+        <meshBasicMaterial map={img.texture} toneMapped={false} side={THREE.DoubleSide} />
+      ) : (
+        <meshBasicMaterial color="#c9c2b3" side={THREE.DoubleSide} />
+      )}
+    </mesh>
+  );
+};
+
+/** THE SAME PICTURE AS CELLS, each one a flat tile of that cell's average
+ * colour. `spread` pushes them apart, which is how the photograph visibly
+ * stops being a photograph and becomes a collection of independent values —
+ * the moment the episode turns on. */
+const PixelGrid: React.FC<{ variant: "cat" | "cat-alt" | "dog"; detail: number; spread: number; shuffled: number }> = ({
+  variant,
+  detail,
+  spread,
+  shuffled,
+}) => {
+  const img = useSourceImage(variant, detail);
+  const size = 3 / detail;
+  /** A fixed permutation, so the scramble is the same every frame — a shuffle
+   * that re-rolls per frame reads as static, not as rearrangement. */
+  const order = React.useMemo(() => {
+    const idx = img.cells.map((_, i) => i);
+    for (let i = idx.length - 1; i > 0; i--) {
+      const r = Math.abs(Math.sin(i * 12.9898) * 43758.5453);
+      const j = Math.floor((r - Math.floor(r)) * (i + 1));
+      [idx[i], idx[j]] = [idx[j], idx[i]];
+    }
+    return idx;
+  }, [img.cells]);
+  return (
+    <group rotation={[-Math.PI / 2, 0, 0]}>
+      {img.cells.map((c, i) => {
+        const gx = i % detail;
+        const gy = Math.floor(i / detail);
+        const x = (gx - (detail - 1) / 2) * size;
+        const y = -(gy - (detail - 1) / 2) * size;
+        // Cells drift apart along their own offset from centre, so the picture
+        // dilates outward rather than every tile sliding the same way.
+        const push = 1 + spread * 1.4;
+        // Each cell slides toward the slot the permutation gives it.
+        const dest = order[i] ?? i;
+        const dx = ((dest % detail) - (detail - 1) / 2) * size;
+        const dy = -(Math.floor(dest / detail) - (detail - 1) / 2) * size;
+        const px = (x + (dx - x) * shuffled) * push;
+        const py = (y + (dy - y) * shuffled) * push;
+        return (
+          <mesh key={i} position={[px, py, 0]}>
+            <planeGeometry args={[size * 0.92, size * 0.92]} />
+            <meshBasicMaterial color={`rgb(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)})`} toneMapped={false} side={THREE.DoubleSide} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+};
+
+/** THE SAME PICTURE AS A LANDSCAPE: brightness becomes altitude.
+ *
+ * This is the signature shot. A viewer told "to a computer it is just numbers"
+ * has been given a claim; a viewer flown across a terrain whose hills ARE the
+ * cat's bright fur and whose valleys ARE its eyes has been shown one. Nothing
+ * here is invented — the heights are the luminance values read back from the
+ * same canvas the photograph is drawn on. */
+const ImageTerrain: React.FC<{ variant: "cat" | "cat-alt" | "dog"; detail: number; relief: number; colored: number; risen: number }> = ({
+  variant,
+  detail,
+  relief,
+  colored,
+  risen,
+}) => {
+  const img = useSourceImage(variant, detail);
+  const size = 3 / detail;
+  return (
+    <group>
+      {img.cells.map((c, i) => {
+        const gx = i % detail;
+        const gy = Math.floor(i / detail);
+        const x = (gx - (detail - 1) / 2) * size;
+        const z = (gy - (detail - 1) / 2) * size;
+        // At rest it lies flat and IS the photograph; the rise is what the
+        // viewer has to see happen.
+        const h = Math.max(0.015, c.lum * relief * risen);
+        // Fades from the picture's own colours toward a single data-blue as the
+        // representation stops being a picture and starts being values.
+        const src = new THREE.Color(c.r / 255, c.g / 255, c.b / 255);
+        const data = new THREE.Color("#1d4ed8").lerp(new THREE.Color("#7dd3fc"), c.lum);
+        const col = src.clone().lerp(data, colored);
+        return (
+          <mesh key={i} position={[x, h / 2, z]}>
+            <boxGeometry args={[size * 0.9, h, size * 0.9]} />
+            <meshStandardMaterial color={col} roughness={0.75} metalness={0.05} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+};
+
+/** THE SAME PICTURE REDUCED TO WHERE IT CHANGES. Computed by comparing each
+ * cell to its neighbours, so it is genuinely derived from the image rather
+ * than a stylised outline drawn to look like edge detection. */
+const EdgeMap: React.FC<{ variant: "cat" | "cat-alt" | "dog"; detail: number; ink: string }> = ({ variant, detail, ink }) => {
+  const img = useSourceImage(variant, detail);
+  const size = 3 / detail;
+  const at = (gx: number, gy: number) => img.cells[gy * detail + gx]?.lum ?? 0;
+  return (
+    <group rotation={[-Math.PI / 2, 0, 0]}>
+      {img.cells.map((_, i) => {
+        const gx = i % detail;
+        const gy = Math.floor(i / detail);
+        // Simple gradient magnitude: how much brightness changes across this
+        // cell horizontally and vertically.
+        const dx = Math.abs(at(Math.min(gx + 1, detail - 1), gy) - at(Math.max(gx - 1, 0), gy));
+        const dy = Math.abs(at(gx, Math.min(gy + 1, detail - 1)) - at(gx, Math.max(gy - 1, 0)));
+        const edge = Math.min(1, Math.hypot(dx, dy) * 2.6);
+        if (edge < 0.12) return null;
+        const x = (gx - (detail - 1) / 2) * size;
+        const y = -(gy - (detail - 1) / 2) * size;
+        return (
+          <mesh key={i} position={[x, y, 0]}>
+            <planeGeometry args={[size * 0.9, size * 0.9]} />
+            <meshBasicMaterial color={ink} opacity={edge} transparent toneMapped={false} side={THREE.DoubleSide} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+};
+
+
+/** POINTS IN A SPACE, grouped by what they are.
+ *
+ * The honest caveat lives in the script rather than the mesh: a real learned
+ * representation has hundreds of dimensions and no human-readable "cat corner".
+ * What survives the simplification, and what the scene is actually for, is the
+ * one true idea — things the model treats as similar end up near each other,
+ * and a new example is judged by where it lands. */
+const ScatterSpace: React.FC<{ points: number; colors: string[]; query: number }> = ({ points, colors, query }) => {
+  const groups = React.useMemo(() => {
+    const centres: [number, number, number][] = [
+      [-1.1, 0.35, -0.5],
+      [1.15, -0.2, 0.45],
+      [0.1, 0.95, 1.15],
+    ];
+    const out: { pos: [number, number, number]; group: number }[] = [];
+    for (let i = 0; i < points; i++) {
+      const g = i % centres.length;
+      const seed = (n: number) => {
+        const v = Math.sin(i * 37.7 + n * 91.3) * 43758.5453;
+        return (v - Math.floor(v)) - 0.5;
+      };
+      out.push({
+        pos: [centres[g][0] + seed(1) * 0.75, centres[g][1] + seed(2) * 0.7, centres[g][2] + seed(3) * 0.75],
+        group: g,
+      });
+    }
+    return out;
+  }, [points]);
+
+  // The new example travels in from outside and settles among its own kind.
+  const from = new THREE.Vector3(2.6, 1.9, 2.4);
+  const to = new THREE.Vector3(-1.0, 0.3, -0.42);
+  const at = from.clone().lerp(to, query);
+
+  return (
+    <group>
+      {groups.map((p, i) => (
+        <mesh key={i} position={p.pos}>
+          <sphereGeometry args={[0.075, 12, 12]} />
+          <meshStandardMaterial color={colors[p.group]} roughness={0.5} />
+        </mesh>
+      ))}
+      {query > 0.01 ? (
+        <mesh position={at}>
+          <sphereGeometry args={[0.15, 18, 18]} />
+          <meshStandardMaterial color="#15803d" emissive="#15803d" emissiveIntensity={0.35} roughness={0.4} />
+        </mesh>
+      ) : null}
+    </group>
+  );
+};
+
+
+/** COMPETING SCORES, as bars whose LENGTH is the number.
+ *
+ * A dial borrowed from another video showed a percentage counting down while
+ * the shape beside it barely moved — the viewer was asked to read the digits,
+ * which is not animation, it is a caption. A score is a quantity, and the only
+ * honest picture of a quantity is an extent the eye can compare against its
+ * rivals without reading anything. Showing every option at once matters just as
+ * much: the model is never asked "is this a cat", it scores everything it knows
+ * and one of them wins. */
+const ScoreBars: React.FC<{
+  series: { label: string; value: number }[];
+  values: number[];
+  colors: string[];
+  dim: string;
+}> = ({ series, values, colors, dim }) => {
+  const W = 3.4;
+  const rowH = 0.46;
+  const top = ((series.length - 1) * rowH) / 2;
+  return (
+    <group>
+      {series.map((s, i) => {
+        const v = Math.max(0, Math.min(1, values[i] ?? s.value));
+        const y = top - i * rowH;
+        const len = Math.max(0.02, v * W);
+        const lead = i === 0 || v >= Math.max(...values);
+        return (
+          <group key={s.label} position={[0, y, 0]}>
+            {/* The track: how long the bar COULD be, so a short bar reads as
+                short rather than merely small. */}
+            <mesh position={[0, 0, -0.02]}>
+              <planeGeometry args={[W, rowH * 0.52]} />
+              <meshBasicMaterial color={dim} toneMapped={false} />
+            </mesh>
+            <mesh position={[-W / 2 + len / 2, 0, 0]}>
+              <planeGeometry args={[len, rowH * 0.52]} />
+              <meshBasicMaterial color={lead ? colors[i % colors.length] : colors[i % colors.length]} opacity={lead ? 1 : 0.55} transparent toneMapped={false} />
+            </mesh>
+          </group>
+        );
+      })}
+    </group>
+  );
+};
+
+/** A STACK OF TRANSFORMATIONS, and something passing through it.
+ *
+ * Replaces a card captioned "the network", which named a thing without showing
+ * it do anything. What a network IS, for this explanation, is a series of steps
+ * that each rewrite the representation — so the picture of it has to be the
+ * representation entering, being altered, and leaving different. The travelling
+ * slab changes colour at every layer it crosses, from raw-data blue toward the
+ * abstract purple, which is the one claim the scene is making. */
+const LayerStack: React.FC<{ progress: number; variant: "cat" | "cat-alt" | "dog"; from: string; to: string; frame: string }> = ({
+  progress,
+  variant,
+  from,
+  to,
+  frame,
+}) => {
+  const N = 4;
+  const detail = 22;
+  const img = useSourceImage(variant, detail);
+  const gap = 1.05;
+  const span = (N - 1) * gap;
+
+  // PROCESSING HAPPENS IN STEPS, so the motion has to be stepped. Gliding
+  // smoothly from one end to the other read as a thing drifting past some
+  // sheets — no arrival, no event, nothing done to it. Each segment is a
+  // TRAVEL to the next layer and then a DWELL at it, and the transformation
+  // lands during the dwell, so every change is something that visibly happened
+  // AT a step rather than a continuous blur across all of them.
+  const seg = Math.max(0, Math.min(N - 0.0001, progress * N));
+  const idx = Math.floor(seg);
+  const f = seg - idx;
+  const TRAVEL = 0.55;
+  const moving = f < TRAVEL;
+  const move = moving ? ease(f / TRAVEL) : 1;
+  // ONCE THE LAST STEP IS DONE, THE RESULT COMES OUT. It used to stop at the
+  // final plane, so what the process had actually derived sat buried behind
+  // four translucent sheets — the one thing the scene builds to was the one
+  // thing you could not see. After the last transformation it glides clear of
+  // the stack and the steps fade back behind it.
+  const exiting = idx === N - 1 && !moving ? Math.min(1, (f - TRAVEL) / (1 - TRAVEL)) : 0;
+  const z = -span / 2 + Math.min(N - 1, idx + move) * gap + ease(exiting) * 1.5;
+  // Discrete: how many layers have actually been applied.
+  const applied = Math.min(N, idx + (moving ? 0 : 1));
+  const stage = applied / N;
+  // How settled the current step is, for the little arrival flare.
+  const dwell = moving ? 0 : Math.min(1, (f - TRAVEL) / 0.2);
+  const size = 1.7 / detail;
+
+  const at = (gx: number, gy: number) => img.cells[gy * detail + gx]?.lum ?? 0;
+
+  return (
+    <group>
+      {Array.from({ length: N }).map((_, i) => {
+        // The step currently doing the work is lit; the ones already done stay
+        // faintly on; the ones ahead are barely there. Without this the stack
+        // was four identical sheets and nothing marked where the work happened.
+        const done = i < applied;
+        const active = i === Math.min(N - 1, idx) && !moving;
+        return (
+          <group key={i} position={[0, 0, -span / 2 + i * gap]}>
+            <mesh>
+              <planeGeometry args={[2.6, 2.6]} />
+              <meshBasicMaterial
+                color={active ? to : frame}
+                opacity={(active ? 0.1 + dwell * 0.22 : done ? 0.16 : 0.07) * (1 - exiting * 0.85)}
+                transparent
+                side={THREE.DoubleSide}
+                toneMapped={false}
+              />
+            </mesh>
+            {/* A frame around each step, so it reads as a stage to pass through
+                rather than a sheet of fog. */}
+            <lineSegments>
+              <edgesGeometry args={[new THREE.PlaneGeometry(2.6, 2.6)]} />
+              <lineBasicMaterial
+                color={active ? to : frame}
+                transparent
+                opacity={(active ? 0.9 : done ? 0.5 : 0.22) * (1 - exiting * 0.85)}
+                toneMapped={false}
+              />
+            </lineSegments>
+          </group>
+        );
+      })}
+
+      {/* THE REPRESENTATION ITSELF makes the journey, and stops being a picture
+          as it goes. An abstract slab drifting between sheets said nothing: the
+          viewer could not tell what was being transformed, or that anything was.
+          Here the cat enters as the cat, loses its colour to the data palette,
+          keeps only the places where it changes, and finally scatters into
+          values that no longer sit where the animal was — which is the scene's
+          entire claim, watched rather than asserted. */}
+      <group position={[0, 0, z]}>
+        {(() => {
+          // WHICH CELLS SURVIVE, worked out once, so the ones that make it
+          // through can be given tidy places in the final block rather than
+          // being scattered. The last stage has to read as REFINED — reduced to
+          // what matters and reorganised — not as debris. Jittering them apart
+          // made the representation look destroyed, which is the opposite of
+          // what deeper layers do.
+          const survivors: number[] = [];
+          img.cells.forEach((_, i) => {
+            const gx = i % detail;
+            const gy = Math.floor(i / detail);
+            const dx = Math.abs(at(Math.min(gx + 1, detail - 1), gy) - at(Math.max(gx - 1, 0), gy));
+            const dy = Math.abs(at(gx, Math.min(gy + 1, detail - 1)) - at(gx, Math.max(gy - 1, 0)));
+            if (Math.min(1, Math.hypot(dx, dy) * 2.6) >= 0.28) survivors.push(i);
+          });
+          const cols = Math.max(3, Math.round(Math.sqrt(survivors.length)));
+          const slot = new Map<number, [number, number]>();
+          const pitch = size * 1.25;
+          survivors.forEach((idx, k) => {
+            const cx2 = ((k % cols) - (cols - 1) / 2) * pitch;
+            const cy2 = -(Math.floor(k / cols) - (Math.ceil(survivors.length / cols) - 1) / 2) * pitch;
+            slot.set(idx, [cx2, cy2]);
+          });
+          return img.cells.map((c, i) => {
+          const gx = i % detail;
+          const gy = Math.floor(i / detail);
+          const dx = Math.abs(at(Math.min(gx + 1, detail - 1), gy) - at(Math.max(gx - 1, 0), gy));
+          const dy = Math.abs(at(gx, Math.min(gy + 1, detail - 1)) - at(gx, Math.max(gy - 1, 0)));
+          const edge = Math.min(1, Math.hypot(dx, dy) * 2.6);
+
+          // Past the halfway mark only the changing places survive.
+          const keep = stage < 0.45 ? 1 : Math.max(0, 1 - (stage - 0.45) / 0.3) + edge;
+          if (keep < 0.15) return null;
+
+          const x = (gx - (detail - 1) / 2) * size;
+          const y = -(gy - (detail - 1) / 2) * size;
+          // Past the last layer, what survived GATHERS into a compact ordered
+          // block: fewer values, tidily arranged, nothing where the picture used
+          // to be. Distilled rather than broken.
+          const gather = Math.max(0, Math.min(1, (stage - 0.62) / 0.34));
+          const target = slot.get(i);
+          const tx = target ? x + (target[0] - x) * gather : x;
+          const ty = target ? y + (target[1] - y) * gather : y;
+          const src = new THREE.Color(c.r / 255, c.g / 255, c.b / 255);
+          const col = src.clone().lerp(new THREE.Color(from).lerp(new THREE.Color(to), stage), Math.min(1, stage * 1.5));
+          // Cells with nowhere to go in the final block fade out as it forms.
+          const alpha = target ? Math.min(1, keep) : Math.min(1, keep) * (1 - gather);
+          if (alpha < 0.04) return null;
+
+          return (
+            <mesh key={i} position={[tx * (1 + exiting * 0.35), ty * (1 + exiting * 0.35), 0]}>
+              <planeGeometry args={[size * (target ? 0.88 + gather * 0.16 : 0.88), size * (target ? 0.88 + gather * 0.16 : 0.88)]} />
+              <meshBasicMaterial color={col} opacity={alpha} transparent toneMapped={false} side={THREE.DoubleSide} />
+            </mesh>
+          );
+          });
+        })()}
+      </group>
+    </group>
+  );
+};
+
+
+
+/** THE PEELING BROWSER — the episode's front stage.
+ *
+ * Closed, it is deliberately unremarkable: a window, a tab strip, an address
+ * bar, a page with a heading, an image, a video and a button. That ordinariness
+ * is the setup, because the whole thesis is that this simple-looking thing is
+ * hiding an enormous amount of work.
+ *
+ * Opening it is one continuous move rather than a cut. The chrome lifts off the
+ * page, the tabs detach and fan, and the page's own regions come away as the
+ * WORK behind them — travelling right, across the frame, toward the memory
+ * workspace that will allocate them. Its motion language is peel, detach,
+ * unfold, expand, activate, which is deliberately nothing like the workspace's
+ * fill, breathe, calm, reclaim: two objects, two personalities, and the moment
+ * they meet is the point of the episode. */
+const BrowserWindow: React.FC<{
+  peel: number;
+  tabs: string[];
+  workloads: { label: string; accent?: string }[];
+  light: boolean;
+  accents: Record<string, string>;
+}> = ({ peel, tabs, workloads, light, accents }) => {
+  const W = 2.6;
+  const H = 1.75;
+  const chromeH = 0.32;
+  const frame = light ? "#d7dbe2" : "#2b3140";
+  const chrome = light ? "#c3c9d3" : "#39414d";
+  const page = light ? "#ffffff" : "#161b24";
+  const line = light ? "#aab2bf" : "#4a5464";
+
+  const e = ease(Math.max(0, Math.min(1, peel)));
+  // Staged so the opening reads as a sequence rather than everything moving at
+  // once: the lid lifts, then the tabs come away, then the page's contents do.
+  const lift = Math.min(1, e / 0.35);
+  const detach = Math.max(0, Math.min(1, (e - 0.25) / 0.35));
+  const unfold = Math.max(0, Math.min(1, (e - 0.5) / 0.5));
+
+  return (
+    <group>
+      {/* The window itself. */}
+      <group position={[0, 0, 0]}>
+        <mesh position={[0, 0, -0.03]}>
+          <planeGeometry args={[W + 0.08, H + 0.08]} />
+          <meshBasicMaterial color={frame} toneMapped={false} />
+        </mesh>
+        <mesh>
+          <planeGeometry args={[W, H - chromeH]} />
+          <meshBasicMaterial color={page} toneMapped={false} />
+        </mesh>
+
+        {/* Page furniture: a heading, an image block, a video block, a button.
+            Recognisable as a webpage without being a screenshot of one. */}
+        <mesh position={[-W * 0.24, H * 0.22, 0.01]}>
+          <planeGeometry args={[W * 0.42, 0.09]} />
+          <meshBasicMaterial color={line} toneMapped={false} />
+        </mesh>
+        <mesh position={[-W * 0.3, H * 0.02, 0.01]} scale={[1 - unfold, 1 - unfold, 1]}>
+          <planeGeometry args={[W * 0.3, H * 0.26]} />
+          <meshBasicMaterial color={accents.primary} opacity={0.5} transparent toneMapped={false} />
+        </mesh>
+        <mesh position={[W * 0.16, H * 0.02, 0.01]} scale={[1 - unfold, 1 - unfold, 1]}>
+          <planeGeometry args={[W * 0.36, H * 0.26]} />
+          <meshBasicMaterial color={accents.danger} opacity={0.45} transparent toneMapped={false} />
+        </mesh>
+        <mesh position={[-W * 0.3, -H * 0.24, 0.01]} scale={[1 - unfold * 0.9, 1 - unfold * 0.9, 1]}>
+          <planeGeometry args={[W * 0.2, 0.12]} />
+          <meshBasicMaterial color={accents.success} opacity={0.6} transparent toneMapped={false} />
+        </mesh>
+      </group>
+
+      {/* CHROME LIFTS AWAY from the page — the first sign that the window is
+          not one solid thing. */}
+      <group position={[0, H / 2 - chromeH / 2 + lift * 0.55, lift * 0.5]} rotation={[-lift * 0.42, 0, 0]}>
+        <mesh>
+          <planeGeometry args={[W + 0.08, chromeH]} />
+          <meshBasicMaterial color={chrome} toneMapped={false} />
+        </mesh>
+        <mesh position={[0, -chromeH * 0.16, 0.01]}>
+          <planeGeometry args={[W * 0.62, 0.075]} />
+          <meshBasicMaterial color={light ? "#eef1f5" : "#222834"} toneMapped={false} />
+        </mesh>
+      </group>
+
+      {/* TABS DETACH and fan out above the window. */}
+      {tabs.map((label, i) => {
+        const n = Math.max(1, tabs.length);
+        const homeX = -W / 2 + 0.28 + i * 0.5;
+        const fanX = (i - (n - 1) / 2) * 0.72;
+        const x = homeX + (fanX - homeX) * detach;
+        return (
+          <mesh
+            key={label}
+            position={[x, H / 2 - chromeH * 0.35 + lift * 0.55 + detach * 0.5, lift * 0.5 + detach * 0.35]}
+            rotation={[-lift * 0.42 * (1 - detach), 0, 0]}
+          >
+            <planeGeometry args={[0.44, 0.16]} />
+            <meshBasicMaterial color={i === 0 ? accents.primary : chrome} opacity={i === 0 ? 0.9 : 0.75} transparent toneMapped={false} />
+          </mesh>
+        );
+      })}
+
+      {/* THE WORK COMES AWAY, travelling right toward the workspace. Each slab
+          is a workload the page needs in order to function — not a card naming
+          one. */}
+      {workloads.map((wl, i) => {
+        const n = Math.max(1, workloads.length);
+        // Staggered: each piece has its own slice of the peel, so they arrive in
+        // sequence rather than in a heap.
+        const slice = 1 / n;
+        const own = Math.max(0, Math.min(1, (unfold - i * slice * 0.55) / (1 - i * slice * 0.55 || 1)));
+        if (own <= 0.01) return null;
+        const e2 = ease(own);
+        // Fanned across the width and brought forward toward the camera.
+        const spreadX = (i - (n - 1) / 2) * 1.15;
+        const col = accents[wl.accent ?? (i % 3 === 0 ? "primary" : i % 3 === 1 ? "danger" : "success")] ?? accents.primary;
+        return (
+          <group key={wl.label} position={[spreadX * e2, -H * 0.1 - i * 0.06, 0.25 + e2 * 1.5]} scale={0.55 + e2 * 0.5}>
+            <mesh>
+              <planeGeometry args={[1.0, 0.62]} />
+              <meshBasicMaterial color={light ? "#ffffff" : "#161b24"} opacity={0.96} transparent toneMapped={false} />
+            </mesh>
+            <mesh position={[0, 0, 0.002]}>
+              <planeGeometry args={[1.0, 0.14]} />
+              <meshBasicMaterial color={col} opacity={0.9} transparent toneMapped={false} />
+            </mesh>
+            <lineSegments>
+              <edgesGeometry args={[new THREE.PlaneGeometry(1.0, 0.62)]} />
+              <lineBasicMaterial color={col} transparent opacity={0.95} toneMapped={false} />
+            </lineSegments>
+          </group>
+        );
+      })}
+    </group>
+  );
+};
+
+
+
+
+
+/** A COMPRESSED FILE OPENING INTO ITS DECODED PIXELS.
+ *
+ * The card on the left is what a person recognises: a filename and a size off
+ * their own disk. What grows out of it is what the browser actually has to hold
+ * to put that picture on screen. Nothing here is a metaphor — the small thing
+ * really does become the large thing, and the size of the gap IS the point.
+ * Saying "decoded images are larger than their files" asks to be believed;
+ * watching one open asks nothing. */
+const DecodeBlock: React.FC<{ label: string; color: string; light: boolean; opened: number; t: number }> = ({ label, color, light, opened, t }) => {
+  const COLS = 26;
+  const ROWS = 16;
+  const cell = 0.14;
+  const e = ease(Math.max(0, Math.min(1, opened)));
+
+  const fileTexture = React.useMemo(() => {
+    if (typeof document === "undefined") return null;
+    const W = 320;
+    const H = 200;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = light ? "#ffffff" : "#161b24";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, W, 46);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "700 22px system-ui, sans-serif";
+    ctx.fillText(label, 16, 31);
+    ctx.fillStyle = light ? "#12161c" : "#e6ebf5";
+    ctx.font = "700 40px system-ui, sans-serif";
+    ctx.fillText("420 KB", 16, 116);
+    ctx.fillStyle = light ? "#9aa3b0" : "#6b7280";
+    ctx.font = "400 18px system-ui, sans-serif";
+    ctx.fillText("on disk", 16, 150);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    return tex;
+  }, [label, color, light]);
+
+  return (
+    <group>
+      {/* The file, shrinking away as what it contains takes over. */}
+      <group position={[-1.9, 0, 0.02]} scale={1 - e * 0.35}>
+        <mesh>
+          <planeGeometry args={[1.5, 0.94]} />
+          {fileTexture ? <meshBasicMaterial map={fileTexture} toneMapped={false} /> : <meshBasicMaterial color={color} />}
+        </mesh>
+        <lineSegments>
+          <edgesGeometry args={[new THREE.PlaneGeometry(1.5, 0.94)]} />
+          <lineBasicMaterial color={color} transparent opacity={0.9} toneMapped={false} />
+        </lineSegments>
+      </group>
+
+      {/* The pixels it becomes: dealt out row by row, so the viewer sees the
+          cost being paid rather than a big rectangle appearing. */}
+      {Array.from({ length: COLS * ROWS }).map((_, i) => {
+        const gx = i % COLS;
+        const gy = Math.floor(i / COLS);
+        const order = (gy * COLS + gx) / (COLS * ROWS);
+        const on = Math.max(0, Math.min(1, (e - order * 0.55) / 0.45));
+        if (on <= 0.02) return null;
+        const x = 0.55 + (gx - (COLS - 1) / 2) * cell;
+        const y = -(gy - (ROWS - 1) / 2) * cell;
+        const shimmer = 0.82 + 0.18 * Math.sin(t * 2.2 + i * 0.35);
+        return (
+          <mesh key={i} position={[x, y, 0]} scale={on}>
+            <planeGeometry args={[cell * 0.88, cell * 0.88]} />
+            <meshBasicMaterial color={color} opacity={0.35 + shimmer * 0.5} transparent toneMapped={false} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+};
+
+/** AN OPEN TAB, as a card carrying its own colour and title.
+ *
+ * The title is painted into the card rather than floated beside it, so it stays
+ * attached and stays crisp however close the camera gets. The colour is the
+ * point: the same one shows up in the memory wall, sized by what this tab
+ * costs, which is how "which tab is eating my memory" gets answered by looking
+ * instead of by reading a key. */
+const TabCard: React.FC<{ label: string; color: string; light: boolean; alive: number; failing: number; t: number }> = ({ label, color, light, alive, failing, t }) => {
+  const texture = React.useMemo(() => {
+    if (typeof document === "undefined") return null;
+    const W = 512;
+    const H = 320;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = light ? "#ffffff" : "#161b24";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, W, 74);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "700 34px system-ui, sans-serif";
+    ctx.fillText(label, 26, 50);
+    // A hint of page content, so it reads as a tab rather than a swatch.
+    ctx.fillStyle = light ? "#e3e7ee" : "#2b3140";
+    ctx.fillRect(26, 116, 340, 20);
+    ctx.fillRect(26, 152, 250, 20);
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.25;
+    ctx.fillRect(26, 200, 200, 84);
+    ctx.globalAlpha = 1;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    return tex;
+  }, [label, color, light]);
+
+  // Working tabs stir very slightly, so a page that is doing something is
+  // distinguishable from one merely sitting open.
+  const breathe = alive > 0 ? 1 + Math.sin(t * 2.4) * 0.008 * alive : 1;
+  // A FAILING TAB JUDDERS AND DRAINS. Fast irregular movement reads as
+  // something losing control in a way a colour change never does, and the
+  // colour going out of it says it has stopped doing its job — both before any
+  // word appears.
+  const shake = failing > 0.02 ? Math.sin(t * 47) * 0.045 * failing : 0;
+  const tilt = failing > 0.02 ? Math.sin(t * 31) * 0.06 * failing : 0;
+
+  return (
+    <group scale={breathe} position={[shake, shake * 0.6, 0]} rotation={[0, 0, tilt]}>
+      <mesh>
+        <planeGeometry args={[1.6, 1.0]} />
+        {texture ? (
+          <meshBasicMaterial map={texture} toneMapped={false} opacity={1 - failing * 0.55} transparent />
+        ) : (
+          <meshBasicMaterial color={color} />
+        )}
+      </mesh>
+      <lineSegments>
+        <edgesGeometry args={[new THREE.PlaneGeometry(1.6, 1.0)]} />
+        <lineBasicMaterial
+          color={failing > 0.35 ? "#b91c1c" : color}
+          transparent
+          opacity={0.9}
+          toneMapped={false}
+        />
+      </lineSegments>
+    </group>
+  );
+};
+
+/** ONE PIECE OF WORK behind the page, as a panel standing in space.
+ *
+ * Deliberately simple: a lit face, a coloured header bar, a bright edge. It
+ * exists to be FLOWN PAST rather than examined, and its job is done by where it
+ * sits — one of several receding behind the screen, so travelling through them
+ * is what shows that a page is many things at once. It brightens as the camera
+ * reaches it, which is what marks arrival without a label having to announce
+ * it. */
+const WorkloadPanel: React.FC<{ color: string; light: boolean; near: number }> = ({ color, light, near }) => (
+  <group>
+    <mesh>
+      <planeGeometry args={[2.1, 1.3]} />
+      <meshBasicMaterial color={light ? "#ffffff" : "#161b24"} opacity={0.55 + near * 0.42} transparent toneMapped={false} />
+    </mesh>
+    <mesh position={[0, 0.52, 0.003]}>
+      <planeGeometry args={[2.1, 0.26]} />
+      <meshBasicMaterial color={color} opacity={0.55 + near * 0.45} transparent toneMapped={false} />
+    </mesh>
+    <lineSegments>
+      <edgesGeometry args={[new THREE.PlaneGeometry(2.1, 1.3)]} />
+      <lineBasicMaterial color={color} transparent opacity={0.4 + near * 0.6} toneMapped={false} />
+    </lineSegments>
+  </group>
+);
+
+/** THE BROWSER, PAINTED ONTO A SCREEN.
+ *
+ * Drawn to a canvas rather than built from meshes so it stays crisp as the
+ * camera closes on it — a screen you can push right up to has to hold up at
+ * arm's length, and geometry that fine would be thousands of little planes. */
+function useScreenTexture(light: boolean): THREE.CanvasTexture | null {
+  return React.useMemo(() => {
+    if (typeof document === "undefined") return null;
+    const W = 1280;
+    const H = 800;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const chrome = light ? "#c9cfd8" : "#2b3140";
+    const page = "#ffffff";
+    const faint = light ? "#dfe3ea" : "#39414d";
+
+    ctx.fillStyle = chrome;
+    ctx.fillRect(0, 0, W, H);
+
+    const tabs = ["YouTube", "Gmail", "News"];
+    tabs.forEach((label, i) => {
+      const x = 28 + i * 210;
+      ctx.fillStyle = i === 0 ? "#ffffff" : light ? "#dde2e9" : "#333b48";
+      ctx.beginPath();
+      ctx.roundRect(x, 18, 196, 52, [10, 10, 0, 0]);
+      ctx.fill();
+      ctx.fillStyle = i === 0 ? "#12161c" : light ? "#6b7280" : "#9aa3b2";
+      ctx.font = "600 22px system-ui, sans-serif";
+      ctx.fillText(label, x + 22, 51);
+    });
+
+    ctx.fillStyle = light ? "#eef1f5" : "#222834";
+    ctx.beginPath();
+    ctx.roundRect(28, 84, W - 56, 46, 23);
+    ctx.fill();
+    ctx.fillStyle = light ? "#9aa3b0" : "#6b7280";
+    ctx.font = "400 20px system-ui, sans-serif";
+    ctx.fillText("youtube.com/watch", 56, 114);
+
+    ctx.fillStyle = page;
+    ctx.fillRect(0, 146, W, H - 146);
+
+    ctx.fillStyle = "#1b1f26";
+    ctx.beginPath();
+    ctx.roundRect(48, 186, 740, 416, 12);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.moveTo(392, 358);
+    ctx.lineTo(392, 430);
+    ctx.lineTo(456, 394);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#12161c";
+    ctx.font = "700 30px system-ui, sans-serif";
+    ctx.fillText("Why is this using so much memory?", 48, 654);
+    ctx.fillStyle = faint;
+    ctx.fillRect(48, 682, 520, 12);
+    ctx.fillRect(48, 706, 400, 12);
+
+    for (let i = 0; i < 3; i++) {
+      const y = 186 + i * 140;
+      ctx.fillStyle = faint;
+      ctx.beginPath();
+      ctx.roundRect(830, y, 400, 118, 10);
+      ctx.fill();
+      ctx.fillStyle = light ? "#aab2bf" : "#4a5464";
+      ctx.beginPath();
+      ctx.roundRect(844, y + 12, 150, 94, 8);
+      ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 8;
+    return texture;
+  }, [light]);
+}
+
+/** A LAPTOP. The one object in this episode that genuinely needs depth: a real
+ * machine sitting in a room, which the camera can approach and travel into. */
+const Laptop: React.FC<{ light: boolean }> = ({ light }) => {
+  const screen = useScreenTexture(light);
+  const shell = light ? "#b9c0ca" : "#39414d";
+  const shellDark = light ? "#9aa3b0" : "#2b3140";
+  const TILT = -0.28;
+
+  return (
+    <group>
+      <mesh position={[0, -0.04, 0.9]}>
+        <boxGeometry args={[3.5, 0.11, 2.3]} />
+        <meshStandardMaterial color={shell} metalness={0.45} roughness={0.42} />
+      </mesh>
+      <mesh position={[0, 0.021, 0.62]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[2.9, 1.15]} />
+        <meshStandardMaterial color={shellDark} roughness={0.75} />
+      </mesh>
+      <mesh position={[0, 0.022, 1.66]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[1.15, 0.72]} />
+        <meshStandardMaterial color={shellDark} roughness={0.6} />
+      </mesh>
+      <group position={[0, 0, -0.2]} rotation={[TILT, 0, 0]}>
+        <mesh position={[0, 1.06, -0.03]}>
+          <boxGeometry args={[3.5, 2.16, 0.07]} />
+          <meshStandardMaterial color={shell} metalness={0.45} roughness={0.42} />
+        </mesh>
+        <mesh position={[0, 1.06, 0.012]}>
+          <planeGeometry args={[3.3, 1.98]} />
+          {screen ? <meshBasicMaterial map={screen} toneMapped={false} /> : <meshBasicMaterial color="#ffffff" />}
+        </mesh>
+      </group>
+    </group>
+  );
+};
+
+/** THE MEMORY WORKSPACE — the episode's signature object.
+ *
+ * A number in a task manager tells a viewer nothing. A floor of blocks that
+ * visibly fills as tabs open, crowds as work piles up, and hands whole regions
+ * back when the system asks, tells them what the number MEANS — and answers the
+ * question the whole episode turns on, which is not "how much" but "of what".
+ *
+ * The states have BEHAVIOUR, not just colour, because that is the difference
+ * between a legend and a picture of a working system:
+ *   active      — breathes, because something is using it right now;
+ *   reusable    — allocated but calm, held in case it is wanted again;
+ *   reclaimable — amber and still, waiting to be taken back;
+ *   free        — barely there, and reddens as the field runs out of room.
+ *
+ * Laid out wide on purpose: this is a 16:9 subject and a memory field is the
+ * one object that genuinely wants the horizontal canvas. */
+const MemoryField: React.FC<{
+  capacity: number;
+  regions: { label: string; blocks: number; state: "active" | "reusable" | "reclaimable"; accent?: string }[];
+  t: number;
+  cool: boolean;
+}> = ({ capacity, regions, t, cool }) => {
+  // Squarer than a strip: a workspace should read as a floor you could walk
+  // across, not a progress bar lying on its side.
+  const COLS = 22;
+  const rows = Math.max(1, Math.ceil(capacity / COLS));
+  // SIZED TO A TARGET WIDTH, not to a fixed block size. With the block size
+  // fixed, a bigger capacity made a bigger wall — backwards, since capacity is
+  // how much memory the machine HAS, and more memory should not mean an object
+  // that takes over the frame. The wall stays the same size and its blocks get
+  // finer, which is also what more memory actually looks like.
+  const TARGET_W = 4.2;
+  const cell = TARGET_W / (COLS * 1.16);
+  const gap = cell * 0.16;
+  const pitch = cell + gap;
+
+  /** State no longer decides the colour — the TAB does. State decides how the
+   * block is treated: solid and stirring while in use, flatter when merely kept
+   * around, hollow once it is a candidate to be taken back. */
+  const STATE_ALPHA: Record<string, number> = { active: 1, reusable: 0.62, reclaimable: 0.3 };
+  const freeColor = cool ? "#c9cfd8" : "#39414d";
+
+  // Which region each block belongs to, laid down in order.
+  const owner: { region: (typeof regions)[number]; index: number }[] = [];
+  regions.forEach((r, ri) => {
+    for (let i = 0; i < r.blocks && owner.length < capacity; i++) owner.push({ region: r, index: ri });
+  });
+  const used = owner.length;
+  const pressure = Math.max(0, Math.min(1, (used / capacity - 0.72) / 0.28));
+
+  return (
+    <group>
+      {Array.from({ length: capacity }).map((_, i) => {
+        const gx = i % COLS;
+        const gy = Math.floor(i / COLS);
+        // A WALL, NOT A FLOOR. As a floor it needed a top-down camera while the
+        // browser needed a face-on one, so the episode's key composition —
+        // browser, then the work, then the memory receiving it, all in one
+        // frame — could never resolve: one object was always edge-on. Standing
+        // the field up lets both read from the same angle, and blocks now grow
+        // TOWARD the viewer as they come alive, which is a better picture of
+        // memory being taken than a floor tile getting taller.
+        const x = (gx - (COLS - 1) / 2) * pitch;
+        const y = -(gy - (rows - 1) / 2) * pitch;
+        const slot = owner[i];
+
+        if (!slot) {
+          // Free space. It reddens as the field fills, so running out of room
+          // is something the viewer sees before it is said.
+          const c = new THREE.Color(freeColor).lerp(new THREE.Color("#c02434"), pressure * 0.75);
+          return (
+            <mesh key={i} position={[x, y, 0]}>
+              <planeGeometry args={[cell, cell]} />
+              <meshBasicMaterial color={c} opacity={0.16 + pressure * 0.4} transparent toneMapped={false} />
+            </mesh>
+          );
+        }
+
+        // Active memory breathes; everything else is still. The pulse is
+        // deliberately small and out of phase per block — a field throbbing in
+        // unison reads as decoration, a field where individual blocks stir
+        // reads as work being done in them.
+        const region = slot.region;
+        const alive = region.state === "active" ? 1 : 0;
+        const beat = alive ? 0.5 + 0.5 * Math.sin(t * 3.1 + i * 0.7) : 0;
+        const h = (region.state === "reclaimable" ? 0.06 : 0.12) + beat * 0.08;
+        // Neighbouring regions in the same state are shaded apart, so the field
+        // shows WHAT the memory is being used for and not merely how much of it
+        // is gone — which is the question the whole episode turns on.
+        const base = new THREE.Color(region.accent ?? "#1668d8");
+        const col = slot.index % 2 === 0 ? base : base.clone().offsetHSL(0, -0.05, 0.06);
+        const alpha = STATE_ALPHA[region.state] ?? 1;
+        return (
+          <mesh key={i} position={[x, y, h / 2]}>
+            <boxGeometry args={[cell, cell, h]} />
+            <meshStandardMaterial
+              color={col}
+              emissive={col}
+              emissiveIntensity={alive ? 0.12 + beat * 0.22 : 0.04}
+              transparent
+              opacity={alpha}
+              roughness={0.55}
+              metalness={0.05}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+};
+
 /** A DIRECTION WITH MAGNITUDE: shaft plus cone head, pointing +Y in its own
  * space so the caller only has to decide where it aims. */
 const VectorArrow: React.FC<{ color: string; length: number }> = ({ color, length }) => {
@@ -596,20 +1749,32 @@ interface Resolved {
   rotation: [number, number, number];
   opacity: number;
   state: string;
+  /** How far a flat representation has risen into a dimensional one, 0..1. */
+  extrude: number;
+  /** Current bar lengths, 0..1. */
+  scores: number[];
+  /** Current memory allocation. */
+  regions: { label: string; blocks: number; state: "active" | "reusable" | "reclaimable"; accent?: string }[];
+  /** How far the browser has opened itself up, 0..1. */
+  peel: number;
+  /** How far this object has gone wrong, 0..1. */
+  failing: number;
 }
 
 export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> = ({ data }) => {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
   const t = frame / fps;
-  const light = (data.theme ?? "dark") === "light";
+  const groundName = data.theme ?? "dark";
+  const cool = groundName === "cool";
+  const light = groundName === "light" || cool;
   const timeline = data.timeline ?? [];
 
   // Byte-for-byte the 2D stage's own light panel and ink, so a cut between the
   // two media is a change of dimension and nothing else.
-  const ground = light ? "#f8f3e8" : "#080c14";
-  const ink = light ? "#1a2338" : "#f4f7ff";
-  const ACCENTS = light ? ACCENTS_LIGHT : ACCENTS_DARK;
+  const ground = cool ? "#eceef2" : light ? "#f8f3e8" : "#080c14";
+  const ink = cool ? "#12161c" : light ? "#1a2338" : "#f4f7ff";
+  const ACCENTS = cool ? ACCENTS_COOL : light ? ACCENTS_LIGHT : ACCENTS_DARK;
 
   // --- resolve every object's state at this instant -----------------------
   const resolved: Resolved[] = React.useMemo(() => {
@@ -619,6 +1784,11 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
     const offsets = new Map<string, THREE.Vector3>();
     const orbitHosts = new Map<string, string>();
     const travelled = new Map<string, THREE.Vector3>();
+    const extrusions = new Map<string, number>();
+    const scores = new Map<string, number[]>();
+    const peels = new Map<string, number>();
+    const failures = new Map<string, number>();
+    const allocations = new Map<string, { label: string; blocks: number; state: "active" | "reusable" | "reclaimable"; accent?: string }[]>();
     const states = new Map<string, string>();
 
     for (const object of data.objects) {
@@ -655,6 +1825,47 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
           const axis = action.axis ?? [0, 1, 0];
           const prev = spins.get(action.id) ?? [0, 0, 0];
           spins.set(action.id, [prev[0] + axis[0] * angle, prev[1] + axis[1] * angle, prev[2] + axis[2] * angle]);
+          break;
+        }
+        case "destabilise": {
+          const p = progress(t, action.startSeconds, action.durationSeconds ?? 2);
+          const from = failures.get(action.id) ?? 0;
+          failures.set(action.id, from + (action.to - from) * p);
+          break;
+        }
+        case "peel": {
+          const p = ease(progress(t, action.startSeconds, action.durationSeconds ?? 2.6));
+          const from = peels.get(action.id) ?? 0;
+          peels.set(action.id, from + (action.to - from) * p);
+          break;
+        }
+        case "allocate": {
+          const p = ease(progress(t, action.startSeconds, action.durationSeconds ?? 1.8));
+          const obj = data.objects.find((o) => o.id === action.id);
+          const start = allocations.get(action.id) ?? obj?.regions ?? [];
+          // Regions grow and shrink toward the new allocation rather than
+          // snapping, so memory is seen being taken and given back.
+          allocations.set(
+            action.id,
+            action.to.map((r) => {
+              const was = start.find((x) => x.label === r.label);
+              const from = was ? was.blocks : 0;
+              return { label: r.label, blocks: Math.round(from + (r.blocks - from) * p), state: r.state, accent: r.accent };
+            }),
+          );
+          break;
+        }
+        case "score": {
+          const p = ease(progress(t, action.startSeconds, action.durationSeconds ?? 2));
+          const obj = data.objects.find((o) => o.id === action.id);
+          const start = scores.get(action.id) ?? (obj?.series ?? []).map((x) => x.value);
+          scores.set(action.id, action.to.map((v, i) => (start[i] ?? 0) + (v - (start[i] ?? 0)) * p));
+          break;
+        }
+        case "extrude": {
+          const p = ease(progress(t, action.startSeconds, action.durationSeconds ?? 2.2));
+          const from = extrusions.get(action.id) ?? 0;
+          extrusions.set(action.id, from + (action.to - from) * p);
           break;
         }
         case "travel": {
@@ -778,6 +1989,11 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
         rotation,
         opacity: visible.get(object.id) ?? 1,
         state: states.get(object.id) ?? "plain",
+        extrude: extrusions.get(object.id) ?? 0,
+        scores: scores.get(object.id) ?? (object.series ?? []).map((x) => x.value),
+        regions: allocations.get(object.id) ?? object.regions ?? [],
+        peel: peels.get(object.id) ?? 0,
+        failing: failures.get(object.id) ?? 0,
       };
     });
   }, [data.objects, timeline, t]);
@@ -820,8 +2036,19 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
 
     for (const action of timeline as SpatialAction[]) {
       if (action.type !== "camera") continue;
-      const p = ease(progress(t, action.startSeconds, action.durationSeconds ?? 2.5));
+      // `frame` ESTABLISHES, it does not travel. Every scene was starting from
+      // one global default pose and sweeping to wherever its first action
+      // pointed, which gave all eleven scenes the identical opening sway — the
+      // camera announcing itself instead of the subject. A framing is where the
+      // shot begins; only orbit, push, pull and dolly are moves through it.
+      const isEstablish = action.move === "frame";
+      const p = isEstablish ? (t >= action.startSeconds ? 1 : 0) : ease(progress(t, action.startSeconds, action.durationSeconds ?? 2.5));
       if (p <= 0) continue;
+      // FOCUS INTERPOLATES, so camera actions behave as keyframes rather than
+      // as cuts. It used to snap to each action's subject, which meant any move
+      // between two subjects had to be split across separate scenes — and a cut
+      // in the middle of what should be one continuous journey is exactly the
+      // disconnect this medium exists to avoid.
       if (action.focus) {
         // WHERE THE SUBJECT IS NOW, not where it was declared. Reading the
         // static coordinate meant a camera told to watch a travelling marker
@@ -829,22 +2056,42 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
         // to pull back far enough to keep both in shot — which is why a scene
         // about someone walking through a town kept retreating from it.
         const live = resolved.find((r) => r.object.id === action.focus);
-        if (live) focus = live.position.clone();
+        let target: THREE.Vector3 | null = null;
+        if (live) target = live.position.clone();
         else {
-          const target = data.objects.find((o) => o.id === action.focus);
-          if (target) focus = new THREE.Vector3(...(target.at ?? [0, 0, 0]));
+          const declared = data.objects.find((o) => o.id === action.focus);
+          if (declared) target = new THREE.Vector3(...(declared.at ?? [0, 0, 0]));
         }
+        if (target) {
+          if (action.focusOffset) target.add(new THREE.Vector3(...action.focusOffset));
+          focus = isEstablish ? target : focus.clone().lerp(target, p);
+        }
+      } else if (action.focusOffset) {
+        const target = focus.clone().add(new THREE.Vector3(...action.focusOffset));
+        focus = isEstablish ? target : focus.clone().lerp(target, p);
       }
       // Authored distances are intent, resolved against the fit below.
       const current: number = authoredDistance ?? 8;
+      // A DOLLY TRAVELS PAST, it does not swing around. Every scene opening on
+      // the same arc-and-settle made the camera feel like one fixed rig that
+      // could only do one thing — a dolly changes the viewer's position through
+      // the scene rather than their angle on it, which is a different sentence.
       const toDistance: number | null =
-        action.distance ?? (action.move === "push" ? current * 0.72 : action.move === "pull" ? current * 1.5 : authoredDistance);
+        action.distance ??
+        (action.move === "push" || action.move === "dolly"
+          ? current * 0.72
+          : action.move === "pull"
+            ? current * 1.5
+            : authoredDistance);
       if (toDistance !== null && toDistance !== undefined) {
         authoredDistance = authoredDistance === null ? toDistance : authoredDistance + (toDistance - authoredDistance) * p;
       }
       if (action.elevation !== undefined) elevation = elevation + (action.elevation - elevation) * p;
       if (action.azimuth !== undefined) azimuth = azimuth + (action.azimuth - azimuth) * p;
       if (action.move === "orbit") azimuth += (action.degrees ?? 90) * p;
+      // A dolly drifts the bearing only slightly while closing distance, so the
+      // subject grows and slides rather than rotating on a turntable.
+      if (action.move === "dolly") azimuth += (action.degrees ?? 12) * p;
     }
 
     // AUTO-FRAMING, ON BOTH AXES. Hand-picked distances were the most
@@ -901,7 +2148,18 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
     // 15% inside a fit that only carried 12% margin quietly cancelled the
     // margin and cropped the arrows off three edges — the camera can be pulled
     // further out than the content needs, never closer.
-    distance = authoredDistance === null ? fit : Math.max(fit, Math.min(authoredDistance, fit * 1.4));
+    // A FRAMING MUST NOT CROP BY ACCIDENT. A PUSH IS ALLOWED TO ON PURPOSE.
+    // The fit is a floor for `frame` and `orbit`, which exist to show the whole
+    // subject — but a dolly into a screen is a deliberate crop, and holding it
+    // out at the fit distance meant the camera could never actually arrive.
+    // An explicit distance on a push or dolly is therefore an instruction
+    // rather than a hint.
+    // AN EXPLICIT DISTANCE IS AN INSTRUCTION. The auto-fit exists so a scene
+    // that says nothing about its camera still frames itself sensibly — it was
+    // never meant to overrule an author who has stated where the camera goes.
+    // Clamping stated distances to the fit is what left every subject stranded
+    // small in the middle of the frame however close the shot asked to be.
+    distance = authoredDistance === null ? fit : authoredDistance;
 
     const a = azimuth * DEG;
     const e = elevation * DEG;
@@ -963,6 +2221,45 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
     return out;
   }, [resolved, pose, width, height, timeline, t]);
 
+  /** ROW LABELS FOR SCORES. A bar chart without names is a set of coloured
+   * rectangles — the whole point is that CAT is longer than DOG, which cannot
+   * land if neither is named. Projected through the same camera as the meshes
+   * so they track the bars through any move, and drawn in screen space so they
+   * stay upright and sharp however the camera is angled. */
+  const barLabels = React.useMemo(() => {
+    const rows: { key: string; text: string; value: number; x: number; y: number; opacity: number }[] = [];
+    const bars = resolved.filter((r) => r.object.kind === "bars" && r.opacity > 0.05);
+    if (bars.length === 0) return rows;
+
+    const camera = new THREE.PerspectiveCamera(pose.fov, width / height, 0.1, 1000);
+    camera.position.set(...pose.position);
+    camera.lookAt(new THREE.Vector3(...pose.target));
+    camera.updateMatrixWorld(true);
+    camera.updateProjectionMatrix();
+
+    for (const b of bars) {
+      const series = b.object.series ?? [];
+      const scale = b.object.scale ?? 1;
+      const rowH = 0.46 * scale;
+      const top = ((series.length - 1) * rowH) / 2;
+      const left = -(3.4 * scale) / 2;
+      series.forEach((sr, i) => {
+        const world = b.position.clone().add(new THREE.Vector3(left, top - i * rowH, 0));
+        const p = world.project(camera);
+        if (p.z > 1) return;
+        rows.push({
+          key: `${b.object.id}-${sr.label}`,
+          text: sr.label,
+          value: b.scores[i] ?? sr.value,
+          x: (p.x * 0.5 + 0.5) * width,
+          y: (-p.y * 0.5 + 0.5) * height,
+          opacity: b.opacity,
+        });
+      });
+    }
+    return rows;
+  }, [resolved, pose, width, height]);
+
   // --- the spoken beat over the top ---------------------------------------
   const beat = React.useMemo(() => {
     for (const action of timeline as SpatialAction[]) {
@@ -1016,6 +2313,78 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
               {r.object.kind === "phone" ? <Phone color={light ? "#9aa6b8" : "#1e293b"} light={light} /> : null}
               {r.object.kind === "vector" ? <VectorArrow color={colour} length={r.object.length ?? 2} /> : null}
               {r.object.kind === "axes" ? <Axes size={r.object.length ?? 2} /> : null}
+              {r.object.kind === "image" ? <SourceImage variant={r.object.source ?? "cat"} /> : null}
+              {r.object.kind === "pixelGrid" ? (
+                <PixelGrid
+                  variant={r.object.source ?? "cat"}
+                  detail={r.object.detail ?? 24}
+                  spread={r.state === "apart" || r.state === "shuffled" ? 1 : 0}
+                  shuffled={r.state === "shuffled" ? 1 : 0}
+                />
+              ) : null}
+              {r.object.kind === "terrain" ? (
+                <ImageTerrain
+                  variant={r.object.source ?? "cat"}
+                  detail={r.object.detail ?? 28}
+                  relief={r.object.relief ?? 1.4}
+                  colored={r.state === "data" ? 1 : 0}
+                  risen={r.extrude}
+                />
+              ) : null}
+              {r.object.kind === "edgeMap" ? <EdgeMap variant={r.object.source ?? "cat"} detail={r.object.detail ?? 40} ink={ACCENTS.profile} /> : null}
+              {r.object.kind === "scatter" ? (
+                <ScatterSpace points={r.object.points ?? 60} colors={[ACCENTS.profile, ACCENTS.warn, ACCENTS.primary]} query={r.extrude} />
+              ) : null}
+              {r.object.kind === "bars" ? (
+                <ScoreBars
+                  series={r.object.series ?? []}
+                  values={r.scores}
+                  colors={[ACCENTS.success, ACCENTS.warn, ACCENTS.primary, ACCENTS.profile]}
+                  dim={light ? "#ded9cc" : "#22293a"}
+                />
+              ) : null}
+              {r.object.kind === "layers" ? (
+                <LayerStack progress={r.extrude} variant={r.object.source ?? "cat"} from={ACCENTS.primary} to={ACCENTS.profile} frame={light ? "#1f2a44" : "#94a3b8"} />
+              ) : null}
+              {r.object.kind === "browserWindow" ? (
+                <BrowserWindow
+                  peel={r.peel}
+                  tabs={r.object.tabs ?? ["Tab", "Tab", "Tab"]}
+                  workloads={r.object.workloads ?? []}
+                  light={light}
+                  accents={ACCENTS}
+                />
+              ) : null}
+              {r.object.kind === "laptop" ? <Laptop light={light} /> : null}
+              {r.object.kind === "decode" ? (
+                <DecodeBlock
+                  label={r.object.label ?? "photo.jpg"}
+                  color={ACCENTS[r.object.accent ?? "primary"] ?? ACCENTS.primary}
+                  light={light}
+                  opened={r.extrude}
+                  t={t}
+                />
+              ) : null}
+              {r.object.kind === "tabCard" ? (
+                <TabCard
+                  label={r.object.label ?? "Tab"}
+                  color={ACCENTS[r.object.accent ?? "primary"] ?? ACCENTS.primary}
+                  light={light}
+                  alive={r.extrude}
+                  failing={r.failing}
+                  t={t}
+                />
+              ) : null}
+              {r.object.kind === "workload" ? (
+                <WorkloadPanel
+                  color={ACCENTS[r.object.accent ?? "primary"] ?? ACCENTS.primary}
+                  light={light}
+                  near={r.extrude}
+                />
+              ) : null}
+              {r.object.kind === "memory" ? (
+                <MemoryField capacity={r.object.capacity ?? 240} regions={r.regions} t={t} cool={cool} />
+              ) : null}
               {r.object.kind === "plane" ? <StreetMap light={light} /> : null}
               {r.object.kind === "pin" ? <LocationPin color={colour} /> : null}
               {r.object.kind === "node" ? (
@@ -1028,6 +2397,31 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
           );
         })}
       </ThreeCanvas>
+      {barLabels.map((r) => (
+        <div
+          key={r.key}
+          style={{
+            position: "absolute",
+            left: r.x,
+            top: r.y,
+            transform: "translate(-100%, -50%)",
+            paddingRight: width * 0.022,
+            fontFamily: DISPLAY_FONT_FAMILY,
+            fontWeight: 800,
+            fontSize: width * 0.036,
+            color: ink,
+            opacity: r.opacity,
+            whiteSpace: "nowrap",
+            pointerEvents: "none",
+            textAlign: "right",
+          }}
+        >
+          {r.text}
+          <span style={{ opacity: 0.55, fontWeight: 600, marginLeft: width * 0.014, fontVariantNumeric: "tabular-nums" }}>
+            {Math.round(r.value * 100)}
+          </span>
+        </div>
+      ))}
       {callouts.map((c) => (
         <div
           key={c.key}
@@ -1050,24 +2444,26 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
           {c.text}
         </div>
       ))}
-      {/* A SCRIM BEHIND THE HEADLINE. On the flat stage a beat sits on empty
-          canvas; here the scene fills the frame, so the same navy type lands on
-          grey roads and green blocks and stops being readable. A soft wash of
-          the ground colour, fading out, keeps the text legible without drawing
-          a box around it. */}
+      {/* A SOLID BAND BEHIND THE HEADLINE, not a wash.
+          A gradient scrim only lightens whatever is behind the type, so red on
+          red stayed red on red. A band of the ground colour guarantees the
+          headline reads over anything the scene happens to put there. */}
       {beat ? (
-        <AbsoluteFill
-          style={{
-            pointerEvents: "none",
-            background:
-              beat.at === "center"
-                ? `radial-gradient(ellipse at center, ${ground} 0%, ${ground}cc 38%, transparent 68%)`
-                : beat.at === "bottom"
-                  ? `linear-gradient(to top, ${ground} 0%, ${ground}d9 16%, transparent 34%)`
-                  : `linear-gradient(to bottom, ${ground} 0%, ${ground}d9 16%, transparent 34%)`,
-            opacity: beat.opacity,
-          }}
-        />
+        <AbsoluteFill style={{ pointerEvents: "none", opacity: beat.opacity }}>
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              ...(beat.at === "bottom"
+                ? { bottom: height * 0.1, height: height * 0.4 }
+                : beat.at === "center"
+                  ? { top: height * 0.3, height: height * 0.4 }
+                  : { top: 0, height: height * 0.34 }),
+              background: `linear-gradient(to bottom, transparent 0%, ${ground} 18%, ${ground} 82%, transparent 100%)`,
+            }}
+          />
+        </AbsoluteFill>
       ) : null}
       {beat ? (
         <AbsoluteFill
@@ -1075,6 +2471,11 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
             justifyContent: beat.at === "center" ? "center" : beat.at === "bottom" ? "flex-end" : "flex-start",
             alignItems: "center",
             padding: height * 0.06,
+            // THE SUBTITLE OWNS THE BOTTOM OF THE FRAME. A headline pinned to
+            // the same edge lands straight on top of the spoken caption and
+            // both become unreadable — two pieces of type competing for one
+            // band. The headline clears it.
+            paddingBottom: beat.at === "bottom" ? height * 0.2 : height * 0.06,
             pointerEvents: "none",
           }}
         >
@@ -1082,7 +2483,12 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
             style={{
               fontFamily: DISPLAY_FONT_FAMILY,
               fontWeight: 900,
-              fontSize: beat.size === "huge" ? width * 0.105 : width * 0.072,
+              // SIZED OFF THE SHORTER SIDE. Deriving it from width meant the
+              // same headline came out at 78px in portrait and 138px on a
+              // 16:9 canvas — nearly double, purely because the frame got
+              // wider. The shorter dimension is the one that governs how big
+              // type feels, and it makes both aspects agree.
+              fontSize: Math.min(width, height) * (beat.size === "huge" ? 0.105 : 0.072),
               lineHeight: 1.05,
               letterSpacing: "-0.01em",
               color: beatColor,

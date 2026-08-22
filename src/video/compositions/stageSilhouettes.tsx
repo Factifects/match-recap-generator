@@ -832,6 +832,13 @@ const Shape: React.FC<SilhouetteProps> = ({ box, stroke, fill, strokeWidth }) =>
       );
     }
 
+    case "bars":
+    case "memory":
+    case "browserWindow":
+      // Drawn entirely by StageCard, which owns the type and the ink. A default
+      // rounded card behind a chart is furniture the chart did not ask for.
+      return null;
+
     case "phrase":
       // NO SHAPE AT ALL. The words are the object; a frame around them would
       // turn a sentence back into a card, which is the thing this kind exists

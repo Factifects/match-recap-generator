@@ -92,6 +92,9 @@ function referencesIn(action: StageAction): StageReference[] {
     case "pointer":
     case "occlude":
     case "scan":
+    case "score":
+    case "peel":
+    case "allocate":
     case "rotate":
     case "nudge":
     case "broadcast":

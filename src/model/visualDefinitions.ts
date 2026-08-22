@@ -1236,6 +1236,35 @@ const stageObjectKindSchema = z.enum([
    * and a global reference frame without a word of narration, which no
    * arrangement of static icons can do. */
   "vector",
+  /** A BROWSER WINDOW THAT OPENS ITSELF UP.
+   *
+   * Flat, deliberately. It is a panel facing the viewer, nothing travels
+   * through depth, and a camera adds only perspective skew and shrinkage — in
+   * three dimensions the whole chain rendered smaller than the headline above
+   * it. What it needs is size and legible type, which is what this medium is
+   * for.
+   *
+   * Closed it is an ordinary window. As it peels, the chrome lifts off the
+   * page, the tabs detach, and the page's regions come away as the WORK behind
+   * them — which then travels to the memory workspace to be allocated. One
+   * continuous object, because cutting from a browser to a memory diagram makes
+   * two pictures where peeling one into the other makes an explanation. */
+  "browserWindow",
+  /** ALLOCATED MEMORY AS A WORKSPACE: a wall of blocks that fills as work
+   * arrives, crowds as it runs short, and hands regions back under pressure.
+   *
+   * Standing up rather than lying down so it faces the viewer alongside the
+   * browser — as a floor it needed a top-down camera while the browser needed a
+   * face-on one, and the episode's key composition could never resolve. */
+  "memory",
+  /** COMPETING QUANTITIES AS LABELLED BARS.
+   *
+   * Lives in the FLAT medium deliberately. A bar chart is read by comparing
+   * lengths, and a camera with perspective skews the very comparison it exists
+   * to make — the three-dimensional version came out leaning, with its labels
+   * needing to be projected back out of the scene. Depth earns its place when
+   * something is physically happening in space; a chart is read, not inhabited. */
+  "bars",
   /** THE PLANET, drawn as a sphere with meridians rather than a flat disc —
    * the one object that establishes "this is happening in the world, not on a
    * screen". Its `states` carry what is being said about it: `field` draws the
@@ -1358,6 +1387,32 @@ const stageObjectSchema = z.object({
    * straight up. For a "body" vector this is measured from its host's current
    * heading rather than from the screen. */
   dir: z.number().optional(),
+  /** `browserWindow` — tab labels along the top. */
+  tabs: z.array(z.string().min(1)).max(6).optional(),
+  /** `browserWindow` — the work this page turns out to be doing once opened. */
+  workloads: z.array(z.object({ label: z.string().min(1), accent: stageAccentSchema.optional() })).max(6).optional(),
+  /** `memory` — how many blocks the workspace holds in total. */
+  capacity: z.number().int().min(16).max(600).optional(),
+  /** `memory` — what is currently allocated, as labelled regions. */
+  regions: z
+    .array(
+      z.object({
+        label: z.string().min(1),
+        blocks: z.number().int().min(0).max(400),
+        state: z.enum(["active", "reusable", "reclaimable"]).default("active"),
+        /** Which tab this memory belongs to. Colour is the identity that ties a
+         * card on one side of the frame to the region it costs on the other. */
+        accent: z.string().optional(),
+      }),
+    )
+    .max(10)
+    .optional(),
+  /** `bars` only — the options being compared, in order. */
+  series: z
+    .array(z.object({ label: z.string().min(1), value: z.number().min(0).max(1), accent: stageAccentSchema.optional() }))
+    .min(2)
+    .max(8)
+    .optional(),
   /** `vector` only — the object this direction belongs to. The arrow is drawn
    * from that object's centre, and a "body" vector inherits its rotation. */
   attachTo: z.string().optional(),
@@ -2018,6 +2073,44 @@ const stageTimelineActionSchema = z.discriminatedUnion("type", [
    * `trail` leaves the arc swept behind, which turns "it turned" into "it
    * turned by this much" — the difference between showing rotation and showing
    * angular displacement. */
+  /** OPENS A BROWSER UP, 0 to 1: chrome lifts, tabs detach, the page's regions
+   * come away as the work behind them. Its own verb, because the two signature
+   * objects have distinct motion languages and keeping them separate is what
+   * stops the episode reading as one effect applied to everything. */
+  z.object({
+    type: z.literal("peel"),
+    id: z.string().min(1),
+    to: z.number().min(0).max(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.6),
+  }),
+  /** RE-ALLOCATES a `memory` workspace, so it can be a running record across a
+   * whole video rather than a diagram shown once. */
+  z.object({
+    type: z.literal("allocate"),
+    id: z.string().min(1),
+    to: z
+      .array(
+        z.object({
+          label: z.string().min(1),
+          blocks: z.number().int().min(0).max(400),
+          state: z.enum(["active", "reusable", "reclaimable"]).default("active"),
+          accent: z.string().optional(),
+        }),
+      )
+      .max(10),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.8),
+  }),
+  /** RE-SCORES a `bars` object: every bar moves to its new length together,
+   * because the comparison between them is the information, not any one value. */
+  z.object({
+    type: z.literal("score"),
+    id: z.string().min(1),
+    to: z.array(z.number().min(0).max(1)).min(2).max(8),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2),
+  }),
   /** A physical SHOVE: the object lurches in a direction and springs back.
    *
    * The alternative was an arrow captioned "being shoved", which is the exact
@@ -2323,6 +2416,96 @@ const spatialObjectSchema = z.object({
     "plane",
     /** A LOCATION PIN, standing up off whatever it is placed on. */
     "pin",
+    // ---- one image, seen several ways ---------------------------------
+    /** THE SOURCE IMAGE, shown as a picture. Everything below is this same
+     * data in another form, which is the entire point: an explanation of how a
+     * machine reads a picture is worthless if each stage is a fresh drawing
+     * rather than the previous stage transformed. */
+    "image",
+    /** THE SAME IMAGE AS DISCRETE CELLS. `detail` sets the grid resolution and
+     * `spread` pushes the cells apart, so the picture can visibly come apart
+     * into the thing a computer actually receives. */
+    "pixelGrid",
+    /** THE SAME IMAGE AS A HEIGHTFIELD — brightness becomes altitude, so a
+     * photograph becomes a landscape a camera can fly across. This is what
+     * makes "it is just numbers" a place rather than a claim. */
+    "terrain",
+    /** THE SAME IMAGE REDUCED TO ITS EDGES: where brightness changes sharply.
+     * Computed from the source rather than drawn, so it is demonstrably
+     * derived from the picture and not an artist's impression of one. */
+    "edgeMap",
+    /** COMPETING SCORES AS BARS WITH REAL LENGTH.
+     *
+     * Built because a dial borrowed from another video showed a number
+     * changing while nothing about the picture changed — a score is a
+     * QUANTITY, and a quantity has to be a length the eye can compare against
+     * its rivals. Every option present at once is also the point: the model is
+     * not asked "is this a cat", it scores everything it knows. */
+    "bars",
+    /** A STACK OF TRANSFORMATIONS the representation passes through, each one
+     * visibly altering it. The alternative was a card labelled "the network",
+     * which asserts a thing rather than showing it doing anything. */
+    "layers",
+    /** A LAPTOP, with the browser live on its screen.
+     *
+     * The one thing in this episode that genuinely needs three dimensions: a
+     * real object sitting in a room, with the camera able to travel INTO its
+     * screen. That push is the episode's scale ladder in a single move — room,
+     * screen, browser, and from there the work behind it. Flat panels viewed
+     * head-on never needed depth; a machine you can approach does.
+     *
+     * `screen` picks what is showing on it. */
+    "laptop",
+    /** A COMPRESSED FILE THAT OPENS INTO WHAT IT ACTUALLY COSTS.
+     *
+     * Starts as a small card with a file size on it — the number a viewer
+     * recognises from their own disk — and expands into the grid of pixels the
+     * browser has to hold in order to draw it. The gap between the two is the
+     * entire lesson: the thing stored on disk and the thing being worked with
+     * in memory are not the same size, and no sentence makes that land the way
+     * watching the small card become a large field does. */
+    "decode",
+    /** AN OPEN TAB, as a card with a colour of its own.
+     *
+     * The cards on one side of the frame and the coloured regions of the memory
+     * wall on the other are the same few colours, so "which tab is eating my
+     * memory" is answered by looking rather than by reading a legend. That
+     * correspondence is the episode's whole argument in one glance. */
+    "tabCard",
+    /** ONE PIECE OF WORK KEEPING A PAGE ALIVE, as a panel standing in space.
+     *
+     * Replaces the peeling browser, which never worked: a window has no
+     * meaningful inside, so taking its chrome away only ever revealed another
+     * flat pane, and every attempt ended up a heap of overlapping rectangles.
+     * These stand at increasing depth BEHIND the screen instead, so the camera
+     * can travel past them one at a time. Nothing has to deform, and nothing
+     * can crowd, because the depth axis does the separating. */
+    "workload",
+    /** A BROWSER WINDOW THAT OPENS ITSELF UP.
+     *
+     * The front stage of the episode, and the counterpart to the memory
+     * workspace. Closed, it is an ordinary window with tabs and a page. As it
+     * peels, the chrome lifts off the page, the tabs detach, and the page's own
+     * regions come away as the WORK required to keep them running — which then
+     * travels to the workspace and is allocated there.
+     *
+     * The point is that it is one continuous object throughout. Cutting from a
+     * browser to a memory diagram makes two pictures; peeling one into the
+     * other makes an explanation. */
+    "browserWindow",
+    /** ALLOCATED MEMORY AS A PHYSICAL WORKSPACE.
+     *
+     * The signature object of the browser episode. A number in a task manager
+     * tells a viewer nothing; a floor of blocks that visibly fills as tabs open,
+     * reddens as it runs out of room, and hands whole regions back when the
+     * system asks, tells them what the number MEANS. Blocks carry what they are
+     * for, because "5 GB" and "5 GB of what" are different questions and the
+     * whole episode turns on the difference. */
+    "memory",
+    /** POINTS IN A SPACE, grouped. For showing that similar things end up near
+     * each other in a learned representation — deliberately labelled as a
+     * simplification wherever it is used. */
+    "scatter",
   ]),
   label: z.string().optional(),
   /** Where it sits, in scene units. */
@@ -2340,6 +2523,46 @@ const spatialObjectSchema = z.object({
   length: z.number().min(0.1).max(20).default(2),
   /** Lifecycle states the mesh draws differently, e.g. a globe's "field". */
   states: z.array(z.string().min(1)).min(2).optional(),
+  /** `pixelGrid` / `terrain` / `edgeMap` — cells across the image. Low values
+   * are the honest ones for teaching: a viewer can count 24 squares and see
+   * them, and cannot see 400. */
+  detail: z.number().int().min(4).max(96).optional(),
+  /** `terrain` — how far brightness lifts the cells, in scene units. */
+  relief: z.number().min(0).max(6).optional(),
+  /** Which source picture these representations are built from. */
+  source: z.enum(["cat", "cat-alt", "dog"]).optional(),
+  /** `scatter` — how many points, and how tightly their groups hold together. */
+  points: z.number().int().min(3).max(400).optional(),
+  /** `browserWindow` — the work this page turns out to be doing once it is
+   * opened up. Each becomes a slab that detaches and travels. */
+  workloads: z
+    .array(z.object({ label: z.string().min(1), accent: z.string().optional() }))
+    .max(6)
+    .optional(),
+  /** `browserWindow` — labels for the tabs along the top. */
+  tabs: z.array(z.string().min(1)).max(6).optional(),
+  /** `memory` — how many blocks the workspace holds in total. */
+  capacity: z.number().int().min(16).max(600).optional(),
+  /** `memory` — what is currently allocated, as regions. Each region is a run
+   * of blocks with a purpose and a state, so the workspace can answer "of
+   * what?" rather than only "how much". */
+  regions: z
+    .array(
+      z.object({
+        label: z.string().min(1),
+        blocks: z.number().int().min(1).max(400),
+        state: z.enum(["active", "reusable", "reclaimable"]).default("active"),
+        accent: z.string().optional(),
+      }),
+    )
+    .max(10)
+    .optional(),
+  /** `bars` — the options being scored, in order. */
+  series: z
+    .array(z.object({ label: z.string().min(1), value: z.number().min(0).max(1), accent: z.string().optional() }))
+    .min(2)
+    .max(8)
+    .optional(),
 });
 
 const spatialActionSchema = z.discriminatedUnion("type", [
@@ -2377,6 +2600,80 @@ const spatialActionSchema = z.discriminatedUnion("type", [
     startSeconds: z.number().min(0),
     durationSeconds: z.number().min(0.1).default(6),
   }),
+  /** RAISES A FLAT REPRESENTATION INTO A DIMENSIONAL ONE, 0 to 1.
+   *
+   * Built because cutting from a photograph to its heightfield produced an
+   * abstract mountain nobody could connect to the picture — the transformation
+   * is the entire lesson, so it has to be watched rather than jumped over. At 0
+   * the terrain lies flat and looks exactly like the photograph; as it rises,
+   * the same values that made the image become altitude. */
+  z.object({
+    type: z.literal("extrude"),
+    id: z.string().min(1),
+    to: z.number().min(0).max(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.2),
+  }),
+  /** OPENS A BROWSER UP, 0 to 1: chrome lifts, tabs detach, the page's regions
+   * come away as the work behind them.
+   *
+   * A distinct verb from `extrude` on purpose — the two signature objects have
+   * their own motion languages, and keeping them separate is what stops the
+   * episode reading as one effect applied to everything. */
+  z.object({
+    type: z.literal("peel"),
+    id: z.string().min(1),
+    to: z.number().min(0).max(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.6),
+  }),
+  /** RE-ALLOCATES a `memory` workspace: regions grow, shrink, change purpose or
+   * are handed back, and the field rearranges to match.
+   *
+   * The workspace is meant to be a RUNNING RECORD rather than a diagram shown
+   * once — a viewer should be able to watch it fill as tabs open, crowd as work
+   * piles up, and give whole regions back under pressure. That only works if
+   * allocation is something the timeline can change, repeatedly, across a whole
+   * video. */
+  z.object({
+    type: z.literal("allocate"),
+    id: z.string().min(1),
+    to: z
+      .array(
+        z.object({
+          label: z.string().min(1),
+          blocks: z.number().int().min(0).max(400),
+          state: z.enum(["active", "reusable", "reclaimable"]).default("active"),
+          accent: z.string().optional(),
+        }),
+      )
+      .max(10),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.8),
+  }),
+  /** RE-SCORES a `bars` object: every bar moves to its new length together.
+   * The comparison is the information, so they have to move as a set. */
+  z.object({
+    type: z.literal("score"),
+    id: z.string().min(1),
+    to: z.array(z.number().min(0).max(1)).min(2).max(8),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2),
+  }),
+  /** DESTABILISES an object, 0 to 1: it judders, loses its colour and stops
+   * responding.
+   *
+   * Process isolation only means something if the viewer sees a workload GO
+   * WRONG before anything announces it — a box that vanishes the instant a
+   * caption says "crash" teaches nothing about why browsers separate work in
+   * the first place. This is the failing, so the surviving reads when it comes. */
+  z.object({
+    type: z.literal("destabilise"),
+    id: z.string().min(1),
+    to: z.number().min(0).max(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2),
+  }),
   /** Travels an object from where it is to a stated point, in scene units.
    * Straight-line movement through the space, as distinct from `orbit`, which
    * is a closed path around something else. */
@@ -2393,13 +2690,23 @@ const spatialActionSchema = z.discriminatedUnion("type", [
     type: z.literal("camera"),
     /** orbit — swings around the subject; push/pull — closes on or backs off
      * it; frame — settles on a stated position. */
-    move: z.enum(["orbit", "push", "pull", "frame"]).default("orbit"),
+    move: z.enum(["orbit", "push", "pull", "frame", "dolly"]).default("orbit"),
     /** What it looks at. Defaults to whatever it was already watching. */
     focus: z.string().optional(),
-    /** Distance from the focus, in scene units. */
-    distance: z.number().min(0.5).max(80).optional(),
+    /** Distance from the focus, in scene units.
+     *
+     * Allowed to go very small: passing THROUGH a surface — a screen, a wall,
+     * a page — is a real move, and a floor of half a unit quietly forbade it.
+     * A camera that can only ever stop short of a thing can never take the
+     * viewer inside it. */
+    distance: z.number().min(0.02).max(80).optional(),
     /** Degrees swept, for `orbit`. */
     degrees: z.number().optional(),
+    /** Nudges the point the camera is aiming at, relative to its focus object.
+     * A push into a laptop's SCREEN is not a push into the laptop's centre —
+     * without this the camera arrives correctly and looks at the wrong part of
+     * the thing it travelled to. */
+    focusOffset: z.tuple([z.number(), z.number(), z.number()]).optional(),
     /** Degrees above the horizon. */
     elevation: z.number().optional(),
     /** Where the camera stands around the subject, in degrees. Matters most for
@@ -3375,7 +3682,7 @@ export const VISUAL_DEFINITIONS = [
        * with dark ink. This flips the ground, the ink, the plates and the
        * captions together, so a scene stays legible rather than becoming white
        * text on cream. Objects keep their accent colours either way. */
-      theme: z.enum(["dark", "light"]).default("dark"),
+      theme: z.enum(["dark", "light", "cool"]).default("dark"),
       /** THE TOPIC'S VISUAL WORLD. A video about caching should not look like
        * a video about TLS or about image decoding — one uniform dark-grid
        * template across every topic is what makes a channel's output read as
@@ -3738,7 +4045,7 @@ export const VISUAL_DEFINITIONS = [
     sceneTypeKey: "spatial",
     schema: z.object({
       kind: z.literal("spatial"),
-      theme: z.enum(["light", "dark"]).default("dark"),
+      theme: z.enum(["light", "dark", "cool"]).default("dark"),
       objects: z.array(spatialObjectSchema).min(1),
       timeline: z.array(spatialActionSchema).default([]),
     }),

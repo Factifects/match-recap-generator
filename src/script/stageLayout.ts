@@ -143,7 +143,10 @@ export type StageObjectKind =
   // reference frames
   | "vector"
   | "globe"
-  | "compass";
+  | "compass"
+  | "bars"
+  | "browserWindow"
+  | "memory";
 
 /** Kinds that exist to CONTAIN other objects rather than to be a thing
  * themselves. A region is drawn as a quiet dashed frame behind its children,
@@ -268,6 +271,14 @@ export interface StageObjectInput {
   /** Drawn as a dark anchor rather than a tinted outline, so a light
    * composition has somewhere for the eye to land. Light theme only. */
   surface?: "default" | "dark";
+  /** `bars` only — the options being compared. */
+  series?: { label: string; value: number; accent?: StageAccent }[];
+  /** `browserWindow` — tab labels, and the work the page turns out to be doing. */
+  tabs?: string[];
+  workloads?: { label: string; accent?: StageAccent }[];
+  /** `memory` — total blocks, and what is currently allocated. */
+  capacity?: number;
+  regions?: { label: string; blocks: number; state: "active" | "reusable" | "reclaimable" }[];
   /** `vector` only — see the schema. "world" holds its direction while its host
    * turns; "body" turns with it. */
   frame?: "world" | "body";
@@ -375,6 +386,11 @@ export interface StageBox {
   parentId?: string;
   /** Drawn as a dark anchor instead of a tinted outline (light theme only). */
   surface?: "default" | "dark";
+  series?: { label: string; value: number; accent?: StageAccent }[];
+  tabs?: string[];
+  workloads?: { label: string; accent?: StageAccent }[];
+  capacity?: number;
+  regions?: { label: string; blocks: number; state: "active" | "reusable" | "reclaimable" }[];
   frame?: "world" | "body";
   dir?: number;
   attachTo?: string;
@@ -521,6 +537,12 @@ const KIND_SIZE: Partial<Record<StageObjectKind, { w?: number; h?: number }>> = 
   prediction: { w: 1.15, h: 1.1 },
   // Long and thin: a vector is read by its direction, not its bulk.
   vector: { w: 0.45, h: 0.95 },
+  bars: { w: 2.0, h: 1.25 },
+  // Both signature objects want real width on a 16:9 canvas.
+  // Wide enough to hold the window AND the work it sheds, so the layout can
+  // keep other objects clear of both.
+  browserWindow: { w: 2.3, h: 2.0 },
+  memory: { w: 1.9, h: 1.85 },
   // A planet and a dial are both round: square footprints.
   globe: { w: 1.5, h: 1.5 },
   compass: { w: 1.2, h: 1.2 },
@@ -947,6 +969,11 @@ export function layoutStage(
       captionWidth: sized.captionWidth,
       homeRegion: region,
       surface: object.surface,
+      series: object.series,
+      tabs: object.tabs,
+      workloads: object.workloads,
+      capacity: object.capacity,
+      regions: object.regions,
       frame: object.frame,
       dir: object.dir,
       attachTo: object.attachTo,

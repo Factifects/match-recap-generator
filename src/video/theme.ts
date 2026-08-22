@@ -118,6 +118,11 @@ export const PANEL_COLORS = {
   // this MUST use dark (`COLORS.textOnLight`) text — Canvas.tsx switches
   // automatically based on `backgroundColor === "light"`.
   light: "#f8f3e8",
+  // A COOL MACHINE GREY, for subjects that live on a computer rather than on a
+  // page — desktops, system monitors, operating-system surfaces. Distinct from
+  // `light` on purpose: the ground is the first thing a viewer reads, and two
+  // videos about different worlds should not open on the same paper.
+  cool: "#eceef2",
 };
 
 export type PanelColorKey = keyof typeof PANEL_COLORS;
