@@ -1542,6 +1542,171 @@ function useScreenTexture(light: boolean): THREE.CanvasTexture | null {
   }, [light]);
 }
 
+/** A REAL CIRCUIT BOARD, lying flat as the ground for a components scene.
+ * PCB green with etched trace lines, scattered via dots, and a handful of
+ * small discrete parts (capacitors, resistors) — the specific furniture that
+ * makes a board read as a board at a glance, rather than a green rectangle
+ * with a few chips floating over it. Modelled after the familiar isometric
+ * "PCB clipart" register: legible, a little stylised, colour used to tell
+ * components apart rather than for realism's own sake. */
+const Motherboard: React.FC<{ width: number; depth: number; light: boolean }> = ({ width, depth, light }) => {
+  const board = light ? "#1c5943" : "#0f3527";
+  const traceColor = light ? "#8fe3c4" : "#4fae8c";
+  const viaColor = "#7ddc8a";
+  const capBody = light ? "#232a36" : "#161b26";
+  const capCap = light ? "#c7cdd6" : "#8a93a3";
+  const resistorColors = ["#e0574a", "#3f7fd4", "#e0b23f"];
+
+  const rand = (seed: number, n: number) => {
+    const v = Math.sin(n * 12.9898 + seed * 78.233) * 43758.5453;
+    return v - Math.floor(v);
+  };
+
+  // A handful of right-angled trace paths — one bend each, which is the
+  // single strongest visual signature a real PCB has and the thing a scatter
+  // of plain rectangles never reads as. Deterministic (Math.sin, not
+  // Math.random) so a re-render draws the identical board.
+  const traces = Array.from({ length: 9 }, (_, i) => {
+    const x0 = (rand(i, 1) - 0.5) * (width - 1.2);
+    const z0 = (rand(i, 2) - 0.5) * (depth - 1.2);
+    const runX = 0.5 + rand(i, 3) * 1.4;
+    const runZ = 0.5 + rand(i, 4) * 1.1;
+    const horizontalFirst = rand(i, 5) > 0.5;
+    return { x0, z0, runX, runZ, horizontalFirst };
+  });
+
+  const vias = Array.from({ length: 22 }, (_, i) => ({
+    x: (rand(i + 40, 1) - 0.5) * (width - 0.6),
+    z: (rand(i + 40, 2) - 0.5) * (depth - 0.6),
+  }));
+
+  const capacitors: [number, number][] = [
+    [-width / 2 + 0.9, -depth / 2 + 1.0],
+    [width / 2 - 1.0, depth / 2 - 0.7],
+  ];
+  const resistors: [number, number, number][] = [
+    [-width / 2 + 1.6, depth / 2 - 0.5, 0],
+    [width / 2 - 1.7, -depth / 2 + 0.55, 1],
+    [-width / 2 + 0.7, depth / 2 - 1.7, 2],
+  ];
+
+  const TRACE_W = 0.028;
+
+  return (
+    <group>
+      <mesh position={[0, -0.075, 0]}>
+        <boxGeometry args={[width, 0.15, depth]} />
+        <meshStandardMaterial color={board} metalness={0.25} roughness={0.55} />
+      </mesh>
+      {traces.map((t, i) => {
+        const legA = t.horizontalFirst ? { w: t.runX, d: TRACE_W, x: t.x0 + t.runX / 2, z: t.z0 } : { w: TRACE_W, d: t.runZ, x: t.x0, z: t.z0 + t.runZ / 2 };
+        const legBX = t.horizontalFirst ? t.x0 + t.runX : t.x0;
+        const legBZ = t.horizontalFirst ? t.z0 : t.z0 + t.runZ;
+        const legB = t.horizontalFirst
+          ? { w: TRACE_W, d: t.runZ, x: legBX, z: t.z0 + t.runZ / 2 }
+          : { w: t.runX, d: TRACE_W, x: t.x0 + t.runX / 2, z: legBZ };
+        return (
+          <group key={i}>
+            <mesh position={[legA.x, 0.003, legA.z]} rotation={[-Math.PI / 2, 0, 0]}>
+              <planeGeometry args={[legA.w, legA.d]} />
+              <meshStandardMaterial color={traceColor} metalness={0.5} roughness={0.35} />
+            </mesh>
+            <mesh position={[legB.x, 0.003, legB.z]} rotation={[-Math.PI / 2, 0, 0]}>
+              <planeGeometry args={[legB.w, legB.d]} />
+              <meshStandardMaterial color={traceColor} metalness={0.5} roughness={0.35} />
+            </mesh>
+          </group>
+        );
+      })}
+      {vias.map((v, i) => (
+        <mesh key={i} position={[v.x, 0.004, v.z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.035, 10]} />
+          <meshStandardMaterial color={viaColor} metalness={0.3} roughness={0.4} />
+        </mesh>
+      ))}
+      {capacitors.map(([x, z], i) => (
+        <group key={i} position={[x, 0.09, z]}>
+          <mesh>
+            <cylinderGeometry args={[0.11, 0.11, 0.18, 16]} />
+            <meshStandardMaterial color={capBody} metalness={0.3} roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.1, 0]}>
+            <cylinderGeometry args={[0.115, 0.115, 0.01, 16]} />
+            <meshStandardMaterial color={capCap} metalness={0.8} roughness={0.25} />
+          </mesh>
+        </group>
+      ))}
+      {resistors.map(([x, z, c], i) => (
+        <mesh key={i} position={[x, 0.03, z]} rotation={[0, rand(i, 9) * Math.PI, 0]}>
+          <boxGeometry args={[0.24, 0.06, 0.09]} />
+          <meshStandardMaterial color={resistorColors[c]} metalness={0.2} roughness={0.5} />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+/** THE PROCESSOR — a socket base with a squarer metal heat-spreader lid on
+ * top. The one component a viewer can point to on any real board by its size
+ * and position alone, so it does not need to look like anything else. */
+const CpuChip: React.FC<{ light: boolean }> = ({ light }) => (
+  <group>
+    <RoundedBox args={[0.95, 0.07, 0.95]} radius={0.02} smoothness={2} position={[0, 0.035, 0]}>
+      <meshStandardMaterial color={light ? "#2a2f3a" : "#111827"} metalness={0.3} roughness={0.6} />
+    </RoundedBox>
+    <RoundedBox args={[0.62, 0.09, 0.62]} radius={0.03} smoothness={3} position={[0, 0.115, 0]}>
+      <meshStandardMaterial color={light ? "#c3c9d3" : "#9aa4b2"} metalness={0.85} roughness={0.25} />
+    </RoundedBox>
+  </group>
+);
+
+/** A MEMORY MODULE — the unmistakable RAM silhouette: thin, tall, short in
+ * depth, standing upright with gold contacts along its bottom edge. The
+ * proportions alone read as "RAM" the way a phone's proportions read as
+ * "phone", without needing a label. */
+const RamStick: React.FC<{ light: boolean }> = ({ light }) => {
+  const pcb = light ? "#20242e" : "#14171f";
+  const chipColor = light ? "#0d0f14" : "#05070a";
+  return (
+    <group position={[0, 0.45, 0]}>
+      <mesh>
+        <boxGeometry args={[1.05, 0.86, 0.07]} />
+        <meshStandardMaterial color={pcb} metalness={0.3} roughness={0.5} />
+      </mesh>
+      {/* Gold contact fingers along the bottom edge, where it seats in the slot. */}
+      <mesh position={[0, -0.41, 0]}>
+        <boxGeometry args={[1.0, 0.06, 0.072]} />
+        <meshStandardMaterial color={light ? "#d4af37" : "#b8860b"} metalness={0.9} roughness={0.3} />
+      </mesh>
+      {[-0.3, 0, 0.3].map((x, i) => (
+        <mesh key={i} position={[x, 0.1, 0.041]}>
+          <boxGeometry args={[0.22, 0.46, 0.012]} />
+          <meshStandardMaterial color={chipColor} metalness={0.4} roughness={0.5} />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+/** A STORAGE DRIVE — a small flat slab lying down, physically apart from the
+ * socket cluster. Lying flat where RAM stands upright is deliberate: the two
+ * components should never read as interchangeable silhouettes. */
+const StorageDrive: React.FC<{ light: boolean }> = ({ light }) => (
+  <group position={[0, 0.03, 0]}>
+    <RoundedBox args={[1.15, 0.06, 0.32]} radius={0.015} smoothness={2}>
+      <meshStandardMaterial color={light ? "#2a2f3a" : "#161b26"} metalness={0.4} roughness={0.45} />
+    </RoundedBox>
+    <mesh position={[0.05, 0.033, 0]}>
+      <planeGeometry args={[0.62, 0.2]} />
+      <meshStandardMaterial color={light ? "#9aa4b2" : "#5b6472"} metalness={0.2} roughness={0.6} />
+    </mesh>
+    <mesh position={[-0.52, 0.033, 0]}>
+      <boxGeometry args={[0.1, 0.005, 0.28]} />
+      <meshStandardMaterial color={light ? "#d4af37" : "#b8860b"} metalness={0.9} roughness={0.3} />
+    </mesh>
+  </group>
+);
+
 /** A LAPTOP. The one object in this episode that genuinely needs depth: a real
  * machine sitting in a room, which the camera can approach and travel into. */
 const Laptop: React.FC<{ light: boolean }> = ({ light }) => {
@@ -2387,6 +2552,10 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
               ) : null}
               {r.object.kind === "plane" ? <StreetMap light={light} /> : null}
               {r.object.kind === "pin" ? <LocationPin color={colour} /> : null}
+              {r.object.kind === "motherboard" ? <Motherboard width={6.2} depth={4.6} light={light} /> : null}
+              {r.object.kind === "cpuChip" ? <CpuChip light={light} /> : null}
+              {r.object.kind === "ramStick" ? <RamStick light={light} /> : null}
+              {r.object.kind === "storageDrive" ? <StorageDrive light={light} /> : null}
               {r.object.kind === "node" ? (
                 <mesh>
                   <sphereGeometry args={[0.16, 20, 20]} />

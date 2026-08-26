@@ -1,5 +1,16 @@
 export const FPS = 30;
 
+/** WordCaptionOverlay / PhaseCaptionOverlay render a bottom-pinned pill at a
+ * FIXED pixel size (paddingBottom 64 + pill padding ~40 + a 42-44px text row)
+ * regardless of composition dimensions. `stageLayout.ts`'s safe area used to
+ * reserve a fraction of frame height for this band, which meant a 1080px-tall
+ * landscape frame reserved far less absolute space than a 1920px-tall portrait
+ * one for the exact same fixed-size overlay — the caption pill then landed on
+ * top of whatever content sat at the bottom of the safe area. Both the overlay
+ * components and the safe-area math read this one constant so they can't drift
+ * apart again. */
+export const CAPTION_BAND_PX = 260;
+
 /** Derived once in AnalysisVideo.tsx from the actual rendered composition
  * dimensions and passed explicitly to every card, rather than each card
  * independently calling useVideoConfig(). Lives here (not in AnalysisVideo.tsx)

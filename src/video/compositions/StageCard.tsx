@@ -3692,7 +3692,7 @@ const BeatText: React.FC<{
   unit: number;
   ink: string;
   light: boolean;
-}> = ({ beat, height, unit, ink, light }) => {
+}> = ({ beat, width, height, unit, ink, light }) => {
   const toneColor =
     beat.tone === "alert"
       ? light
@@ -3705,12 +3705,22 @@ const BeatText: React.FC<{
         : ink;
   const rise = (1 - beat.progress) * unit * 0.03;
   const huge = beat.size === "huge";
+  const portrait = height > width;
   // `huge` type is the dominant element of the frame, not a caption above it.
   // This is the standing "full-frame, varied compositions per scene, stop the
   // diagram-in-a-centred-rectangle formula" direction applied to type: a
   // headline can BE the composition for a beat. A heavy shadow rides with it so
   // the words stay legible over whatever the system is doing underneath.
-  const fontSize = unit * (huge ? 0.125 : 0.068);
+  //
+  // The non-huge size used to be 0.068 in BOTH orientations — bigger than a
+  // node's own label (0.042, see the `px` constant near the annotation
+  // renderer) despite being punctuation ABOUT the content, not the content.
+  // That reads fine in portrait, where 9:16 Shorts are already tuned and
+  // confirmed working, so this only corrects the landscape (16:9) case, where
+  // the oversized headline was crowding out the actual diagram directly below
+  // it — never touch the portrait number without re-confirming Shorts still
+  // look right.
+  const fontSize = unit * (huge ? 0.125 : portrait ? 0.068 : 0.036);
   const vertical =
     beat.at === "center"
       ? { top: 0, bottom: 0, alignItems: "center" as const }

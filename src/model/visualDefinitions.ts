@@ -2506,6 +2506,25 @@ const spatialObjectSchema = z.object({
      * each other in a learned representation — deliberately labelled as a
      * simplification wherever it is used. */
     "scatter",
+    /** A REAL CIRCUIT BOARD, lying flat as the scene's ground — PCB-green, with
+     * mounting standoffs at the corners and a scatter of etched trace
+     * rectangles, so it reads as a motherboard rather than a green plane.
+     * Everything else in a components scene sits ON this. */
+    "motherboard",
+    /** THE PROCESSOR: a socket base with a squarer metal heat-spreader lid
+     * sitting on top of it — the one component every viewer can point to on a
+     * real board by its size and position alone. */
+    "cpuChip",
+    /** A MEMORY MODULE: the unmistakable silhouette of RAM — thin, tall, and
+     * short in depth, standing upright in its slot with gold contacts along
+     * its bottom edge. Recognisable from proportions alone, the same way a
+     * phone is recognisable without needing a screen full of icons. */
+    "ramStick",
+    /** A STORAGE DRIVE: a small flat rectangular slab set apart from the
+     * socket cluster — physically further from the CPU than RAM is, which is
+     * the same "nearby vs far away" idea the episode's narration makes, just
+     * made literally true of where the component sits on the board. */
+    "storageDrive",
   ]),
   label: z.string().optional(),
   /** Where it sits, in scene units. */

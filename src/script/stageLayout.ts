@@ -1,3 +1,5 @@
+import { CAPTION_BAND_PX } from "../video/theme";
+
 // The layout engine behind the `stage` medium — the Techijest Shorts visual
 // language.
 //
@@ -687,7 +689,14 @@ function sizeOf(object: StageObjectInput, emphasis: StageEmphasis, unit: number)
       width: baseW,
       height: baseH,
       captionBelow: true,
-      captionHeight: lines === 0 ? 0 : labelPx * 1.15 + (object.sublabel ? subPx * 1.25 : 0),
+      // The renderer draws the sublabel baseline at `top + subPx * 1.25` (see
+      // the captionBelow branch in StageCard.tsx) and then the glyphs
+      // themselves descend a bit further below that baseline. Estimating the
+      // caption's true depth at exactly 1.25 undercounts that descender by
+      // enough to let the geometry pipeline place a captioned object's text
+      // right at the edge of its reserved footprint — invisible until a
+      // render is actually inspected, since the position looks fine on paper.
+      captionHeight: lines === 0 ? 0 : labelPx * 1.15 + (object.sublabel ? subPx * 1.55 : 0),
       captionWidth: Math.max(labelWidth, subWidth),
     };
   }
@@ -851,8 +860,22 @@ export function defaultSafeArea(
 ): { x: number; y: number; width: number; height: number } {
   const portrait = frame.height > frame.width;
   const full = composition === "full";
-  const top = frame.height * (portrait ? (full ? 0.075 : 0.14) : full ? 0.06 : 0.12);
-  const bottom = frame.height * (portrait ? (full ? 0.17 : 0.2) : full ? 0.07 : 0.12);
+  const unit = Math.min(frame.width, frame.height);
+  const topFraction = frame.height * (portrait ? (full ? 0.075 : 0.14) : full ? 0.06 : 0.12);
+  // StageCard's BeatText headline is unit-scaled (same absolute pixel size in
+  // both orientations, since `unit` comes out equal for this project's 16:9 /
+  // 9:16 pair), but this reserve used to be a plain fraction of frame.height —
+  // so the much shorter landscape frame reserved far less absolute room for
+  // the exact same headline. Portrait's 9:16 layout is already confirmed
+  // working, so only the landscape ("full") floor is raised here; leave the
+  // portrait numbers untouched.
+  const top = portrait ? topFraction : Math.max(topFraction, unit * (full ? 0.095 : 0.12));
+  // The caption pill is a fixed pixel size (CAPTION_BAND_PX), so a landscape
+  // frame's much smaller height needs the SAME absolute floor a portrait frame
+  // already clears via its larger fraction — not a smaller one just because
+  // the fraction is smaller. See CAPTION_BAND_PX's doc comment.
+  const bottomFraction = frame.height * (portrait ? (full ? 0.17 : 0.2) : full ? 0.07 : 0.12);
+  const bottom = Math.max(bottomFraction, CAPTION_BAND_PX);
   const side = frame.width * (portrait ? (full ? 0.03 : 0.06) : full ? 0.035 : 0.07);
   return { x: side, y: top, width: frame.width - side * 2, height: frame.height - top - bottom };
 }
@@ -1249,17 +1272,21 @@ function fitToSafeArea(boxes: StageBox[], safe: { x: number; y: number; width: n
   if (contentW <= 0 || contentH <= 0) return;
 
   const scale = Math.min(maxFillScale(visible.length), (safe.width * FILL_TARGET) / contentW, (safe.height * FILL_TARGET) / contentH);
-  // Normally only ever grow: `separate` has already guaranteed the placed boxes
-  // fit, so a scale below 1 would just shrink type for no reason.
-  //
-  // DERIVED VECTORS BREAK THAT GUARANTEE. They are positioned by the renderer
-  // from their host rather than by `separate`, so they can legitimately reach
-  // outside the safe area — and the "only grow" rule then left an arrowhead and
-  // its label hanging off the edge with nothing able to pull them back. When
-  // the content genuinely does not fit, shrinking is the correct answer, with a
-  // floor so a busy scene degrades into smaller type rather than nothing.
+  // Used to floor at 1 for ordinary content on the theory that `separate` had
+  // already guaranteed everything placed fits, so shrinking would only be
+  // shrinking type for no reason. That guarantee only holds if the safe area
+  // `separate`/`packRows` were given has enough real room for the content at
+  // its natural size — true when the reserved top/bottom bands were small, but
+  // the caption and headline bands are now sized to their actual fixed-pixel
+  // footprint (see CAPTION_BAND_PX), which can leave less vertical room than a
+  // dense multi-row composition needs. Flooring at 1 anyway used to leave the
+  // per-box clamp below to force-fit whatever didn't fit — which moves ONE box
+  // without moving its neighbours, and silently eats the gutters `packRows`
+  // placed between them. Shrinking the WHOLE composition together preserves
+  // those relative gaps; only a derived vector's forced-visibility need justifies
+  // a lower floor than ordinary content, which still shouldn't go tiny.
   const hasDerived = boxes.some(isDerivedVector);
-  const applied = hasDerived ? Math.max(0.62, scale) : Math.max(1, scale);
+  const applied = Math.max(hasDerived ? 0.62 : 0.75, scale);
 
   const centreX = (minX + maxX) / 2;
   const centreY = (minY + maxY) / 2;
@@ -1289,7 +1316,24 @@ function fitToSafeArea(boxes: StageBox[], safe: { x: number; y: number; width: n
     box.height = Math.min(box.height, safe.height);
     box.captionWidth = Math.min(box.captionWidth, safe.width);
     box.x = Math.min(Math.max(box.x, safe.x + box.width / 2), safe.x + safe.width - box.width / 2);
-    box.y = Math.min(Math.max(box.y, safe.y + box.height / 2), safe.y + safe.height - box.height / 2);
+    // The caption hangs BELOW the shape (captionHeight), never above it, so
+    // only the lower bound needs it. Omitting it here — unlike packRows and
+    // separate(), which both fold captionHeight into the footprint they clamp
+    // against — let a captioned object's shape sit flush with the safe area's
+    // bottom edge while its caption hung straight past it into the reserved
+    // word-caption band underneath.
+    //
+    // This is a LAST-RESORT safety net, not the thing doing the real work of
+    // making content fit — that is `applied` above, which now shrinks instead
+    // of forcing every scene to full size regardless of whether it fits. A
+    // clamp that moves one box without moving its neighbours destroys the
+    // gutters `packRows` deliberately placed between them, so if this ever
+    // fires on ordinary (non-hidden) content it means `applied` under-shrank,
+    // not that this clamp needs to reach further.
+    box.y = Math.min(
+      Math.max(box.y, safe.y + box.height / 2),
+      safe.y + safe.height - box.height / 2 - box.captionHeight,
+    );
   }
 }
 
