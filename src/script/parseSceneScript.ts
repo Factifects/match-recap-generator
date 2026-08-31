@@ -99,8 +99,18 @@ export function computeVisualMinDurationSeconds(visual: Visual | undefined): num
   // render would cut a code walkthrough short partway through its highlights.
   // Every workspace action carries `startSeconds`, and only some carry a
   // duration (`clear` is instantaneous), matching Canvas's shape.
+  //
+  // `spatial` belongs in this list for the same reason the others do, and its
+  // absence was load-bearing in the wrong direction: a 3D scene fell through to
+  // MIN_REAL_AUDIO_FLOOR_SECONDS, so its authored camera travel had no floor at
+  // all and a folded passage could be cut off mid-move.
   if (
-    (visual?.kind === "workspace" || visual?.kind === "diagram" || visual?.kind === "stage") &&
+    (visual?.kind === "workspace" ||
+      visual?.kind === "diagram" ||
+      visual?.kind === "stage" ||
+      visual?.kind === "spatial" ||
+      visual?.kind === "holdings" ||
+      visual?.kind === "channels") &&
     visual.timeline &&
     visual.timeline.length > 0
   ) {
@@ -811,6 +821,33 @@ function resolveContinueDiagram(fields: SceneFields): true | undefined {
   return fields["Continue Diagram"]?.trim().toLowerCase() === "true" ? true : undefined;
 }
 
+/** An optional **Continue Spatial:** true field — same convention as
+ * **Continue Stage:** above, for the 3D `spatial` medium's evented `timeline`.
+ * Consumed by mergeSpatialContinuity.ts (run as a post-parse pass in
+ * generate.ts); a scene isn't required to be `Scene Type: Spatial` at parse
+ * time for this field to be set (same graceful-degradation posture as every
+ * other Continue field — the merge is responsible for checking that, not this
+ * parser). A continuing scene only needs `Narration` and a `Data` block with
+ * its OWN new `timeline` plus any brand-new objects; it should not redeclare
+ * objects the passage already has, and it need not restate the camera — the
+ * passage keeps whatever shot the previous scene left it in. */
+function resolveContinueSpatial(fields: SceneFields): true | undefined {
+  return fields["Continue Spatial"]?.trim().toLowerCase() === "true" ? true : undefined;
+}
+
+/** An optional **Continue Holdings:** true field — same convention as every
+ * other Continue field, for the `holdings` medium's timeline. */
+function resolveContinueHoldings(fields: SceneFields): true | undefined {
+  return fields["Continue Holdings"]?.trim().toLowerCase() === "true" ? true : undefined;
+}
+
+/** An optional **Continue Channels:** true field — same convention as every
+ * other Continue field. A continuing scene needs only `Narration` and its own
+ * `timeline`; the day, its channels and its traces already exist. */
+function resolveContinueChannels(fields: SceneFields): true | undefined {
+  return fields["Continue Channels"]?.trim().toLowerCase() === "true" ? true : undefined;
+}
+
 const BOARD_POSITION_KEYS = new Set(["left", "right", "center"]);
 
 /** An optional **Board Position:** field, TacticalBoard/Formation only —
@@ -1002,6 +1039,9 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
       continuesBoardFrom: resolveContinueBoard(fields),
       continuesDiagramFrom: resolveContinueDiagram(fields),
       continuesStageFrom: resolveContinueStage(fields),
+      continuesSpatialFrom: resolveContinueSpatial(fields),
+      continuesHoldingsFrom: resolveContinueHoldings(fields),
+      continuesChannelsFrom: resolveContinueChannels(fields),
       wordCaptions: resolveWordCaptions(fields),
       strategyProfile: resolveStrategyProfile(fields),
       // Present for every Flow-type scene (resolveFlowVisual requires a

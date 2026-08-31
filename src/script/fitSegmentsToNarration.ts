@@ -87,10 +87,38 @@ export function fitSegmentsToNarration(segments: TimedSegment[]): FitSegmentsRes
     // with its own unsynchronized clock is exactly what the spine exists to
     // prevent (see CLAUDE.md's standing constraint).
     const visual = segment.visual;
-    if (visual?.kind !== "canvas" && visual?.kind !== "workspace" && visual?.kind !== "diagram" && visual?.kind !== "stage") {
+    if (
+      visual?.kind !== "canvas" &&
+      visual?.kind !== "workspace" &&
+      visual?.kind !== "diagram" &&
+      visual?.kind !== "stage" &&
+      visual?.kind !== "spatial" &&
+      visual?.kind !== "holdings" &&
+      visual?.kind !== "channels"
+    ) {
       return segment;
     }
     if (!visual.timeline || visual.timeline.length === 0) return segment;
+
+    // A FOLDED PASSAGE IS FITTED PER SUB-SCENE, NOT AS ONE BLOCK.
+    //
+    // A merged passage (see the merge*Continuity passes) plays several narration
+    // clips back to back, each starting at a fixed measured offset — that offset
+    // is a hard fact about the audio, not something the fitter may slide. Fitting
+    // the passage as one window would let compression in the second sub-scene
+    // drag the third sub-scene's choreography off the sentence it illustrates,
+    // which is the exact desync the spine exists to remove, reintroduced at
+    // passage scale. Each clip boundary is therefore an anchor, and the windows
+    // between them are fitted independently.
+    //
+    // resolveSegmentAudio has already placed each clip's actions at that clip's
+    // real offset, so authored and narration time agree AT the boundaries and
+    // differ only inside them — which is what an anchor is for.
+    const anchors = segment.narrationClips
+      ?.slice(1)
+      .map((clip) => clip.offsetSeconds)
+      .filter((offset): offset is number => offset !== undefined && offset > 0)
+      .map((offset) => ({ authoredSeconds: offset, narrationSeconds: offset }));
 
     // Every timeline-carrying medium goes through the SAME fit — a second
     // medium running on its own unsynchronized clock is exactly what the
@@ -102,19 +130,31 @@ export function fitSegmentsToNarration(segments: TimedSegment[]): FitSegmentsRes
     const fittedVisual = (() => {
       switch (visual.kind) {
         case "canvas": {
-          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds });
+          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds, anchors });
           return { visual: { ...visual, timeline: result.actions }, result };
         }
         case "workspace": {
-          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds });
+          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds, anchors });
           return { visual: { ...visual, timeline: result.actions }, result };
         }
         case "diagram": {
-          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds });
+          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds, anchors });
           return { visual: { ...visual, timeline: result.actions }, result };
         }
         case "stage": {
-          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds });
+          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds, anchors });
+          return { visual: { ...visual, timeline: result.actions }, result };
+        }
+        case "spatial": {
+          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds, anchors });
+          return { visual: { ...visual, timeline: result.actions }, result };
+        }
+        case "holdings": {
+          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds, anchors });
+          return { visual: { ...visual, timeline: result.actions }, result };
+        }
+        case "channels": {
+          const result = fitTimelineToNarration(visual.timeline!, { narrationSeconds, anchors });
           return { visual: { ...visual, timeline: result.actions }, result };
         }
       }

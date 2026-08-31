@@ -150,7 +150,9 @@ function resolveTimelineFinalState(object: CanvasObjectT, timeline: CanvasTimeli
   // transient attention cue; the settled opacity a geometry check cares about
   // is what the object's own actions leave it at.)
   const actions = (timeline ?? [])
-    .filter((a) => a.type !== "camera" && a.type !== "focus" && a.id === object.id)
+    // Thread actions (emit/gather/braid/cut) address threads, not objects, and
+    // carry no `id` at all — same reasoning as camera/focus above.
+    .filter((a) => "id" in a && a.id === object.id)
     .sort((a, b) => a.startSeconds - b.startSeconds);
   for (const action of actions) {
     if (action.type === "appear") {
@@ -218,7 +220,7 @@ function resolveObjectStateAt(object: CanvasObjectT, timeline: CanvasTimelineAct
   const base = resolveObjectPosition(object);
   const state = { x: base.x, y: base.y, opacity: object.opacity ?? 1, visible: (object.opacity ?? 1) !== 0 };
   const actions = timeline
-    .filter((a) => a.type !== "camera" && a.type !== "focus" && a.id === object.id)
+    .filter((a) => "id" in a && a.id === object.id)
     .sort((a, b) => a.startSeconds - b.startSeconds);
   for (const action of actions) {
     if (atSeconds < action.startSeconds) continue;

@@ -1,5 +1,5 @@
 import React from "react";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, staticFile, Img } from "remotion";
 import { loadFont, fontFamily as jetBrainsMonoFamily } from "@remotion/google-fonts/JetBrainsMono";
 import { COLORS, FONT_FAMILY } from "../theme";
 import { SceneFrame } from "./SceneFrame";
@@ -15,7 +15,7 @@ const CAPTION_CLEARANCE = 170;
 
 type RequestRow = { method: string; path: string; status?: number | "pending" | "blocked" };
 type ConsoleRow = { text: string; level: "error" | "warn" | "log" };
-type Panel = "network" | "console";
+type Panel = "network" | "console" | "page";
 
 const METHOD_COLORS: Record<string, string> = {
   GET: "#38bdf8",
@@ -73,11 +73,22 @@ const LEVEL_GLYPH: Record<ConsoleRow["level"], string> = {
   log: "›",
 };
 
+interface PageContent {
+  logoPath?: string;
+  heading?: string;
+  subheading?: string;
+  fields?: { kind: "text" | "password" | "button" | "note" | "divider"; label?: string; value?: string; active: boolean }[];
+  prompt?: { title: string; body?: string; icon?: string };
+}
+
 interface ResolvedState {
   panel: Panel;
   requests: RequestRow[];
   consoleLines: ConsoleRow[];
   highlightIndex?: number;
+  /** The rendered page, swappable per reveal step so a passkey sheet can slide
+   * up over a form instead of the beat being a still image. */
+  page?: PageContent;
 }
 
 /** A realistic browser-window-plus-DevTools mockup — traffic-light chrome
@@ -95,8 +106,133 @@ interface ResolvedState {
  * row) — anything omitted carries forward from the previous step, the same
  * "build on what's already there" convention Canvas's own phases use,
  * rather than requiring every step to repeat the full state. */
+/** An ACTUAL PAGE inside the chrome — the thing a viewer recognises as being on
+ * the web, rather than a developer panel.
+ *
+ * Deliberately plain: a card, a heading, a couple of fields and one action. The
+ * point is never to draw a beautiful website; it is that the viewer is looking
+ * at a page and not at a log, so that when the DevTools panel does appear later
+ * it reads as lifting the lid on something real.
+ */
+const PagePanel: React.FC<{
+  page?: PageContent;
+  stepLocalFrame: number;
+}> = ({ page, stepLocalFrame }) => {
+  if (!page) return null;
+  const appear = Math.min(1, Math.max(0, stepLocalFrame / 14));
+  return (
+    <div
+      style={{
+        position: "relative",
+        background: "#F5F6F8",
+        minHeight: 430,
+        // Room reserved UNDER the content for the system sheet. Without it the
+        // sheet sat on top of the very button it is responding to, hiding the
+        // action the beat is about.
+        padding: page.prompt ? "44px 0 150px 0" : "44px 0",
+        display: "flex",
+        justifyContent: "center",
+      }}
+    >
+      <div style={{ width: "min(560px, 78%)", opacity: appear }}>
+        {page.logoPath ? (
+          <Img src={staticFile(page.logoPath)} style={{ width: 44, height: 44, objectFit: "contain", marginBottom: 20 }} />
+        ) : null}
+        {page.heading ? (
+          <div style={{ fontFamily: FONT_FAMILY, fontSize: 34, fontWeight: 800, color: "#10141B", marginBottom: 8 }}>{page.heading}</div>
+        ) : null}
+        {page.subheading ? (
+          <div style={{ fontFamily: FONT_FAMILY, fontSize: 19, color: "#5A6478", marginBottom: 28 }}>{page.subheading}</div>
+        ) : null}
+        {(page.fields ?? []).map((field, index) => {
+          if (field.kind === "divider") {
+            return <div key={index} style={{ height: 1, background: "#dcdbd6", margin: "26px 0" }} />;
+          }
+          if (field.kind === "note") {
+            return (
+              <div key={index} style={{ fontFamily: FONT_FAMILY, fontSize: 16, color: "#7b8090", marginTop: 14 }}>
+                {field.label}
+              </div>
+            );
+          }
+          if (field.kind === "button") {
+            return (
+              <div
+                key={index}
+                style={{
+                  marginTop: 22,
+                  padding: "16px 20px",
+                  borderRadius: 10,
+                  background: field.active ? "#4C8DFF" : "#E3E6EC",
+                  color: field.active ? "#ffffff" : "#5f6472",
+                  fontFamily: FONT_FAMILY,
+                  fontSize: 19,
+                  fontWeight: 700,
+                  textAlign: "center",
+                  boxShadow: field.active ? "0 8px 24px rgba(76,141,255,0.32)" : "none",
+                }}
+              >
+                {field.label}
+              </div>
+            );
+          }
+          return (
+            <div key={index} style={{ marginBottom: 18 }}>
+              {field.label ? (
+                <div style={{ fontFamily: FONT_FAMILY, fontSize: 15, fontWeight: 600, color: "#5A6478", marginBottom: 7 }}>{field.label}</div>
+              ) : null}
+              <div
+                style={{
+                  padding: "15px 16px",
+                  borderRadius: 9,
+                  border: field.active ? "2px solid #4C8DFF" : "1px solid #D5D9E0",
+                  background: "#ffffff",
+                  fontFamily: MONO_FONT_FAMILY,
+                  fontSize: 18,
+                  color: field.value ? "#15171c" : "#a7abb6",
+                }}
+              >
+                {field.kind === "password" && field.value ? "•".repeat(field.value.length) : (field.value ?? "")}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* The system sheet — the moment the browser, not the page, takes over. */}
+      {page.prompt ? (
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 22,
+            transform: "translateX(-50%)",
+            width: "min(520px, 76%)",
+            background: "rgba(16,20,27,0.97)",
+            borderRadius: 16,
+            padding: "22px 26px",
+            border: "1px solid #3a3d४a".replace("४", "4"),
+            boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
+            opacity: Math.min(1, Math.max(0, (stepLocalFrame - 18) / 14)),
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <span style={{ fontSize: 30 }}>{page.prompt.icon ?? "🔑"}</span>
+            <div>
+              <div style={{ fontFamily: FONT_FAMILY, fontSize: 20, fontWeight: 700, color: "#f2f4f8" }}>{page.prompt.title}</div>
+              {page.prompt.body ? (
+                <div style={{ fontFamily: FONT_FAMILY, fontSize: 16, color: "#9aa0b0", marginTop: 4 }}>{page.prompt.body}</div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
 export const BrowserMockCard: React.FC<{ data: BrowserMockData } & SharedVisualProps> = ({
-  data: { chrome = "browser", url, toolLabel, panel, requests, consoleLines, highlightIndex, revealSteps },
+  data: { chrome = "browser", url, toolLabel, panel, requests, consoleLines, highlightIndex, revealSteps, tabs, page },
   backgroundColor,
   orientation,
   durationInFrames,
@@ -108,6 +244,7 @@ export const BrowserMockCard: React.FC<{ data: BrowserMockData } & SharedVisualP
 
   const initial: ResolvedState = {
     panel: panel ?? "network",
+    page,
     requests: requests ?? [],
     consoleLines: consoleLines ?? [],
     highlightIndex,
@@ -120,6 +257,7 @@ export const BrowserMockCard: React.FC<{ data: BrowserMockData } & SharedVisualP
       panel: step.panel ?? running.panel,
       requests: step.requests ?? running.requests,
       consoleLines: step.consoleLines ?? running.consoleLines,
+      page: step.page ?? running.page,
       highlightIndex: step.highlightIndex ?? running.highlightIndex,
     };
     steps.push({ atFrame: durationInFrames ? Math.round(durationInFrames * step.at) : 0, state: running });
@@ -150,6 +288,33 @@ export const BrowserMockCard: React.FC<{ data: BrowserMockData } & SharedVisualP
       >
         {isBrowser ? (
           <>
+            {/* TAB STRIP. A browser scene that is only an address bar over a log
+                reads as a developer tool, not as being on the web. The tabs are
+                what make the chrome recognisable at a glance. */}
+            {tabs && tabs.length > 0 ? (
+              <div style={{ display: "flex", gap: 6, padding: "10px 16px 0 16px", background: "#0f1017" }}>
+                {tabs.map((tab, index) => (
+                  <div
+                    key={tab}
+                    style={{
+                      padding: "9px 18px",
+                      borderRadius: "10px 10px 0 0",
+                      background: index === 0 ? "#14151f" : "transparent",
+                      color: index === 0 ? COLORS.text : "#5c6170",
+                      fontFamily: FONT_FAMILY,
+                      fontSize: 15,
+                      fontWeight: 600,
+                      maxWidth: 260,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {tab}
+                  </div>
+                ))}
+              </div>
+            ) : null}
             <div style={{ display: "flex", alignItems: "center", gap: 18, padding: "16px 22px 12px 22px" }}>
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                 <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#f87171" }} />
@@ -213,7 +378,7 @@ export const BrowserMockCard: React.FC<{ data: BrowserMockData } & SharedVisualP
           </div>
         )}
 
-        {isBrowser && (
+        {isBrowser && state.panel !== "page" && (
           <div style={{ display: "flex", gap: 28, padding: "0 26px", borderBottom: "1px solid #2a2c38" }}>
             {(["network", "console"] as Panel[]).map((tab) => {
               const active = state.panel === tab;
@@ -238,8 +403,10 @@ export const BrowserMockCard: React.FC<{ data: BrowserMockData } & SharedVisualP
           </div>
         )}
 
-        <div style={{ padding: "20px 26px 30px 26px" }}>
-          {state.panel === "network" ? (
+        <div style={{ padding: state.panel === "page" ? 0 : "20px 26px 30px 26px" }}>
+          {state.panel === "page" ? (
+            <PagePanel page={state.page} stepLocalFrame={stepLocalFrame} />
+          ) : state.panel === "network" ? (
             <NetworkPanel
               rows={state.requests}
               highlightIndex={state.highlightIndex}

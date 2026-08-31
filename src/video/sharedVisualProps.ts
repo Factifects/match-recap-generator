@@ -53,6 +53,8 @@ export interface SharedVisualProps {
  * "x"}>` — every card component's own prop type reads `{ data: XData } &
  * SharedVisualProps` using the alias below instead of repeating the Extract
  * at every call site. */
+export type HoldingsData = Extract<Visual, { kind: "holdings" }>;
+export type ChannelsData = Extract<Visual, { kind: "channels" }>;
 export type TacticalBoardData = Extract<Visual, { kind: "tactical-board" }>;
 export type VerticalTacticalBoardData = Extract<Visual, { kind: "vertical-tactical-board" }>;
 export type FormationData = Extract<Visual, { kind: "formation" }>;

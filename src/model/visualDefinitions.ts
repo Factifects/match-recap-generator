@@ -597,7 +597,13 @@ const codeLinesSchema = z
 const canvasObjectSchema = z
   .object({
   id: z.string(),
-  type: z.enum(["dot", "circle", "label", "rectangle", "roundedRectangle", "ellipse", "line", "polygon", "icon", "lottie", "gif", "image"]),
+  /** `device`/`facade`/`figure` are the CONCRETE WORLD vocabulary — the minimum
+   * needed to show where information comes from before abstracting it.
+   *
+   * Deliberately three composable objects rather than a scene library: a facade
+   * becomes a gym because of its sign, not because a GymScene component exists.
+   * They are not a character or environment system and must not grow into one. */
+  type: z.enum(["dot", "circle", "label", "rectangle", "roundedRectangle", "ellipse", "line", "polygon", "icon", "lottie", "gif", "image", "device", "facade", "figure"]),
   // Either give exact x/y, or name an `anchor` (see CANVAS_ANCHOR_KEYS above)
   // and let it resolve the position — enforced below by .refine(), since
   // Zod has no native "one of these two shapes" for optional siblings.
@@ -613,6 +619,32 @@ const canvasObjectSchema = z
   // Required for that type to render anything (an "icon" object with no
   // `icon` key renders nothing).
   icon: z.enum(CANVAS_ICON_KEYS).optional(),
+  /** `device` — what is on the phone's screen right now. The screen is the
+   * narrative anchor of the whole episode: it asks the question in the first
+   * shot and answers it in the last, so its content is authored per beat. */
+  screen: z
+    .object({
+      kind: z.enum(["blank", "ad", "search", "map", "home"]).default("blank"),
+      /** Ad headline, search query, or app name, depending on `kind`. */
+      text: z.string().optional(),
+      /** A real brand mark for an ad, resolved like any other. */
+      brand: z.string().optional(),
+      logoPath: z.string().optional(),
+      logoHex: z.string().optional(),
+      /** Draws attention to the microphone opening — the beat where the camera
+       * goes into the phone and nothing comes out of it. */
+      micHighlight: z.boolean().default(false),
+    })
+    .optional(),
+  /** `facade` — the sign over the door is what makes a generic place a gym or a
+   * sports shop. One object, many places. */
+  sign: z.string().optional(),
+  /** A second colour for the world objects — a facade's sign board, a device's
+   * highlight ring. Separate from `color` so a place can be named in a strong
+   * colour while its structure stays quiet. */
+  accent: z.string().optional(),
+  /** `figure` — minimal human presence, for orientation and causality only. */
+  pose: z.enum(["stand", "walk", "enterLeft", "enterRight"]).optional(),
   // "lottie" type only — which hand-authored Lottie motif to play (see
   // LOTTIE_ASSET_KEYS above). Required for that type to render anything.
   // Plays once (no loop) starting the frame this object first appears —
@@ -866,6 +898,48 @@ const canvasTimelineActionSchema = z.discriminatedUnion("type", [
   // (control point offset perpendicular to the straight line by `bow`
   // percent, sign picks the side — same convention as arrow bows elsewhere);
   // "line" (the default) is a straight glide.
+  /** THREAD ACTIONS — see threadGeometry.ts.
+   *
+   * A thread is what an ordinary action leaves behind: it pays out from a
+   * device, hooks to the place the action happened, stays there after the
+   * camera moves on, and later joins the others. One object, changing
+   * behaviour — it must never become an arrow, a particle or a bar, because a
+   * viewer who recognises the strand in the braid as the thing they watched
+   * come out of a phone does not need the braid explained. */
+  z.object({
+    type: z.literal("emit"),
+    /** Which declared threads pay out. Omit for all of them. */
+    ids: z.array(z.string().min(1)).optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.4),
+    /** Seconds between one thread starting and the next, when several pay out. */
+    stagger: z.number().min(0).max(3).default(0),
+  }),
+  /** Free ends travel to a common point. Anchors never move: the thing that
+   * happened, happened in a place. */
+  z.object({
+    type: z.literal("gather"),
+    to: z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100) }),
+    ids: z.array(z.string().min(1)).optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.5),
+  }),
+  /** The gathered bundle continues as ONE strand whose thickness is a count of
+   * what is actually in it — so cutting a thread visibly thins it. */
+  z.object({
+    type: z.literal("braid"),
+    to: z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100) }),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2),
+  }),
+  /** A lost signal: named threads go dark and fall away, and anything built
+   * from them thins accordingly. */
+  z.object({
+    type: z.literal("cut"),
+    ids: z.array(z.string().min(1)).min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.6),
+  }),
   z.object({
     type: z.literal("move"),
     id: z.string(),
@@ -2525,6 +2599,14 @@ const spatialObjectSchema = z.object({
      * the same "nearby vs far away" idea the episode's narration makes, just
      * made literally true of where the component sits on the board. */
     "storageDrive",
+    /** A LIVING MAP — a whole city's road network as one ground plane whose
+     * REPRESENTATION changes with live camera distance rather than with an
+     * authored per-scene state: individual agents at street distance give
+     * way to a capped field of pulsing points at city distance, and to a
+     * soft glow over named regions at continent distance. The signature
+     * object of the "Google Maps at scale" episode — see LivingMap.tsx for
+     * why the LOD swap is driven by distance instead of being scripted. */
+    "livingMap",
   ]),
   label: z.string().optional(),
   /** Where it sits, in scene units. */
@@ -2582,7 +2664,237 @@ const spatialObjectSchema = z.object({
     .min(2)
     .max(8)
     .optional(),
+  /** `livingMap` — how many logical agents currently exist on the map. This
+   * decides WHICH representation tier is even worth showing (see the
+   * `mapAgents` action) — it is deliberately independent of camera distance,
+   * since a viewer can be close in on a map that already has thousands of
+   * agents on it. Starts at 1 (a single person) unless an action changes it. */
+  agentCount: z.number().int().min(0).max(20000).optional(),
+  /** `livingMap` — named geographic regions this map can reveal, each a
+   * soft-edged zone at a fixed point. Declaring one here only defines where
+   * it is and what it is called; `mapRegionsReveal` is what makes it appear. */
+  mapRegions: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        label: z.string().min(1),
+        /** Fraction of the map's half-extents, -1..1 on each axis. */
+        at: z.tuple([z.number().min(-1).max(1), z.number().min(-1).max(1)]),
+        radius: z.number().min(0.5).max(20).default(6),
+      }),
+    )
+    .max(8)
+    .optional(),
 });
+
+/** `holdings` — the medium for the claim that no complete picture exists.
+ *
+ * A pane is everything ONE participant holds. The script never authors panes
+ * individually: the population comes from holdingsLayout.ts's `buildPanes`,
+ * which is what lets every number on screen (coverage, conflicts, how many
+ * devices a change touches) be COMPUTED from the data rather than typed by an
+ * author who could simply assert whatever suited the narration. A script
+ * chooses how many panes exist and which one the beat is about; the facts are
+ * the medium's to report. */
+/** `channels` — the medium for a claim about WHAT WAS CAPTURED, AND WHEN.
+ *
+ * A stack of time channels sharing one clock, so a trace lands directly under
+ * the ordinary moment that produced it. Its decisive move is an ABSENCE: a
+ * channel that stays empty for the whole video while the conclusion still
+ * lands. Nothing here special-cases that channel — it is simply one nobody put
+ * marks on, so the emptiness is a property of the data. */
+const channelsActionSchema = z.discriminatedUnion("type", [
+  /** Sweeps the playhead across the day. Moments and traces become visible as
+   * it passes them, so the viewer reads the day forwards rather than being
+   * shown a finished chart. */
+  z.object({
+    type: z.literal("play"),
+    from: z.number().optional(),
+    to: z.number().optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(6),
+  }),
+  /** The day-as-lived separates into the channels underneath it. The reveal the
+   * whole episode turns on: same day, same moments, now with what each one
+   * quietly emitted. */
+  z.object({
+    type: z.literal("split"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.2),
+  }),
+  /** Rescales the visible span of the day — the medium's camera.
+   *
+   * Everything is positioned through one shared clock, so narrowing the window
+   * spreads the traces of one hour across the whole frame and genuinely changes
+   * the composition rather than overlaying something on it. The same objects,
+   * seen at a different scale. */
+  z.object({
+    type: z.literal("window"),
+    from: z.number().min(0).max(48),
+    to: z.number().min(0).max(48),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.5),
+  }),
+  /** Collapses every other channel away so one fills the frame.
+   *
+   * Stronger than `focus`, and for a different job: dimming leaves the same
+   * picture with less contrast, while this changes what the frame is. The beat
+   * whose point is a single empty line needs that line to BE the frame. */
+  z.object({
+    type: z.literal("solo"),
+    channel: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2),
+  }),
+  /** Brings one channel forward and dims the rest. Pointed at the empty one,
+   * this is the episode's central beat: a whole row with nothing on it. */
+  z.object({
+    type: z.literal("focus"),
+    channel: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(3),
+  }),
+  /** Every trace supporting the conclusion travels out of its channel and
+   * gathers into one place. Derived, not authored — the marks that move are the
+   * ones the inference actually used. */
+  z.object({
+    type: z.literal("converge"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(4),
+  }),
+  /** Replays the day with a live tally of the top two candidates, and pins a
+   * marker at the exact moment the leader pulls clear.
+   *
+   * Exists because `readout: confidentAt` failed its own mute test: "it knew by
+   * nine" was a number appearing on screen, not something a viewer watched
+   * happen. This is the same fact as a process — two bars growing as the
+   * playhead passes each trace, and a marker dropping at the moment the gap
+   * opens. */
+  z.object({
+    type: z.literal("prove"),
+    /** Lead the winner needs over the runner-up to count as confident. Matches
+     * channelLayout's own default so the marker can never disagree with what
+     * `readout: confidentAt` reports. */
+    margin: z.number().min(1).max(10).default(2),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(7),
+  }),
+  /** Switches a channel off and recomputes. The closing beat: the conclusion
+   * survives without it, and how much LATER it arrives is measured. */
+  z.object({
+    type: z.literal("mute"),
+    channel: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(3.5),
+  }),
+  /** A large number the MEDIUM computes — never one the script asserts. */
+  z.object({
+    type: z.literal("readout"),
+    show: z.enum(["conclusion", "traces", "silent", "confidentAt", "delay"]),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.8),
+  }),
+  z.object({
+    type: z.literal("beat"),
+    text: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.4),
+    tone: z.enum(["neutral", "alert", "reveal"]).default("neutral"),
+    at: z.enum(["top", "center", "bottom"]).default("top"),
+    size: z.enum(["normal", "huge"]).default("normal"),
+  }),
+]);
+
+const holdingsActionSchema = z.discriminatedUnion("type", [
+  /** Grows or shrinks the wall to `count` devices, over real time. The
+   * accumulation beat: one device, then a few, then more than can be read —
+   * and the pane detail drops on its own as they shrink, because legibility is
+   * decided by measured box size rather than by an authored state. */
+  z.object({
+    type: z.literal("panes"),
+    count: z.number().int().min(0).max(600),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2),
+  }),
+  /** Brings ONE device forward at full detail, so a viewer can read — and
+   * count — everything it holds. The opening move of the episode: this is all
+   * of it. */
+  z.object({
+    type: z.literal("inspect"),
+    pane: z.number().int().min(0).default(0),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(3),
+  }),
+  /** Two devices side by side, with the rows they BOTH hold marked. Shows
+   * partial overlap as a fact about two specific holdings rather than as a
+   * claim about the population. */
+  z.object({
+    type: z.literal("compare"),
+    panes: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(3),
+  }),
+  /** THE SIGNATURE MOVE. Every pane slides toward the single shared frame it
+   * would occupy if the holdings were laid into one complete picture — and
+   * they do not fit. Panes land on top of each other where two devices hold
+   * the same thing, and leave holes where nobody does. Both failures are
+   * computed by holdingsLayout, not staged. */
+  z.object({
+    type: z.literal("assemble"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(3.5),
+  }),
+  /** The panes fall back to their own separate slots. The world returns to
+   * what it actually is. */
+  z.object({
+    type: z.literal("scatter"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2),
+  }),
+  /** Pulls every reading of ONE thing out of the wall and resolves them into a
+   * single agreed number, setting aside the outliers visibly rather than
+   * quietly dropping them. How partial views become usable information. */
+  z.object({
+    type: z.literal("agree"),
+    ref: z.string().min(1),
+    /** How the readings resolve — the MECHANISM being taught, not a style.
+     * `median` for a system that averages away noise (a clock taking the middle
+     * of its peers); `min`/`max` for one that selects (a router keeping the
+     * cheapest advertised path and simply not using the others). Drawing one as
+     * the other would misstate how the system works. */
+    rule: z.enum(["median", "min", "max"]).default("median"),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(3.5),
+  }),
+  /** Something in the world changes. Exactly the devices holding it light up;
+   * every other pane stays dark. The locality claim, shown as a count of what
+   * did NOT have to be redone. */
+  z.object({
+    type: z.literal("change"),
+    ref: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(3),
+  }),
+  /** A large readout of a number the MEDIUM computes — never a number the
+   * script asserts. That constraint is the point: an author cannot type
+   * "0.4% affected" and have it be believed; the wall has to actually be that
+   * way. */
+  z.object({
+    type: z.literal("readout"),
+    show: z.enum(["coverage", "gaps", "conflicts", "affected", "devices"]),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.6),
+  }),
+  z.object({
+    type: z.literal("beat"),
+    text: z.string().min(1),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.4),
+    tone: z.enum(["neutral", "alert", "reveal"]).default("neutral"),
+    at: z.enum(["top", "center", "bottom"]).default("top"),
+    size: z.enum(["normal", "huge"]).default("normal"),
+  }),
+]);
 
 const spatialActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("enter"), id: z.string().min(1), startSeconds: z.number().min(0), durationSeconds: z.number().min(0.1).default(0.7) }),
@@ -2758,6 +3070,60 @@ const spatialActionSchema = z.discriminatedUnion("type", [
     tone: z.enum(["neutral", "alert", "reveal"]).default("neutral"),
     at: z.enum(["top", "center", "bottom"]).default("top"),
     size: z.enum(["normal", "huge"]).default("normal"),
+  }),
+  /** `livingMap` — glides the map's logical agent count to `count`, over
+   * real time rather than a jump-cut. WHICH representation tier draws them
+   * (individual dots / a capped point field / a glow) is decided every
+   * frame by live camera distance, not by this action — so Scene 1's "one
+   * person becomes millions" beat is just this fired a few times with an
+   * escalating count while the camera barely moves. */
+  z.object({
+    type: z.literal("mapAgents"),
+    id: z.string().min(1),
+    count: z.number().int().min(0).max(20000),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.5),
+  }),
+  /** `livingMap` — reveals or hides this map's declared `mapRegions` (all of
+   * them, or a stated subset by id). The regions are declared once on the
+   * object; this is what turns "the world divides into areas of work" into
+   * something that happens at a moment, rather than a fact stated from the
+   * first frame. */
+  z.object({
+    type: z.literal("mapRegionsReveal"),
+    id: z.string().min(1),
+    reveal: z.boolean(),
+    ids: z.array(z.string().min(1)).optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.2),
+  }),
+  /** `livingMap` — toggles a small tile-grid patch near a stated point
+   * (same -1..1 fraction units as `mapRegions[].at`). Deliberately an
+   * authored reveal/hide rather than true pan-driven streaming: a 14-second
+   * scene cannot earn more than a couple of steps, so "old pieces leave, new
+   * pieces arrive" is authored as two sequential actions (hide, then reveal
+   * at a new point), not one simultaneous cross-fade. */
+  z.object({
+    type: z.literal("mapTilesReveal"),
+    id: z.string().min(1),
+    reveal: z.boolean(),
+    at: z.tuple([z.number().min(-1).max(1), z.number().min(-1).max(1)]).optional(),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(1.0),
+  }),
+  /** `livingMap` — changes one named arterial road's state. `rippleFromHere`
+   * additionally plays a short expanding ring centred on the road and bends
+   * nearby street-tier agents onto an adjacent road — the "a change doesn't
+   * require the whole world to start over" beat, kept deliberately local
+   * rather than propagating across the whole network. */
+  z.object({
+    type: z.literal("mapRoadEvent"),
+    id: z.string().min(1),
+    roadId: z.enum(["arterial-1", "arterial-2", "arterial-3", "arterial-4", "arterial-5", "arterial-6"]),
+    state: z.enum(["clear", "congested", "closed"]),
+    rippleFromHere: z.boolean().default(false),
+    startSeconds: z.number().min(0),
+    durationSeconds: z.number().min(0.1).default(2.0),
   }),
 ]);
 
@@ -3398,7 +3764,39 @@ export const VISUAL_DEFINITIONS = [
       // Which DevTools-style panel is active. Only meaningful for
       // "browser" chrome — a "tool" client has no DevTools. Defaults to
       // "network".
-      panel: z.enum(["network", "console"]).optional(),
+      /** `page` renders an ACTUAL WEB PAGE inside the chrome — heading, form
+       * fields, a button — instead of a developer panel.
+       *
+       * Added because a browser scene that only ever shows DevTools does not
+       * feel like being in a browser; it feels like reading a log. Show the
+       * page first, and the panel only when the mechanism is the point. */
+      panel: z.enum(["network", "console", "page"]).optional(),
+      /** Tab strip, so the chrome reads as a browser and not a bare address
+       * bar. The first entry is the active tab. */
+      tabs: z.array(z.string().min(1)).max(4).optional(),
+      /** `panel: "page"` — the rendered page itself. */
+      page: z
+        .object({
+          brand: z.string().optional(),
+          logoPath: z.string().optional(),
+          logoHex: z.string().optional(),
+          heading: z.string().optional(),
+          subheading: z.string().optional(),
+          fields: z
+            .array(
+              z.object({
+                kind: z.enum(["text", "password", "button", "note", "divider"]).default("text"),
+                label: z.string().optional(),
+                value: z.string().optional(),
+                active: z.boolean().default(false),
+              }),
+            )
+            .max(8)
+            .optional(),
+          /** A system sheet over the page — the Face ID / passkey prompt. */
+          prompt: z.object({ title: z.string(), body: z.string().optional(), icon: z.string().optional() }).optional(),
+        })
+        .optional(),
       // Network-tab rows. `status` is a real 2xx/4xx/5xx number, or the
       // string "pending" (a request still in flight — rendered with a
       // pulsing indicator, no color verdict yet) or "blocked" (the
@@ -3435,7 +3833,31 @@ export const VISUAL_DEFINITIONS = [
         .array(
           z.object({
             at: z.number().min(0).max(1),
-            panel: z.enum(["network", "console"]).optional(),
+            panel: z.enum(["network", "console", "page"]).optional(),
+            /** Swap the rendered page mid-scene — how the passkey sheet slides
+             * up over a sign-in form, or how a page gives way to the panel that
+             * explains it. Without this a page beat is a still image. */
+            page: z
+              .object({
+                brand: z.string().optional(),
+                logoPath: z.string().optional(),
+                logoHex: z.string().optional(),
+                heading: z.string().optional(),
+                subheading: z.string().optional(),
+                fields: z
+                  .array(
+                    z.object({
+                      kind: z.enum(["text", "password", "button", "note", "divider"]).default("text"),
+                      label: z.string().optional(),
+                      value: z.string().optional(),
+                      active: z.boolean().default(false),
+                    }),
+                  )
+                  .max(8)
+                  .optional(),
+                prompt: z.object({ title: z.string(), body: z.string().optional(), icon: z.string().optional() }).optional(),
+              })
+              .optional(),
             requests: z
               .array(
                 z.object({
@@ -4030,10 +4452,40 @@ export const VISUAL_DEFINITIONS = [
     schema: z.object({
       kind: z.literal("canvas"),
       title: z.string().optional(),
-      objects: z.array(canvasObjectSchema).min(1),
+      /** Allowed to be empty, for the same reason spatial/channels allow it: a
+       * `**Continue Canvas:** true` scene declares only what is NEW, and a beat
+       * that merely moves the camera through a world the passage already built
+       * introduces nothing. Requiring one object forced every continuing scene
+       * to restate the world, which the merge then ignores — the copy-paste
+       * redeclaration the continuity pass exists to warn about. */
+      objects: z.array(canvasObjectSchema).default([]),
       arrows: z.array(canvasArrowSchema).optional(),
       phases: z.array(canvasPhaseSchema).min(1).optional(),
       timeline: z.array(canvasTimelineActionSchema).min(1).optional(),
+      /** Threads left behind by actions — declared once, then driven by the
+       * emit/gather/braid/cut actions. `signals` is the SAME vocabulary the
+       * inference in channelLayout.ts votes over, so the braid's thickness is a
+       * count of real supporting evidence rather than an authored number. */
+      threads: z
+        .array(
+          z.object({
+            id: z.string().min(1),
+            /** The object it pays out from — normally the device. */
+            from: z.string().min(1),
+            /** Where it stays hooked, in canvas percent. */
+            anchor: z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100) }),
+            /** Where its free end rests once paid out. */
+            tail: z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100) }),
+            signals: z.array(z.string().min(1)).min(1),
+            label: z.string().optional(),
+            /** Colour of this trace. Threads that support the conclusion and
+             * threads that don't should be distinguishable BEFORE the braid
+             * forms, or the gathering looks arbitrary. */
+            accent: z.string().optional(),
+          }),
+        )
+        .max(24)
+        .optional(),
       snap: z.number().optional(),
       camera: canvasCameraSchema.optional(),
     }),
@@ -4065,8 +4517,125 @@ export const VISUAL_DEFINITIONS = [
     schema: z.object({
       kind: z.literal("spatial"),
       theme: z.enum(["light", "dark", "cool"]).default("dark"),
-      objects: z.array(spatialObjectSchema).min(1),
+      /** DELIBERATELY ALLOWED TO BE EMPTY, unlike every other medium's object
+       * list. A `**Continue Spatial:** true` scene (see
+       * mergeSpatialContinuity.ts) declares only what is NEW to the world, and
+       * a scene that merely moves the camera through a world the passage
+       * already built genuinely introduces nothing — requiring one object there
+       * would force the author to restate an existing one, which the merge then
+       * ignores by its first-declaration-wins rule. That is precisely the
+       * copy-paste redeclaration the continuity pass warns about, so the schema
+       * must not demand it. A scene that is empty AND does not continue anything
+       * is reported by mergeSpatialContinuity instead, where continuation is
+       * actually known. */
+      objects: z.array(spatialObjectSchema).default([]),
       timeline: z.array(spatialActionSchema).default([]),
+    }),
+  },
+  {
+    kind: "channels",
+    category: "generic-diagrams",
+    label: "Channels",
+    description:
+      "A stack of time channels sharing one clock — a day along the x axis, and one labelled row per thing that was quietly recorded during it. Built for subjects that are claims about what was captured and when, where the teaching move is that ordinary traces converge on a conclusion. Its decisive capability is showing an ABSENCE: a channel that stays visibly empty for the whole video while the conclusion still lands, which is the only shape that can prove a negative on screen. Use it when the lesson is inference from traces over time; do not use it for a system of many participants at one instant (that is `holdings`).",
+    sceneTypeKey: "channels",
+    schema: z.object({
+      kind: z.literal("channels"),
+      theme: z.enum(["light", "dark", "cream"]).default("cream"),
+      /** The span the x axis covers, in hours. */
+      window: z.object({ from: z.number().min(0).max(48), to: z.number().min(0).max(48) }).default({ from: 7, to: 23 }),
+      title: z.string().optional(),
+      /** The day AS LIVED — ordinary moments, no data. The first beat of the
+       * episode is this strip alone, so these carry it. */
+      moments: z.array(z.object({ at: z.number(), label: z.string().min(1) })).max(14).default([]),
+      /** Allowed to be empty, for the same reason `spatial.objects` is: a
+       * `**Continue Channels:** true` scene declares only what is NEW, and a
+       * scene that merely moves the playhead across a day the passage already
+       * built introduces nothing. Requiring one here would force every
+       * continuing scene to restate the channel list, which the merge then
+       * ignores by first-declaration-wins — exactly the copy-paste
+       * redeclaration the continuity pass warns about. */
+      channels: z.array(z.object({ id: z.string().min(1), label: z.string().min(1) })).max(9).default([]),
+      /** What each moment quietly emitted. A mark's `signals` are what it is
+       * evidence FOR — the inference is a weighted vote over these, so the
+       * conclusion is computed rather than typed. */
+      marks: z
+        .array(
+          z.object({
+            at: z.number(),
+            channel: z.string().min(1),
+            label: z.string().optional(),
+            signals: z.array(z.string().min(1)).min(1),
+            weight: z.number().min(0).max(5).optional(),
+          }),
+        )
+        .max(60)
+        .default([]),
+      /** Display name for a derived signal — `running` renders as "TRAINING FOR
+       * A RACE". Display only; the inference still works on the raw key. */
+      signalLabels: z.record(z.string(), z.string()).optional(),
+      timeline: z.array(channelsActionSchema).default([]),
+    }),
+  },
+  {
+    kind: "holdings",
+    category: "generic-diagrams",
+    label: "Holdings",
+    description:
+      "A wall of small panes, each one everything a single participant actually holds. Built for the class of system whose answer to scale is that no complete picture exists anywhere: millions of small, partial, slightly-disagreeing views instead of one enormous live model. The signature move is an assembly that FAILS — panes slide toward the single frame they would occupy in one complete picture and land on top of each other where two devices hold the same thing, leaving holes where nobody does. Use it when the lesson is that the whole is never assembled, that partial readings are reconciled rather than collected, or that a change is local because almost nobody was holding the thing that changed. Do not use it to draw a map: it has no geography and is not a view of a place.",
+    sceneTypeKey: "holdings",
+    schema: z.object({
+      kind: z.literal("holdings"),
+      /** `cream` is a real third option, not a lighter `light`: a warm paper
+       * ground that the house palette's greens and ambers sit on without
+       * glaring. Whichever is chosen, every caption is drawn on a band painted
+       * in THAT ground, so text contrast holds on all three. */
+      theme: z.enum(["light", "dark", "cream"]).default("dark"),
+      /** Same population every render, and a different one per video. */
+      seed: z.number().int().min(0).max(9999).default(1),
+      /** What one pane IS, in the viewer's words — "DEVICE", "PHONE", "SENSOR",
+       * "BRANCH". Singular; the medium pluralizes for its own readouts. */
+      subject: z.string().min(1).default("DEVICE"),
+      /** What the rows inside a pane are readings OF, for the pane header. */
+      holds: z.string().min(1).default("SEGMENTS"),
+      /** Display prefix for a row's id. The medium's internal ids never change
+       * (a script still writes `"ref": "S12"`), but what a viewer reads should
+       * belong to the subject — P12 for a peer, R12 for a record, S12 for a
+       * segment. Display only, so an action can never miss its target because
+       * the label was renamed. */
+      refPrefix: z.string().min(1).max(3).default("S"),
+      /** Names — and where possible REAL BRAND MARKS — for the things being
+       * held, index-aligned to the medium's universe (entry 7 names `S07`).
+       *
+       * Deliberately allowed to be shorter than the universe, and usually
+       * should be: a routing table really does hold a couple of recognizable
+       * networks among a pile of anonymous prefixes, so naming a handful and
+       * leaving the rest as ids is the honest picture, not a shortcut. It also
+       * keeps the logos meaningful — a wall where every row carries a logo is a
+       * wall where none of them mean anything.
+       *
+       * `brand` is resolved to a real cached mark at generation time by
+       * resolveDiagramBrands, exactly like a diagram node's; an unresolvable
+       * one simply keeps its label. */
+      world: z
+        .array(
+          z.object({
+            label: z.string().min(1),
+            brand: z.string().optional(),
+            logoPath: z.string().optional(),
+            logoHex: z.string().optional(),
+            logoMonochrome: z.boolean().optional(),
+          }),
+        )
+        .max(48)
+        .optional(),
+      /** Which end of the value scale is GOOD, for the row colours. Not every
+       * subject is "bigger is better": a road's speed is, and a clock's error
+       * in milliseconds is the exact opposite. Getting this wrong inverts the
+       * meaning of every colour on screen while still looking deliberate, which
+       * is worse than having no colour at all. */
+      betterWhen: z.enum(["high", "low"]).default("high"),
+      timeline: z.array(holdingsActionSchema).default([]),
     }),
   },
 ] as const satisfies readonly VisualDefinition[];

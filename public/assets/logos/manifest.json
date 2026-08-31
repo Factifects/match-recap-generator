@@ -448,5 +448,105 @@
     "source": "https://cdn.simpleicons.org/instagram",
     "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
     "fetchedAt": "2026-08-20T16:01:39.525Z"
+  },
+  "cloudflare": {
+    "slug": "cloudflare",
+    "title": "Cloudflare",
+    "hex": "#F38020",
+    "monochrome": true,
+    "staticPath": "assets/logos/cloudflare.svg",
+    "source": "https://cdn.simpleicons.org/cloudflare",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-29T23:10:56.323Z"
+  },
+  "wikipedia": {
+    "slug": "wikipedia",
+    "title": "Wikipedia",
+    "hex": "#000000",
+    "monochrome": true,
+    "staticPath": "assets/logos/wikipedia.svg",
+    "source": "https://cdn.simpleicons.org/wikipedia",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-29T23:10:56.327Z"
+  },
+  "reddit": {
+    "slug": "reddit",
+    "title": "Reddit",
+    "hex": "#FF4500",
+    "monochrome": true,
+    "staticPath": "assets/logos/reddit.svg",
+    "source": "https://cdn.simpleicons.org/reddit",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-29T23:10:56.328Z"
+  },
+  "spotify": {
+    "slug": "spotify",
+    "title": "Spotify",
+    "hex": "#1ED760",
+    "monochrome": true,
+    "staticPath": "assets/logos/spotify.svg",
+    "source": "https://cdn.simpleicons.org/spotify",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-29T23:10:56.375Z"
+  },
+  "shopify": {
+    "slug": "shopify",
+    "title": "shopify",
+    "hex": "#95bf46",
+    "monochrome": false,
+    "staticPath": "assets/logos/shopify.svg",
+    "source": "https://api.iconify.design/logos/shopify.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-29T23:10:56.481Z"
+  },
+  "twitch": {
+    "slug": "twitch",
+    "title": "twitch",
+    "hex": "#5a3e85",
+    "monochrome": true,
+    "staticPath": "assets/logos/twitch.svg",
+    "source": "https://api.iconify.design/logos/twitch.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-29T23:10:56.484Z"
+  },
+  "dropbox": {
+    "slug": "dropbox",
+    "title": "dropbox",
+    "hex": "#0061ff",
+    "monochrome": true,
+    "staticPath": "assets/logos/dropbox.svg",
+    "source": "https://api.iconify.design/logos/dropbox.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-29T23:10:56.506Z"
+  },
+  "zoom": {
+    "slug": "zoom",
+    "title": "Zoom",
+    "hex": "#0B5CFF",
+    "monochrome": true,
+    "staticPath": "assets/logos/zoom.svg",
+    "source": "https://cdn.simpleicons.org/zoom",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-08-29T23:10:56.717Z"
+  },
+  "apple": {
+    "slug": "apple",
+    "title": "apple",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/apple.svg",
+    "source": "https://api.iconify.design/logos/apple.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-31T09:14:36.199Z"
+  },
+  "microsoft": {
+    "slug": "microsoft",
+    "title": "microsoft",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/microsoft.svg",
+    "source": "https://api.iconify.design/simple-icons/microsoft.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-08-31T09:14:36.799Z"
   }
 }

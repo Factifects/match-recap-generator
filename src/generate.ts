@@ -6,6 +6,8 @@ import { autoFixGeometry } from "./script/validateGeometry";
 import { diagnoseScenes } from "./script/validateScene";
 import { diagnoseNarrationSync } from "./script/validateNarrationSync";
 import { diagnoseStageScenes, diagnoseSceneMedia } from "./script/validateStage";
+import { diagnoseHoldingsScenes } from "./script/validateHoldings";
+import { diagnoseChannelsScenes } from "./script/validateChannels";
 import { recordStrategyUse } from "./script/visualStrategy";
 import { fitSegmentsToNarration, describeFitOutcomes } from "./script/fitSegmentsToNarration";
 import { resolveDiagramBrands, mascotExpressionsIn, resolveStageQrCodes } from "./script/resolveDiagramBrands";
@@ -15,6 +17,9 @@ import { mergeCanvasContinuity } from "./script/mergeCanvasContinuity";
 import { mergeTacticalContinuity } from "./script/mergeTacticalContinuity";
 import { mergeDiagramContinuity } from "./script/mergeDiagramContinuity";
 import { mergeStageContinuity } from "./script/mergeStageContinuity";
+import { mergeSpatialContinuity } from "./script/mergeSpatialContinuity";
+import { mergeHoldingsContinuity } from "./script/mergeHoldingsContinuity";
+import { mergeChannelsContinuity } from "./script/mergeChannelsContinuity";
 import { resolveSegmentAudio, generateBackgroundMusic, type TtsProvider } from "./audio/resolveAudio";
 import { renderVideo, type RenderProgress, type RenderVideoOptions } from "./render/renderVideo";
 import type { TimedSegment, AspectRatio, AudioClipPlacement } from "./model/Segment";
@@ -374,6 +379,37 @@ function resolveSegments(scriptText: string, presetSegments: TimedSegment[] | un
     stageMergeNotes.forEach((note) => log(`  - ${note}`));
   }
 
+  // And the same pass for `**Continue Spatial:** true` — the 3D medium, where a
+  // scene boundary costs the most: it doesn't just reset a diagram, it teleports
+  // the camera and rebuilds the world. Notes are chattier here than for the
+  // other media on purpose (synthesized entrances, inherited shots, redeclared
+  // objects), because those are the things an author can't see until they render.
+  const { segments: spatialMergedSegments, notes: spatialMergeNotes } = mergeSpatialContinuity(segments);
+  segments = spatialMergedSegments;
+  if (spatialMergeNotes.length > 0) {
+    log(`Merged continuous Spatial passages (${spatialMergeNotes.length} note${spatialMergeNotes.length > 1 ? "s" : ""}):`);
+    spatialMergeNotes.forEach((note) => log(`  - ${note}`));
+  }
+
+  // And for `**Continue Holdings:** true` — one population of devices examined
+  // across several narration beats rather than a fresh wall per scene.
+  const { segments: holdingsMergedSegments, notes: holdingsMergeNotes } = mergeHoldingsContinuity(segments);
+  segments = holdingsMergedSegments;
+  if (holdingsMergeNotes.length > 0) {
+    log(`Merged continuous Holdings passages (${holdingsMergeNotes.length} note${holdingsMergeNotes.length > 1 ? "s" : ""}):`);
+    holdingsMergeNotes.forEach((note) => log(`  - ${note}`));
+  }
+
+  // And for `**Continue Channels:** true` — the medium where folding matters
+  // most, because the entire video is one day and an unfolded run would rebuild
+  // it per scene.
+  const { segments: channelsMergedSegments, notes: channelsMergeNotes } = mergeChannelsContinuity(segments);
+  segments = channelsMergedSegments;
+  if (channelsMergeNotes.length > 0) {
+    log(`Merged continuous Channels passages (${channelsMergeNotes.length} note${channelsMergeNotes.length > 1 ? "s" : ""}):`);
+    channelsMergeNotes.forEach((note) => log(`  - ${note}`));
+  }
+
   return { segments, usedSceneFormat, geometryDiagnostics, mediaDiagnostics };
 }
 
@@ -421,7 +457,14 @@ export async function generateVideo(scriptText: string, options: GenerateOptions
   if (brands.resolved.length > 0) log(`Resolved ${brands.resolved.length} brand mark(s): ${brands.resolved.map((b) => b.title).join(", ")}.`);
   if (brands.unresolved.length > 0) log(`No brand mark for ${brands.unresolved.join(", ")} — those nodes fall back to their shape.`);
 
-  const preAudioDiagnostics = [...geometryDiagnostics, ...mediaDiagnostics, ...diagnoseScenes(segments), ...diagnoseStageScenes(segments, scriptLabel)];
+  const preAudioDiagnostics = [
+    ...geometryDiagnostics,
+    ...mediaDiagnostics,
+    ...diagnoseScenes(segments),
+    ...diagnoseStageScenes(segments, scriptLabel),
+    ...diagnoseHoldingsScenes(segments),
+    ...diagnoseChannelsScenes(segments),
+  ];
   logDiagnostics(log, preAudioDiagnostics, "Scene diagnostics (pre-audio estimate):");
   runEnforcementGate(preAudioDiagnostics, options.strict, "before narration/audio generation");
 

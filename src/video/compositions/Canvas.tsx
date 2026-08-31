@@ -6,6 +6,18 @@ import { COLORS, FONT_FAMILY, SUBTITLE_FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_ST
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, drawIn, pulse, settleFrom, type EasingName } from "../motion";
 import { CANVAS_ICON_COMPONENTS } from "../canvasIcons";
+import { DeviceGraphic, FacadeGraphic, FigureGraphic } from "./WorldObjects";
+import {
+  threadCurve,
+  curveToPath,
+  partialCurve,
+  pointsToPath,
+  gatheringCurve,
+  braidCurve,
+  braidWobble,
+  braidThickness,
+  pointOnCurve,
+} from "../../script/threadGeometry";
 import { LOTTIE_ASSETS } from "../lottieAssets";
 import { resolveObjectPosition } from "../canvasLayout";
 import { resolveEasing } from "../keyframes";
@@ -544,8 +556,10 @@ function resolveTimelineObject(object: CanvasObjectT, actions: CanvasTimelineAct
   };
   for (const action of actions) {
     // `camera` and `focus` are scene-level, not object-targeted — focus is
-    // resolved separately by resolveFocusMultiplier below.
-    if (action.type === "camera" || action.type === "focus" || action.id !== object.id) continue;
+    // resolved separately by resolveFocusMultiplier below. The thread actions
+    // (emit/gather/braid/cut) address threads rather than objects and carry no
+    // `id` at all, so they are excluded by the same narrowing.
+    if (!("id" in action) || action.id !== object.id) continue;
     const start = action.startSeconds * FPS;
     if (action.type === "appear") {
       state.appearFrame = start;
@@ -637,7 +651,7 @@ function resolveTimelineCamera(base: CanvasCameraT, actions: CanvasTimelineActio
  * independent of the scene's real duration, give a caption an explicit
  * `startSeconds` to align it to a specific phase. */
 export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
-  data: { title, objects, arrows = [], phases: dataPhases, camera: topCamera, snap, timeline },
+  data: { title, objects, arrows = [], phases: dataPhases, camera: topCamera, snap, timeline, threads: dataThreads },
   backgroundColor,
   backgroundImage,
   backgroundImageMode,
@@ -1119,6 +1133,101 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
               );
             })}
 
+            {/* THREADS, UNDER THE OBJECTS.
+                What an ordinary action leaves behind: paid out from a device,
+                hooked to the place it happened, still there after the camera
+                moves on, and later gathered into a braid whose thickness is a
+                real count of what is in it. Drawn inside the camera transform,
+                so the same physical object is what the viewer follows from
+                street level up to the aerial pattern — that continuity is the
+                explanation, and a thread must never become an arrow, a particle
+                or a bar at any scale. */}
+            {(() => {
+              const threads = dataThreads ?? [];
+              if (threads.length === 0) return null;
+              const t = frame / FPS;
+              const actions = timeline ?? [];
+              const progressOf = (start: number, duration: number) =>
+                t <= start ? 0 : t >= start + duration ? 1 : (t - start) / Math.max(0.0001, duration);
+
+              const emitOf = (id: string, index: number): number => {
+                let value = 0;
+                for (const action of actions) {
+                  if (action.type !== "emit") continue;
+                  if (action.ids && !action.ids.includes(id)) continue;
+                  const offset = (action.stagger ?? 0) * index;
+                  value = Math.max(value, progressOf(action.startSeconds + offset, action.durationSeconds ?? 1.4));
+                }
+                return value;
+              };
+              const gather = actions.find((a) => a.type === "gather") as Extract<typeof actions[number], { type: "gather" }> | undefined;
+              const braid = actions.find((a) => a.type === "braid") as Extract<typeof actions[number], { type: "braid" }> | undefined;
+              const cutOf = (id: string): number => {
+                let value = 0;
+                for (const action of actions) {
+                  if (action.type !== "cut" || !action.ids.includes(id)) continue;
+                  value = Math.max(value, progressOf(action.startSeconds, action.durationSeconds ?? 1.6));
+                }
+                return value;
+              };
+
+              const gatherProgress = gather ? progressOf(gather.startSeconds, gather.durationSeconds ?? 2.5) : 0;
+              const meetPoint = gather ? { x: project(gather.to.x, gather.to.y)[0], y: project(gather.to.x, gather.to.y)[1] } : null;
+              const braidProgress = braid ? progressOf(braid.startSeconds, braid.durationSeconds ?? 2) : 0;
+
+              const live = threads.filter((thread, i) => cutOf(thread.id) < 0.6 && emitOf(thread.id, i) > 0);
+              const gatheredCount = gatherProgress > 0.5 ? live.length : 0;
+
+              return (
+                <g>
+                  {threads.map((thread, index) => {
+                    const emit = emitOf(thread.id, index);
+                    if (emit <= 0) return null;
+                    const cut = cutOf(thread.id);
+                    const [ax, ay] = project(thread.anchor.x, thread.anchor.y);
+                    const [tx, ty] = project(thread.tail.x, thread.tail.y);
+                    const model = { id: thread.id, fromId: thread.from, anchor: { x: ax, y: ay }, tail: { x: tx, y: ty }, signals: thread.signals, emittedAt: 0 };
+                    const curve = meetPoint && gatherProgress > 0 ? gatheringCurve(model, meetPoint, gatherProgress) : threadCurve(model.anchor, model.tail);
+                    const path = emit < 1 ? pointsToPath(partialCurve(curve, emit)) : curveToPath(curve);
+                    // A cut thread goes dark and drops rather than vanishing —
+                    // a signal that disappears cleanly teaches that it was never
+                    // there, which is the opposite of the point.
+                    const fall = cut * 26;
+                    return (
+                      <g key={thread.id} opacity={(1 - cut * 0.92)} transform={fall ? `translate(0, ${fall})` : undefined}>
+                        <path d={path} fill="none" stroke={cut > 0.2 ? "#c2b8a3" : (thread.accent ?? "#0ea5e9")} strokeWidth={cut > 0.2 ? 2 : 3} strokeLinecap="round" />
+                        <circle cx={ax} cy={ay} r={4.5} fill={cut > 0.2 ? "#c2b8a3" : (thread.accent ?? "#0ea5e9")} />
+                        {thread.label && emit > 0.85 && gatherProgress < 0.35 ? (
+                          <text x={ax} y={ay + 26} fill="#5f5849" fontSize={17} textAnchor="middle" fontFamily='"Inter", sans-serif'>
+                            {thread.label}
+                          </text>
+                        ) : null}
+                      </g>
+                    );
+                  })}
+
+                  {/* The braid: the SAME curve shape as one thread, thicker by a
+                      genuine count. Cutting a thread thins it, because the count
+                      is the number of live strands rather than a set number. */}
+                  {braid && braidProgress > 0 && meetPoint && gatheredCount > 0
+                    ? (() => {
+                        const [bx, by] = project(braid.to.x, braid.to.y);
+                        const curve = braidCurve(meetPoint, { x: bx, y: by });
+                        const points = braidWobble(curve, gatheredCount);
+                        const shown = points.slice(0, Math.max(2, Math.round(points.length * braidProgress)));
+                        const head = pointOnCurve(curve, braidProgress);
+                        return (
+                          <g>
+                            <path d={pointsToPath(shown)} fill="none" stroke="#0ea5e9" strokeWidth={braidThickness(gatheredCount)} strokeLinecap="round" opacity={0.92} />
+                            <circle cx={head.x} cy={head.y} r={braidThickness(gatheredCount) * 0.5} fill="#0ea5e9" />
+                          </g>
+                        );
+                      })()
+                    : null}
+                </g>
+              );
+            })()}
+
             {cameraObjects.map(({ object, displayLabel, x, y, radius, width, height, rotation: baseRotation, scale: baseScale, opacity: baseOpacity, slideYOffset, slideXOffset, blurPx, resolvedPoints, colorOverride, entranceStartFrame }) => {
               // Continuous ambient motion (see canvasObjectSchema's `idle`
               // field) — layered on top of the authored/glided base values,
@@ -1365,6 +1474,70 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       style={transformStyle}
                     />
                     {belowLabel((maxPointY / 100) * canvasHeight * SIZE_SCALE + 24)}
+                  </React.Fragment>
+                );
+              }
+
+              // THE CONCRETE WORLD. These exist so the viewer sees where
+              // information comes from before it is abstracted — the failure
+              // that sank both earlier attempts was opening on the internal
+              // model instead of on something recognisable.
+              if (object.type === "device") {
+                // The resolved transform has to be APPLIED, not just computed.
+                // Without it a `move` that scales the object silently does
+                // nothing — the phone stayed at full size through every beat
+                // and the whole world piled up in the middle of the frame.
+                const size = projectRadius(radius) * 2;
+                return (
+                  <React.Fragment key={object.id}>
+                    {trailNodes}
+                    <g style={transformStyle}>
+                    <DeviceGraphic
+                      x={px}
+                      y={py}
+                      size={size}
+                      color={color}
+                      accent={object.accent ?? "#0ea5e9"}
+                      opacity={opacity}
+                      screen={object.screen}
+                      pulse={(frame % 45) / 45}
+                    />
+                    </g>
+                    {belowLabel(py + size * 0.58)}
+                  </React.Fragment>
+                );
+              }
+
+              if (object.type === "facade") {
+                // The resolved transform has to be APPLIED, not just computed.
+                // Without it a `move` that scales the object silently does
+                // nothing — the phone stayed at full size through every beat
+                // and the whole world piled up in the middle of the frame.
+                const size = projectRadius(radius) * 2;
+                return (
+                  <React.Fragment key={object.id}>
+                    {trailNodes}
+                    <g style={transformStyle}>
+                    <FacadeGraphic x={px} y={py} size={size} color={color} accent={object.accent ?? color} opacity={opacity} sign={object.sign} />
+                    </g>
+                    {belowLabel(py + size * 0.46)}
+                  </React.Fragment>
+                );
+              }
+
+              if (object.type === "figure") {
+                // The resolved transform has to be APPLIED, not just computed.
+                // Without it a `move` that scales the object silently does
+                // nothing — the phone stayed at full size through every beat
+                // and the whole world piled up in the middle of the frame.
+                const size = projectRadius(radius) * 2;
+                return (
+                  <React.Fragment key={object.id}>
+                    {trailNodes}
+                    <g style={transformStyle}>
+                    <FigureGraphic x={px} y={py} size={size} color={color} accent={color} opacity={opacity} pose={object.pose} />
+                    </g>
+                    {belowLabel(py + size * 0.6)}
                   </React.Fragment>
                 );
               }

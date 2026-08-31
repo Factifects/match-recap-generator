@@ -305,6 +305,52 @@ Valid Canvas icon keys (`CANVAS_ICON_KEYS`): `jet`, `rocket`, `server`, `databas
 `javascriptLogo`, `youtubeLogo`, `thumbsUp`, `bell`, `chat`. (The `goal`/`card`/`save`/... list is a
 *different* vocabulary — `ICON_KEYS`, for the football-specific `Icon` scene type above, not Canvas.)
 
+## Holdings specifics
+
+`Holdings` is for one specific class of subject: a system whose answer to scale is
+that **no complete picture exists anywhere** — millions of participants each holding
+a small, partial, slightly-disagreeing view. Clock synchronisation, DNS resolvers,
+gossip protocols, sensor fleets, distributed caches. It has no geography and is not a
+view of a place; do not reach for it to draw a map.
+
+```
+**Scene Type:** Holdings
+**Continue Holdings:** true      (folds this scene into the preceding passage)
+**Data:** {"kind": "holdings", "theme": "dark", "seed": 7, "subject": "MACHINE",
+           "holds": "PEERS", "refPrefix": "P", "betterWhen": "low", "timeline": [...]}
+```
+
+| Field | Meaning |
+|---|---|
+| `seed` | Which population. Same seed, same devices, every render. Never change it mid-passage. |
+| `subject` | What ONE pane is, singular: `MACHINE`, `PHONE`, `RESOLVER`, `BRANCH`. |
+| `holds` | What the rows inside a pane are readings of: `PEERS`, `RECORDS`, `SEGMENTS`. |
+| `refPrefix` | Display prefix for a row id (`P` renders `S12` as `P12`). Display only — actions still target `S12`. |
+| `betterWhen` | `high` (a road's speed) or `low` (a clock's error in ms). Gets the colour ramp the right way round. |
+
+**Timeline actions**
+
+| Action | What it does |
+|---|---|
+| `panes` | `{count}` — grows or shrinks the wall. Pane detail drops on its own as they shrink. |
+| `inspect` | `{pane}` — brings ONE participant forward, full size, and dims the rest. |
+| `compare` | `{panes: [i, j]}` — two side by side (stacked in portrait), rows they both hold marked. |
+| `assemble` | The signature move: every pane slides toward the frame a complete picture would need, lands on top of its neighbours, and leaves holes. |
+| `scatter` | They fall back to their own slots. |
+| `agree` | `{ref}` — every reading of one thing, outliers set aside, resolved to one number. |
+| `change` | `{ref}` — only the participants holding it light up; everything else stays dark. |
+| `readout` | `{show: "coverage"|"gaps"|"conflicts"|"affected"|"devices"}` — a large number the MEDIUM computes. |
+| `beat` | On-screen line, same shape as Stage/Spatial. |
+
+**The rule that makes this medium worth having: a script can ask for a statistic but
+can never assert one.** Coverage, contradictions and blast radius are computed from
+the generated population, so the claims are properties of what is on screen. The
+corollary is a new way to be wrong — narration that promises something the population
+does not show. `validateHoldings.ts` reports that at authoring time (e.g. "the
+assembly beat runs on 40 machines, whose holdings cover everything and contradict
+nothing — the picture will simply COMPLETE, which is the opposite of the point").
+Check the generation log before assuming a beat landed.
+
 ## TacticalBoard specifics
 
 `TacticalBoard` is the one Scene Type with two authoring paths:

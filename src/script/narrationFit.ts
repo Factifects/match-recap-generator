@@ -140,6 +140,25 @@ export function actionMinSeconds(action: TimedAction): number {
       const movesPosition = to !== undefined && (to.x !== undefined || to.y !== undefined);
       return Math.min(movesPosition ? MIN_TRANSPORT_SECONDS : MIN_EMPHASIS_SECONDS, authored);
     }
+    // The `spatial` medium's own actions. `travel` is a transport in three
+    // dimensions — a body physically crossing the world — so it earns the same
+    // floor as a Canvas `move` that changes position: compressed below this it
+    // reads as a teleport, and "watch this one traveller cross the city" is
+    // precisely the thing the medium exists to show.
+    case "travel":
+      return Math.min(MIN_TRANSPORT_SECONDS, authored);
+    case "exit":
+      return Math.min(MIN_DISAPPEAR_SECONDS, authored);
+    // The `holdings` medium's own actions. `inspect` and `compare` exist to be
+    // READ — the viewer is counting rows inside a pane — so they take the same
+    // floor as a highlighted line of code rather than a diagram's. `assemble`
+    // is the medium's signature move and is meaningless as a flicker.
+    case "inspect":
+    case "compare":
+      return Math.min(MIN_CODE_HIGHLIGHT_SECONDS, authored);
+    case "assemble":
+    case "agree":
+      return Math.min(1.4, authored);
     // The `workspace` medium's own actions — a highlighted line has to stay up
     // long enough to actually be READ, which is the whole point of highlighting
     // it, so this is the strictest floor in the table.
@@ -373,9 +392,6 @@ export function fitTimelineToNarration<T extends TimedAction>(actions: T[], opti
   if (actions.length === 0 || narrationSeconds <= 0 || authoredEnd <= 0) return unchanged();
 
   const allBeats = deriveBeats(actions);
-  if (Math.abs(authoredEnd - narrationSeconds) <= FIT_TOLERANCE_SECONDS) {
-    return unchanged({ beatCount: allBeats.length });
-  }
 
   // Split into windows at the anchors. With no anchors this is one window
   // covering the whole scene — the ordinary case.
@@ -383,6 +399,17 @@ export function fitTimelineToNarration<T extends TimedAction>(actions: T[], opti
     .filter((a) => a.authoredSeconds > 0 && a.authoredSeconds < authoredEnd)
     .slice()
     .sort((a, b) => a.authoredSeconds - b.authoredSeconds);
+
+  // A MATCHING TOTAL DOES NOT IMPLY MATCHING PARTS. Bailing out on the totals
+  // alone is right for a single-narration scene, and wrong for a folded passage
+  // (see the merge*Continuity passes): a passage whose choreography happens to
+  // end when its last clip ends can still have its second sub-scene's beats
+  // running over its third sub-scene's narration. Anchors exist precisely to
+  // say where those internal boundaries are, so when there are any, the windows
+  // between them get fitted rather than the whole thing waved through.
+  if (sortedAnchors.length === 0 && Math.abs(authoredEnd - narrationSeconds) <= FIT_TOLERANCE_SECONDS) {
+    return unchanged({ beatCount: allBeats.length });
+  }
 
   const bounds: { authoredStart: number; authoredEnd: number; fittedStart: number; fittedEnd: number }[] = [];
   let prevAuthored = 0;

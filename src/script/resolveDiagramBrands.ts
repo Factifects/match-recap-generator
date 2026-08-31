@@ -103,6 +103,15 @@ export async function resolveDiagramBrands(segments: TimedSegment[]): Promise<Di
     if (segment.visual?.kind === "stage") {
       for (const object of segment.visual.objects) if (object.brand) wanted.push(object.brand);
     }
+    // `holdings` names its world entries the same way, through the same
+    // registry — a second lookup path would drift on provenance and licence
+    // tracking, which is the whole reason the registry exists.
+    if (segment.visual?.kind === "browser-mock" && segment.visual.page?.brand) {
+      wanted.push(segment.visual.page.brand);
+    }
+    if (segment.visual?.kind === "holdings") {
+      for (const entry of segment.visual.world ?? []) if (entry.brand) wanted.push(entry.brand);
+    }
   }
   if (wanted.length === 0) return { segments, resolved: [], unresolved: [] };
 
@@ -118,6 +127,23 @@ export async function resolveDiagramBrands(segments: TimedSegment[]): Promise<Di
         return { ...object, logoPath: asset.staticPath, logoHex: asset.hex, logoMonochrome: asset.monochrome };
       });
       return { ...segment, visual: { ...segment.visual, objects } };
+    }
+    if (segment.type === "statement" && segment.visual?.kind === "browser-mock") {
+      const visual = segment.visual;
+      const page = visual.page;
+      if (!page?.brand) return segment;
+      const asset = resolved.find((a) => a.slug === slugFor(page.brand!));
+      if (!asset) return segment;
+      return { ...segment, visual: { ...visual, page: { ...page, logoPath: asset.staticPath, logoHex: asset.hex } } };
+    }
+    if (segment.type === "statement" && segment.visual?.kind === "holdings" && segment.visual.world) {
+      const world = segment.visual.world.map((entry) => {
+        if (!entry.brand) return entry;
+        const asset = resolved.find((a) => a.slug === slugFor(entry.brand!));
+        if (!asset) return entry;
+        return { ...entry, logoPath: asset.staticPath, logoHex: asset.hex, logoMonochrome: asset.monochrome };
+      });
+      return { ...segment, visual: { ...segment.visual, world } };
     }
     if (segment.type !== "statement" || segment.visual?.kind !== "diagram") return segment;
     const nodes = JSON.parse(JSON.stringify(segment.visual.nodes)) as DiagramNode[];

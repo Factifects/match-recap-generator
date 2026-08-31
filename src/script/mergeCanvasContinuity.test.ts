@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mergeCanvasContinuity } from "./mergeCanvasContinuity";
-import type { TimedSegment } from "../model/Segment";
+import type { TimedSegment, Visual } from "../model/Segment";
 
 function canvasSegment(overrides: Partial<TimedSegment> & { text: string }): TimedSegment {
   return {
@@ -105,6 +105,48 @@ describe("mergeCanvasContinuity", () => {
     expect(result._canvasCaptionRanges).toEqual([
       { from: 0, to: 1 },
       { from: 1, to: 2 },
+    ]);
+  });
+});
+
+describe("mergeCanvasContinuity — timeline-authored passages", () => {
+  function timelineScene(text: string, objectId: string, threadId: string, continues = false, duration = 10): TimedSegment {
+    return {
+      type: "statement",
+      text,
+      durationSeconds: duration,
+      continuesCanvasFrom: continues || undefined,
+      visual: {
+        kind: "canvas",
+        objects: [{ id: objectId, type: "device", x: 50, y: 50, radius: 8 }],
+        threads: [{ id: threadId, from: objectId, anchor: { x: 20, y: 60 }, tail: { x: 40, y: 50 }, signals: ["running"] }],
+        timeline: [{ type: "emit", ids: [threadId], startSeconds: 1, durationSeconds: 1.4 }],
+      },
+    } as unknown as TimedSegment;
+  }
+
+  it("folds a timeline passage instead of cutting between its beats", () => {
+    // Before this existed, only phases-authored Canvas could continue — so a
+    // journey with ten narration beats became ten hard cuts.
+    const { segments } = mergeCanvasContinuity([timelineScene("a", "phone", "t1"), timelineScene("b", "shop", "t2", true)]);
+    expect(segments).toHaveLength(1);
+    expect(segments[0].narrationClips?.map((c) => c.text)).toEqual(["a", "b"]);
+  });
+
+  it("keeps one world: objects and threads union across the passage", () => {
+    const { segments } = mergeCanvasContinuity([timelineScene("a", "phone", "t1"), timelineScene("b", "shop", "t2", true)]);
+    const visual = (segments[0] as { visual?: Visual }).visual as Extract<Visual, { kind: "canvas" }>;
+    expect(visual.objects.map((o: { id: string }) => o.id)).toEqual(["phone", "shop"]);
+    expect((visual.threads ?? []).map((t: { id: string }) => t.id)).toEqual(["t1", "t2"]);
+  });
+
+  it("shifts the folded beat by the running estimate and records it", () => {
+    const { segments } = mergeCanvasContinuity([timelineScene("a", "phone", "t1", false, 12), timelineScene("b", "shop", "t2", true)]);
+    const visual = (segments[0] as { visual?: Visual }).visual as Extract<Visual, { kind: "canvas" }>;
+    expect(visual.timeline![1].startSeconds).toBe(13);
+    expect(segments[0]._canvasTimelineClipRanges).toEqual([
+      { from: 0, to: 1, appliedOffsetSeconds: 0 },
+      { from: 1, to: 2, appliedOffsetSeconds: 12 },
     ]);
   });
 });

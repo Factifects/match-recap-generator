@@ -286,6 +286,10 @@ export type TimedSegment = Segment & {
    * the time this is set; resolveSegmentAudio only needs to add each range's
    * clip's real cumulative offset to every caption inside it. */
   _canvasCaptionRanges?: { from: number; to: number }[];
+  /** Clip ranges for a TIMELINE-authored merged Canvas passage (as opposed to
+   * the phases-authored one above) — same shape and same correct-by-the-
+   * difference contract as the other timeline media. */
+  _canvasTimelineClipRanges?: { from: number; to: number; appliedOffsetSeconds: number }[];
   /** Scene-spec scripts only: set when this scene's `**Continue Board:**`
    * field is `true` — a signal to mergeTacticalContinuity.ts (src/script/)
    * that this scene's TacticalBoard `timeline` should be folded into the
@@ -314,6 +318,23 @@ export type TimedSegment = Segment & {
   /** `**Continue Stage:** true` — folds this scene into the preceding Stage
    * passage so the entities persist across what would have been a cut. */
   continuesStageFrom?: boolean;
+  /** `**Continue Spatial:** true` — folds this scene into the preceding Spatial
+   * passage (see mergeSpatialContinuity.ts) so the 3D world, its accumulated
+   * object state and the camera all survive what would have been a cut. The
+   * medium that most needs this: a scene boundary in Spatial doesn't just reset
+   * a diagram, it teleports the camera and rebuilds the geography. */
+  continuesSpatialFrom?: boolean;
+  /** `**Continue Holdings:** true` — folds this scene into the preceding
+   * Holdings passage so the SAME population of devices is examined throughout.
+   * See mergeHoldingsContinuity.ts for why a cut is particularly damaging in
+   * this medium: the viewer's reason to believe its numbers is that they never
+   * stopped watching the same wall. */
+  continuesHoldingsFrom?: boolean;
+  /** `**Continue Channels:** true` — folds this scene into the preceding
+   * Channels passage. The medium's whole premise is that the video is ONE day,
+   * so without this every scene would rebuild it and the viewer would be
+   * watching several different Tuesdays. */
+  continuesChannelsFrom?: boolean;
   /** `**Word Captions:** true` — burned-in karaoke captions, the word being
    * spoken lit while the rest of the line stays plain. Mutually exclusive with
    * `phases`: both render the same bottom-pinned chrome, so a segment picks one
@@ -337,6 +358,17 @@ export type TimedSegment = Segment & {
    * corrects by the difference instead of shifting a second time — which is
    * what keeps a no-audio preview of a folded passage coherent. */
   _stageClipRanges?: { from: number; to: number; appliedOffsetSeconds: number }[];
+  /** The same bookkeeping as `_stageClipRanges`, for a folded Spatial passage
+   * (see mergeSpatialContinuity.ts) — one `[from, to)` slice of
+   * `visual.timeline` per `narrationClips` entry, each recording the ESTIMATED
+   * offset already applied to those actions at merge time so resolveSegmentAudio
+   * corrects by the difference rather than shifting them a second time. */
+  _spatialClipRanges?: { from: number; to: number; appliedOffsetSeconds: number }[];
+  /** The same bookkeeping as `_spatialClipRanges`, for a folded Holdings
+   * passage (see mergeHoldingsContinuity.ts). */
+  _holdingsClipRanges?: { from: number; to: number; appliedOffsetSeconds: number }[];
+  /** The same bookkeeping for a folded Channels passage. */
+  _channelsClipRanges?: { from: number; to: number; appliedOffsetSeconds: number }[];
   /** Scene-spec scripts only: parsed from optional `**Thesis:**`/
    * `**Entities:**`/`**Flow:**` fields (see src/script/sceneContract.ts) —
    * the author's DECLARED intent for what this scene demonstrates,

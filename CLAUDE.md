@@ -368,6 +368,32 @@ Snapshot as of 2026-08-10. Verify before relying on any line here.
 - Static pre-render geometry checks (`src/script/validateGeometry.ts`),
   scene contracts, scene diagnostics.
 - Aspect-ratio *dimensions* (`src/video/Root.tsx`: 16:9 and 9:16 canvases).
+- **The `holdings` medium (landed 2026-08-29).** A wall of small panes, each
+  one everything a single participant holds, for the class of subject whose
+  answer to scale is that NO complete picture exists anywhere. Its signature
+  move is an assembly that fails: panes slide toward the one frame they would
+  occupy in a complete picture, land on top of each other where two of them
+  hold the same thing, and leave holes where nobody does. The rule that makes
+  it worth having: `holdingsLayout.ts` computes every number the medium shows
+  (coverage, contradictions, how many participants a change touches) from the
+  generated population, so a script can ask for a statistic but can never
+  assert one. Built after three rendered attempts at depicting a city failed
+  for the same reason each time — a depiction has to compete with the real
+  thing the viewer already knows, and loses. See "Recognizability before
+  sophistication" below.
+- **Cross-scene continuity for every timeline medium.** `**Continue Canvas:**`
+  / `Board` / `Diagram` / `Stage` / `Spatial` / `Holdings` fold a run of scenes into ONE
+  segment — one persistent object set, one unbroken timeline, one camera —
+  while each original scene keeps its own measured narration clip. The renderer
+  divides a continuous world into production boundaries, rather than the scene
+  boundary deciding what the world is. `mergeSpatialContinuity.ts` (landed
+  2026-08-29) closed the last and most costly gap: Spatial holds the only real
+  camera and the only distance-driven representation (`LivingMap.tsx`), so
+  before it, an author who wanted a second beat about the same 3D world had to
+  abandon the world and redraw the idea as a flat Stage scene — which is exactly
+  what the Maps script did. Spatial-specific: a continuing scene may declare no
+  objects at all, and any it does declare without an `enter` are entered at
+  ITS narration rather than at the top of the passage.
 - **Narration temporal spine (Phase 1, landed 2026-08-10).**
   `src/script/narrationFit.ts` derives semantic beats from a flat timeline and
   refits them onto the real TTS duration — pauses compress before meaningful
@@ -430,6 +456,26 @@ target; do not revert to it.**
    grammar when a topic demands one.
 
 Brand asset registry runs alongside as needed; it is not blocking.
+
+**Recognizability before sophistication (learned the hard way, 2026-08-29).**
+Three separate attempts to carry an episode on a rendered city — flat, then 3D,
+then 3D with distance-driven detail — all failed the same test: a viewer had to
+be TOLD it was a map. If a visual does not read as what it represents within a
+second, no amount of camera work, ambient motion or continuity will rescue it,
+because the problem is the representation and not its execution. Deliberate
+abstraction beats attempted realism every time; and a capability existing in the
+engine is never a reason to use it. When a medium is failing, change the visual
+thesis, not the renderer.
+
+**Text never sits directly on content (2026-08-29).** Every caption, readout
+and beat must be drawn together with its own backing — a plate in the scene's
+ground colour, or a full scrim where the content behind is meant to recede.
+What an overlay lands on changes every frame, so contrast cannot be left to
+chance: a grey caption over green bars, or a white numeral half behind a card,
+is invisible in exactly the frames that carry the point. Enforce it structurally
+by making text-and-plate ONE component (see `TextOnPlate` in HoldingsWall.tsx),
+so a bare text node over content is not something a later edit can reintroduce
+by accident. Small text needs MORE contrast than large text, not less.
 
 **Standing constraint for every new medium:** anything that carries its own
 timeline MUST be schedulable by `narrationFit`. A second medium that ignores the

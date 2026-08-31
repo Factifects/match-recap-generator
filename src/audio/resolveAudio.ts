@@ -417,6 +417,59 @@ export async function resolveSegmentAudio(
         visual = { ...visual, timeline };
       }
 
+      // A folded Spatial passage (see mergeSpatialContinuity.ts) — identical to
+      // the Stage case above, including the correct-by-the-difference rule,
+      // since mergeSpatialContinuity also pre-shifts by its own estimate so a
+      // no-audio preview of a passage stays coherent. Every spatial action
+      // variant (enter/exit/travel/camera/orbit/mapAgents/beat/annotate/...)
+      // carries its own `startSeconds`, so one flat map handles all of them.
+      if (visual?.kind === "spatial" && segment._spatialClipRanges && visual.timeline) {
+        const timeline = visual.timeline.map((action, actionIndex) => {
+          const range = segment._spatialClipRanges!.find((r) => actionIndex >= r.from && actionIndex < r.to);
+          const clipIndex = range ? segment._spatialClipRanges!.indexOf(range) : 0;
+          const clipOffset = narrationClips[clipIndex]?.offsetSeconds ?? 0;
+          const applied = range?.appliedOffsetSeconds ?? 0;
+          return { ...action, startSeconds: Math.max(0, action.startSeconds + (clipOffset - applied)) };
+        });
+        visual = { ...visual, timeline };
+      }
+
+      // A folded Holdings passage — same correct-by-the-difference rule.
+      // A folded Channels passage — same correct-by-the-difference rule.
+      // A merged TIMELINE-authored Canvas passage.
+      if (visual?.kind === "canvas" && segment._canvasTimelineClipRanges && visual.timeline) {
+        const timeline = visual.timeline.map((action, actionIndex) => {
+          const range = segment._canvasTimelineClipRanges!.find((r) => actionIndex >= r.from && actionIndex < r.to);
+          const clipIndex = range ? segment._canvasTimelineClipRanges!.indexOf(range) : 0;
+          const clipOffset = narrationClips[clipIndex]?.offsetSeconds ?? 0;
+          const applied = range?.appliedOffsetSeconds ?? 0;
+          return { ...action, startSeconds: Math.max(0, action.startSeconds + (clipOffset - applied)) };
+        });
+        visual = { ...visual, timeline };
+      }
+
+      if (visual?.kind === "channels" && segment._channelsClipRanges && visual.timeline) {
+        const timeline = visual.timeline.map((action, actionIndex) => {
+          const range = segment._channelsClipRanges!.find((r) => actionIndex >= r.from && actionIndex < r.to);
+          const clipIndex = range ? segment._channelsClipRanges!.indexOf(range) : 0;
+          const clipOffset = narrationClips[clipIndex]?.offsetSeconds ?? 0;
+          const applied = range?.appliedOffsetSeconds ?? 0;
+          return { ...action, startSeconds: Math.max(0, action.startSeconds + (clipOffset - applied)) };
+        });
+        visual = { ...visual, timeline };
+      }
+
+      if (visual?.kind === "holdings" && segment._holdingsClipRanges && visual.timeline) {
+        const timeline = visual.timeline.map((action, actionIndex) => {
+          const range = segment._holdingsClipRanges!.find((r) => actionIndex >= r.from && actionIndex < r.to);
+          const clipIndex = range ? segment._holdingsClipRanges!.indexOf(range) : 0;
+          const clipOffset = narrationClips[clipIndex]?.offsetSeconds ?? 0;
+          const applied = range?.appliedOffsetSeconds ?? 0;
+          return { ...action, startSeconds: Math.max(0, action.startSeconds + (clipOffset - applied)) };
+        });
+        visual = { ...visual, timeline };
+      }
+
       if (visual?.kind === "diagram" && segment._diagramClipRanges && visual.timeline) {
         const timeline = visual.timeline.map((action, actionIndex) => {
           const range = segment._diagramClipRanges!.find((r) => actionIndex >= r.from && actionIndex < r.to);
@@ -447,6 +500,10 @@ export async function resolveSegmentAudio(
         _canvasClipBoundaries: undefined,
         _canvasCaptionRanges: undefined,
         _boardClipRanges: undefined,
+        _spatialClipRanges: undefined,
+        _holdingsClipRanges: undefined,
+        _channelsClipRanges: undefined,
+        _canvasTimelineClipRanges: undefined,
       };
     }
 

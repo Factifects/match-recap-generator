@@ -39,6 +39,8 @@ import { WorkspaceCard } from "./compositions/WorkspaceCard";
 import { DiagramCard } from "./compositions/DiagramCard";
 import { StageCard } from "./compositions/StageCard";
 import { SpatialStage } from "./compositions/SpatialStage";
+import { HoldingsWall } from "./compositions/HoldingsWall";
+import { ChannelStack } from "./compositions/ChannelStack";
 import { CareerPathCard } from "./compositions/CareerPathCard";
 import { GridCard } from "./compositions/GridCard";
 import { IconInfographicCard } from "./compositions/IconInfographicCard";
@@ -97,4 +99,6 @@ export const VISUAL_COMPONENTS: { [K in Visual["kind"]]: React.FC<{ data: DataFo
   canvas: Canvas,
   "canvas-3d": Canvas3D,
   spatial: SpatialStage,
+  holdings: HoldingsWall,
+  channels: ChannelStack,
 };

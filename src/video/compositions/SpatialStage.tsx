@@ -4,6 +4,7 @@ import { useCurrentFrame, useVideoConfig, AbsoluteFill } from "remotion";
 import { ThreeCanvas } from "@remotion/three";
 import { Line, RoundedBox } from "@react-three/drei";
 import { CameraRig3D } from "./CameraRig3D";
+import { LivingMap } from "./LivingMap";
 import type { SharedVisualProps } from "../sharedVisualProps";
 import type { Visual } from "../../model/Segment";
 import { DISPLAY_FONT_FAMILY } from "../theme";
@@ -112,6 +113,10 @@ const HALF_EXTENTS: Record<string, [number, number, number]> = {
   tabCard: [0.8, 0.5, 0.02],
   decode: [2.5, 1.15, 0.02],
   layers: [1.3, 1.3, 2.2],
+  // Matches LivingMap.tsx's NETWORK grid extents. Unused for camera auto-fit
+  // (excluded below, same reasoning as `plane`) — kept here only for
+  // consistency and for any future vector/pin attached to its surface.
+  livingMap: [20.8, 0.05, 15.6],
 };
 
 /** Distance from a body's centre to its surface along `d` — an exact ray/box
@@ -1924,6 +1929,18 @@ interface Resolved {
   peel: number;
   /** How far this object has gone wrong, 0..1. */
   failing: number;
+  /** `livingMap` — current logical agent count. */
+  mapAgentCount: number;
+  /** `livingMap` — per-region reveal progress, 0..1, keyed by region id. */
+  mapRegionReveal: Record<string, number>;
+  /** `livingMap` — tile-grid overlay reveal progress and its current point. */
+  mapTiles: { progress: number; at: [number, number] };
+  /** `livingMap` — current state of each named road that has ever changed. */
+  mapRoadState: Record<string, "clear" | "congested" | "closed">;
+  /** `livingMap` — when each road's state last changed, for the colour blend. */
+  mapRoadChangedAt: Record<string, number>;
+  /** `livingMap` — the most recent `rippleFromHere` event, if still playing. */
+  mapRoadRipple: { roadId: string; startSeconds: number } | null;
 }
 
 export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> = ({ data }) => {
@@ -1955,6 +1972,12 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
     const failures = new Map<string, number>();
     const allocations = new Map<string, { label: string; blocks: number; state: "active" | "reusable" | "reclaimable"; accent?: string }[]>();
     const states = new Map<string, string>();
+    const mapAgentCounts = new Map<string, number>();
+    const mapRegionReveals = new Map<string, Record<string, number>>();
+    const mapTiles = new Map<string, { progress: number; at: [number, number] }>();
+    const mapRoadStates = new Map<string, Record<string, "clear" | "congested" | "closed">>();
+    const mapRoadChangedAts = new Map<string, Record<string, number>>();
+    const mapRoadRipples = new Map<string, { roadId: string; startSeconds: number }>();
 
     for (const object of data.objects) {
       visible.set(object.id, timeline.some((a) => a.type === "enter" && a.id === object.id) ? 0 : 1);
@@ -2059,6 +2082,50 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
           orbitHosts.set(action.id, action.around);
           break;
         }
+        case "mapAgents": {
+          const p = ease(progress(t, action.startSeconds, action.durationSeconds ?? 1.5));
+          const obj = data.objects.find((o) => o.id === action.id);
+          const from = mapAgentCounts.get(action.id) ?? obj?.agentCount ?? 1;
+          mapAgentCounts.set(action.id, Math.round(from + (action.count - from) * p));
+          break;
+        }
+        case "mapRegionsReveal": {
+          const obj = data.objects.find((o) => o.id === action.id);
+          const declaredIds = (obj?.mapRegions ?? []).map((r) => r.id);
+          const targetIds = action.ids && action.ids.length > 0 ? action.ids : declaredIds;
+          const current = mapRegionReveals.get(action.id) ?? {};
+          const p = ease(progress(t, action.startSeconds, action.durationSeconds ?? 1.2));
+          const next = { ...current };
+          for (const id of targetIds) {
+            const from = current[id] ?? 0;
+            const to = action.reveal ? 1 : 0;
+            next[id] = from + (to - from) * p;
+          }
+          mapRegionReveals.set(action.id, next);
+          break;
+        }
+        case "mapTilesReveal": {
+          const current = mapTiles.get(action.id) ?? { progress: 0, at: [0, 0] as [number, number] };
+          const p = ease(progress(t, action.startSeconds, action.durationSeconds ?? 1.0));
+          const to = action.reveal ? 1 : 0;
+          const at = action.at ?? current.at;
+          mapTiles.set(action.id, { progress: current.progress + (to - current.progress) * p, at });
+          break;
+        }
+        case "mapRoadEvent": {
+          if (t >= action.startSeconds) {
+            const stateBucket = { ...(mapRoadStates.get(action.id) ?? {}) };
+            const changedBucket = { ...(mapRoadChangedAts.get(action.id) ?? {}) };
+            stateBucket[action.roadId] = action.state;
+            if (changedBucket[action.roadId] === undefined || changedBucket[action.roadId] < action.startSeconds) {
+              changedBucket[action.roadId] = action.startSeconds;
+            }
+            mapRoadStates.set(action.id, stateBucket);
+            mapRoadChangedAts.set(action.id, changedBucket);
+            if (action.rippleFromHere) mapRoadRipples.set(action.id, { roadId: action.roadId, startSeconds: action.startSeconds });
+          }
+          break;
+        }
         default:
           break;
       }
@@ -2159,6 +2226,12 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
         regions: allocations.get(object.id) ?? object.regions ?? [],
         peel: peels.get(object.id) ?? 0,
         failing: failures.get(object.id) ?? 0,
+        mapAgentCount: mapAgentCounts.get(object.id) ?? object.agentCount ?? 1,
+        mapRegionReveal: mapRegionReveals.get(object.id) ?? {},
+        mapTiles: mapTiles.get(object.id) ?? { progress: 0, at: [0, 0] },
+        mapRoadState: mapRoadStates.get(object.id) ?? {},
+        mapRoadChangedAt: mapRoadChangedAts.get(object.id) ?? {},
+        mapRoadRipple: mapRoadRipples.get(object.id) ?? null,
       };
     });
   }, [data.objects, timeline, t]);
@@ -2283,7 +2356,11 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
       // fills the view and simply carries on past the edges, which is what
       // tells the viewer the world is bigger than the frame. Only the things
       // ACTING in the scene have to be contained.
-      if (r.object.kind === "plane") continue;
+      // A LIVING MAP IS SCENERY TOO, for the same reason a `plane` is: its own
+      // camera moves are always explicitly authored (the whole point of the
+      // episode's zoom is deliberate distance control), so it must never
+      // itself pull the auto-fit out to "contain the whole city."
+      if (r.object.kind === "plane" || r.object.kind === "livingMap") continue;
       const half = HALF_EXTENTS[r.object.kind] ?? [0.5, 0.5, 0.5];
       const scale = r.object.scale ?? 1;
       const isVector = r.object.kind === "vector";
@@ -2336,6 +2413,10 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
       ] as [number, number, number],
       target: [focus.x, focus.y, focus.z] as [number, number, number],
       fov: 42,
+      // Exposed so a `livingMap` object can pick its own representation off
+      // the SAME distance the camera rig actually uses, rather than a value
+      // recomputed independently that could drift out of sync with it.
+      cameraDistance: distance,
     };
   }, [timeline, t, data.objects, resolved, width, height]);
 
@@ -2551,6 +2632,21 @@ export const SpatialStage: React.FC<{ data: SpatialData } & SharedVisualProps> =
                 <MemoryField capacity={r.object.capacity ?? 240} regions={r.regions} t={t} cool={cool} />
               ) : null}
               {r.object.kind === "plane" ? <StreetMap light={light} /> : null}
+              {r.object.kind === "livingMap" ? (
+                <LivingMap
+                  light={light}
+                  t={t}
+                  cameraDistance={pose.cameraDistance}
+                  agentCount={r.mapAgentCount}
+                  regions={r.object.mapRegions ?? []}
+                  regionReveal={r.mapRegionReveal}
+                  tilesReveal={r.mapTiles.progress}
+                  tilesAt={r.mapTiles.at}
+                  roadState={r.mapRoadState}
+                  roadChangedAt={r.mapRoadChangedAt}
+                  roadRipple={r.mapRoadRipple}
+                />
+              ) : null}
               {r.object.kind === "pin" ? <LocationPin color={colour} /> : null}
               {r.object.kind === "motherboard" ? <Motherboard width={6.2} depth={4.6} light={light} /> : null}
               {r.object.kind === "cpuChip" ? <CpuChip light={light} /> : null}

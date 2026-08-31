@@ -4,6 +4,7 @@ import { COLORS } from "../theme";
 import { brandTileColor } from "../brandTile";
 import { SceneFrame } from "./SceneFrame";
 import { LiveMapBackdrop } from "./LiveMapBackdrop";
+import { CANVAS_ICON_COMPONENTS } from "../canvasIcons";
 import { layoutDiagram, pointOnEdge, TILE_HEIGHT_FRACTION, type LaidOutEdge, type LaidOutNode, type NodeAccent } from "../../script/diagramLayout";
 import { placeAnnotations, placeEdgeLabels, connectorObstacles, resolveAnnotations, ANNOTATION_LINE_HEIGHT } from "../../script/diagramAnnotations";
 import type { SharedVisualProps, DiagramData } from "../sharedVisualProps";
@@ -22,11 +23,20 @@ const DIAGRAM_FONT = '"Inter", "Helvetica Neue", Arial, sans-serif';
 type DiagramAction = NonNullable<DiagramData["timeline"]>[number];
 
 const ACCENT_COLORS: Record<NodeAccent, { stroke: string; fill: string; text: string }> = {
-  neutral: { stroke: "#5b6b8c", fill: "rgba(91, 107, 140, 0.10)", text: "#e6ecff" },
-  primary: { stroke: "#4f6bff", fill: "rgba(79, 107, 255, 0.14)", text: "#ffffff" },
-  warn: { stroke: "#f59e0b", fill: "rgba(245, 158, 11, 0.14)", text: "#ffffff" },
-  success: { stroke: "#22c55e", fill: "rgba(34, 197, 94, 0.14)", text: "#ffffff" },
-  danger: { stroke: "#f87171", fill: "rgba(248, 113, 113, 0.14)", text: "#ffffff" },
+  // A GRADED PALETTE, not five saturated primaries.
+  //
+  // The previous set was pure hues straight off the tailwind ramp — #22c55e
+  // against #f87171 against #4f6bff on near-black, all at full chroma, which
+  // reads as a status dashboard rather than as a designed frame. These are
+  // desaturated toward a common blue-violet ground so they sit in the same
+  // light, and each stroke is checked to stay legible against the dark surface:
+  // the text stays near-white everywhere it carries meaning, and the fills stay
+  // low enough not to muddy a label sitting on them.
+  neutral: { stroke: "#6B7A93", fill: "rgba(107, 122, 147, 0.10)", text: "#E8EDF5" },
+  primary: { stroke: "#4C8DFF", fill: "rgba(76, 141, 255, 0.13)", text: "#FFFFFF" },
+  warn: { stroke: "#E9B949", fill: "rgba(233, 185, 73, 0.12)", text: "#FFFFFF" },
+  success: { stroke: "#2DD4BF", fill: "rgba(45, 212, 191, 0.12)", text: "#FFFFFF" },
+  danger: { stroke: "#F0705C", fill: "rgba(240, 112, 92, 0.13)", text: "#FFFFFF" },
 };
 
 /** A container is drawn as a quieter frame than a leaf so nesting reads as
@@ -66,7 +76,7 @@ const EDGE_KIND_COLORS: Record<string, string> = {
 const MOTION_KIND_STYLES: Record<string, { color: string; dashed?: boolean; defaultLabel?: string }> = {
   request: { color: "#f59e0b" },
   response: { color: "#22c55e" },
-  success: { color: "#22c55e" },
+  success: { color: "#2DD4BF" },
   data: { color: "#60a5fa" },
   discover: { color: "#2dd4bf", defaultLabel: "?" },
   error: { color: "#f87171", dashed: true, defaultLabel: "rejected" },
@@ -264,7 +274,14 @@ const NodeBox: React.FC<{
   // underneath — the register real architecture diagrams use — rather than as a
   // labelled rectangle. When no mark could be resolved (offline, unknown slug)
   // this falls through to the plain box below, so the diagram always renders.
-  const isTile = !isGroup && !!node.logoPath;
+  // A node carrying an ICON is a tile just like one carrying a brand mark. The
+  // `icon` field has been in the diagram schema all along and the renderer
+  // ignored it, so every script that set one got a plain box and no warning —
+  // which is how an end card lost its like/subscribe glyphs without a single
+  // diagnostic firing.
+  const iconKey = node.icon as keyof typeof CANVAS_ICON_COMPONENTS | undefined;
+  const IconComponent = iconKey ? CANVAS_ICON_COMPONENTS[iconKey] : undefined;
+  const isTile = !isGroup && (!!node.logoPath || !!IconComponent);
   // A full-colour mark carries its own identity, so it sits on a neutral slate
   // tile; a tinted-white mark needs the brand colour behind it to read — unless
   // that brand colour is itself near-black, in which case the tile would vanish
@@ -314,7 +331,12 @@ const NodeBox: React.FC<{
                   brand-coloured tile. A full-colour mark (the real Lambda
                   gradient, the Postgres elephant) is drawn as-is — masking it
                   would throw away the colour that makes it recognizable. */}
-              {node.logoMonochrome === false ? (
+              {IconComponent && !node.logoPath ? (
+                // An icon glyph, drawn at the tile's own scale.
+                <div style={{ width: "62%", height: "62%", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <IconComponent />
+                </div>
+              ) : node.logoMonochrome === false ? (
                 <img src={staticFile(node.logoPath!)} alt="" style={{ width: "68%", height: "68%", objectFit: "contain" }} />
               ) : (
                 <div

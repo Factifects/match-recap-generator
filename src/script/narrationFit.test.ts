@@ -191,6 +191,52 @@ describe("fitTimelineToNarration — anchors", () => {
   });
 });
 
+describe("fitTimelineToNarration — folded passages", () => {
+  it("fits the windows of a folded passage even when the passage total already matches", () => {
+    // The folded-passage regression. Two sub-scenes of narration, 10s each. The
+    // first sub-scene's choreography overruns into the second's narration, and
+    // the second's under-fills — so the TOTAL is already 20s and a totals-only
+    // check would wave the whole thing through, leaving beat two playing over
+    // sentence one. The anchor at the clip boundary is what forces each window
+    // to be fitted against its own clip.
+    const actions = [move("a", 0, 6, { x: 10, y: 50 }), move("b", 6, 8, { x: 40, y: 50 }), move("c", 16, 4, { x: 80, y: 50 })];
+    const { actions: fitted, report } = fitTimelineToNarration(actions, {
+      narrationSeconds: 20,
+      anchors: [{ authoredSeconds: 10, narrationSeconds: 10 }],
+    });
+    expect(report.changed).toBe(true);
+    // Everything authored before the boundary now ENDS by it, and the second
+    // clip's own choreography starts after it — the two sub-scenes no longer
+    // bleed into each other's narration.
+    expect(fitted[0].startSeconds + durationOf(fitted[0])).toBeLessThanOrEqual(10 + 1e-6);
+    expect(fitted[1].startSeconds + durationOf(fitted[1])).toBeLessThanOrEqual(10 + 1e-6);
+    expect(fitted[2].startSeconds).toBeGreaterThanOrEqual(10 - 1e-6);
+  });
+
+  it("still waves through an unanchored timeline that already matches", () => {
+    const actions = restScene();
+    expect(fitTimelineToNarration(actions, { narrationSeconds: 26 }).report.changed).toBe(false);
+  });
+});
+
+describe("actionMinSeconds — the spatial medium", () => {
+  it("protects a 3D travel like a transport, not like emphasis", () => {
+    // A body physically crossing the world is the thing the medium exists to
+    // show; compressed to a flick it reads as a teleport.
+    const travel = { type: "travel", startSeconds: 2, durationSeconds: 4 };
+    expect(actionMinSeconds(travel)).toBeGreaterThanOrEqual(0.5);
+  });
+
+  it("never inflates a deliberately brief action past what was authored", () => {
+    expect(actionMinSeconds({ type: "travel", startSeconds: 0, durationSeconds: 0.2 })).toBe(0.2);
+    expect(actionMinSeconds({ type: "exit", startSeconds: 0, durationSeconds: 0.1 })).toBe(0.1);
+  });
+
+  it("keeps a 3D camera move above the jump-cut threshold", () => {
+    expect(actionMinSeconds({ type: "camera", startSeconds: 0, durationSeconds: 2.5 })).toBeGreaterThanOrEqual(0.6);
+  });
+});
+
 describe("fitTimelineToNarration — no-ops and edges", () => {
   it("leaves an already-fitted timeline untouched", () => {
     const actions = restScene();

@@ -9,6 +9,83 @@ function isCanvasSegment(segment: TimedSegment): segment is TimedSegment & { vis
   return segment.type === "statement" && segment.visual?.kind === "canvas";
 }
 
+function isTimelineCanvasSegment(segment: TimedSegment): segment is TimedSegment & { visual: CanvasVisual } {
+  return isCanvasSegment(segment) && !!segment.visual.timeline && segment.visual.timeline.length > 0;
+}
+
+/** Folds a TIMELINE-authored Canvas scene, rather than a phases-authored one.
+ *
+ * The phases path below predates the timeline engine and was the only one that
+ * existed, which had a real consequence: a Canvas passage authored as a
+ * timeline could not continue at all, so a journey with ten narration beats
+ * became ten cuts. That is the exact failure this pass exists to prevent, and
+ * it was only ever prevented for the older authoring style.
+ *
+ * Same contract as every other medium's timeline fold: objects, arrows and
+ * threads UNIONED with first-declaration-wins, the timeline shifted by the
+ * running estimate at merge time and the shift RECORDED so resolveSegmentAudio
+ * corrects by the difference instead of shifting twice. */
+function foldTimelineCanvasScene(
+  accumulator: TimedSegment & { visual: CanvasVisual },
+  next: TimedSegment & { visual: CanvasVisual },
+  sceneLabel: string,
+  notes: string[],
+): TimedSegment {
+  const accVisual = accumulator.visual;
+  const nextVisual = next.visual;
+  const accTimeline = accVisual.timeline ?? [];
+  const nextTimeline = nextVisual.timeline ?? [];
+  const appliedOffset = accumulator.durationSeconds;
+
+  const existingObjectIds = new Set(accVisual.objects.map((o) => o.id));
+  const newObjects = nextVisual.objects.filter((o) => !existingObjectIds.has(o.id));
+  if (nextVisual.objects.length > newObjects.length) {
+    notes.push(`${sceneLabel}: redeclares ${nextVisual.objects.length - newObjects.length} object(s) the passage already has — ignored, so the world the viewer is watching is never silently reset.`);
+  }
+
+  const existingThreadIds = new Set((accVisual.threads ?? []).map((t) => t.id));
+  const newThreads = (nextVisual.threads ?? []).filter((t) => !existingThreadIds.has(t.id));
+
+  // An arrow's `to` may be an id or a literal point, so the key has to cope
+  // with both rather than assuming a string.
+  const arrowKey = (a: { from: string; to: string | { x: number; y: number } }) =>
+    `${a.from}->${typeof a.to === "string" ? a.to : `${a.to.x},${a.to.y}`}`;
+  const existingArrowKeys = new Set((accVisual.arrows ?? []).map(arrowKey));
+  const newArrows = (nextVisual.arrows ?? []).filter((a) => !existingArrowKeys.has(arrowKey(a)));
+
+  const shiftedNext = nextTimeline.map((action) => ({ ...action, startSeconds: action.startSeconds + appliedOffset }));
+  const mergedTimeline = [...accTimeline, ...shiftedNext];
+
+  const isFirstFold = !accumulator.narrationClips;
+  const baseRanges = isFirstFold
+    ? [{ from: 0, to: accTimeline.length, appliedOffsetSeconds: 0 }]
+    : (accumulator._canvasTimelineClipRanges ?? [{ from: 0, to: accTimeline.length, appliedOffsetSeconds: 0 }]);
+  const clipRanges = [...baseRanges, { from: accTimeline.length, to: mergedTimeline.length, appliedOffsetSeconds: appliedOffset }];
+
+  const narrationClips = [
+    ...(accumulator.narrationClips ?? [{ text: accumulator.narrationText ?? accumulator.text }]),
+    { text: next.narrationText ?? next.text },
+  ];
+
+  const mergedVisual: CanvasVisual = {
+    ...accVisual,
+    objects: [...accVisual.objects, ...newObjects],
+    arrows: [...(accVisual.arrows ?? []), ...newArrows],
+    threads: [...(accVisual.threads ?? []), ...newThreads],
+    timeline: mergedTimeline,
+  };
+
+  return {
+    ...accumulator,
+    text: `${accumulator.text} ${next.text}`.trim(),
+    visual: mergedVisual,
+    durationSeconds: accumulator.durationSeconds + next.durationSeconds,
+    visualMinDurationSeconds: computeVisualMinDurationSeconds(mergedVisual),
+    narrationClips,
+    _canvasTimelineClipRanges: clipRanges,
+  } as TimedSegment & { visual: CanvasVisual };
+}
+
 /** Resolves every caption's `startSeconds` to an absolute value within `[0,
  * totalDurationSeconds)` — same even-split-with-explicit-override rule
  * `PhaseCaptionOverlay.tsx`'s `resolvePhaseStartFrames` already implements
@@ -124,6 +201,11 @@ export function mergeCanvasContinuity(segments: TimedSegment[]): { segments: Tim
     const sceneLabel = `Scene ${i + 1}`;
 
     if (segment.continuesCanvasFrom) {
+      if (accumulator && isTimelineCanvasSegment(accumulator) && isTimelineCanvasSegment(segment)) {
+        notes.push(`${sceneLabel}: folded into the continuous Canvas passage starting at scene ${merged.length + 1}`);
+        accumulator = foldTimelineCanvasScene(accumulator, segment, sceneLabel, notes);
+        continue;
+      }
       if (accumulator && isCanvasSegment(accumulator) && isCanvasSegment(segment)) {
         accumulator = foldCanvasScene(accumulator, segment);
         notes.push(`${sceneLabel}: folded into the continuous Canvas passage starting at scene ${merged.length + 1}`);
