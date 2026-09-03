@@ -16,6 +16,8 @@ import { parseAnalysisScript } from "./script/parseAnalysisScript";
 import { autoFixGeometry } from "./script/validateGeometry";
 import { diagnoseScenes } from "./script/validateScene";
 import { sortDiagnostics, type SceneDiagnostic } from "./script/sceneDiagnostics";
+import { authorScript } from "./ai/authorScript";
+import { selectProvider } from "./ai/selectProvider";
 
 const PORT = Number(process.env.PORT) || 4321;
 const PUBLIC_DIR = path.join(__dirname, "..", "public-ui");
@@ -87,7 +89,7 @@ interface Job {
   // whatever's here as JSON without caring which shape it is; every other
   // path (the live emitter events) is shape-agnostic already since it just
   // relays whatever was emit()ted.
-  result?: JobResult | ScenePreviewJobResult;
+  result?: JobResult | ScenePreviewJobResult | AuthorJobResult;
   error?: string;
 }
 
@@ -354,6 +356,78 @@ function loadTimelineData(outputNameRaw: string): TimelinePayload | null {
   return JSON.parse(fs.readFileSync(sidecarPath, "utf8"));
 }
 
+interface AuthorJobResult {
+  /** The finished `### SCENE N` script. The client drops this straight into
+   * the script box, which is what makes the whole existing pipeline — parse,
+   * timeline preview, diagnostics panel, Generate — light up with no further
+   * wiring. The authoring layer produces a script; it does not produce a
+   * second, parallel way to make a video. */
+  scriptText: string;
+  title: string;
+  sceneCount: number;
+  diagnostics: SceneDiagnostic[];
+  provider: string;
+  model: string;
+}
+
+interface StartAuthorJobOptions {
+  topic: string;
+  aspectRatio: AspectRatio;
+  targetSceneCount: number | undefined;
+  llm: string | undefined;
+  model: string | undefined;
+}
+
+/** Starts SCRIPT AUTHORING as a background job, reusing the same
+ * emitter/SSE plumbing as the render jobs so the client watches real progress
+ * ("Scene 3/6...", "repairing round 1") instead of a spinner.
+ *
+ * Deliberately NOT wrapped in `withRenderState`. That mutex exists because two
+ * concurrent Remotion renders compete for scarce RAM and crash each other —
+ * authoring spawns no headless Chrome and allocates nothing meaningful, so
+ * making it contend for the render lock would only mean you cannot write the
+ * next script while the current one renders. Since authoring takes minutes and
+ * rendering takes longer, overlapping them is the whole point of a studio that
+ * runs unattended. */
+function startAuthorJob(options: StartAuthorJobOptions): string {
+  const jobId = crypto.randomUUID();
+  const emitter = new EventEmitter();
+  const job: Job = { emitter, done: false };
+  jobs.set(jobId, job);
+
+  void (async () => {
+    try {
+      const provider = selectProvider(options.llm, { model: options.model });
+      const result = await authorScript(provider, {
+        topic: options.topic,
+        aspectRatio: options.aspectRatio,
+        targetSceneCount: options.targetSceneCount,
+        onLog: (message) => emitter.emit("log", { message }),
+      });
+      job.result = {
+        scriptText: result.scriptText,
+        title: result.outline.title,
+        sceneCount: result.scenes.length,
+        diagnostics: result.diagnostics,
+        provider: result.provider,
+        model: result.model,
+      };
+      job.done = true;
+      emitter.emit("complete", job.result);
+    } catch (err) {
+      // A missing/blocked API key and a model that could not satisfy a schema
+      // after its repair rounds both land here, and both are things the author
+      // can act on — so the real message is forwarded rather than flattened
+      // into a generic failure.
+      job.error = err instanceof Error ? err.message : "Authoring failed.";
+      job.done = true;
+      emitter.emit("failed", { error: job.error });
+    }
+  })();
+
+  return jobId;
+}
+
 function streamProgress(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -514,6 +588,39 @@ const server = http.createServer(async (req, res) => {
     activeCancel();
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/author") {
+    // No renderBusyError() gate here, unlike /generate and /preview-scene:
+    // authoring spends no render resources, so it stays available while a
+    // video is rendering. See startAuthorJob.
+    try {
+      const body = await readJsonBody(req);
+      const topic = typeof body.topic === "string" ? body.topic.trim() : "";
+      if (!topic) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Describe what the video should be about." }));
+        return;
+      }
+      const aspectRatio: AspectRatio = body.aspectRatio === "9:16" ? "9:16" : "16:9";
+      const rawSceneCount = Number(body.sceneCount);
+      const targetSceneCount =
+        Number.isInteger(rawSceneCount) && rawSceneCount >= 3 ? rawSceneCount : undefined;
+
+      const jobId = startAuthorJob({
+        topic,
+        aspectRatio,
+        targetSceneCount,
+        llm: typeof body.llm === "string" ? body.llm : undefined,
+        model: typeof body.model === "string" ? body.model : undefined,
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ jobId }));
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Could not start authoring." }));
+    }
     return;
   }
 

@@ -1,6 +1,7 @@
 import type { TimedSegment, Visual } from "../model/Segment";
 import { diagnostic, type SceneDiagnostic } from "./sceneDiagnostics";
 import { suggestProfile, repetitionWarning, DEFAULT_AVOID } from "./visualStrategy";
+import { boxExtent, layoutStage, type StageObjectInput } from "./stageLayout";
 
 // Advisory checks for the `stage` medium — the Shorts doctrine's rules turned
 // into things a machine can actually catch.
@@ -297,6 +298,91 @@ export function diagnoseSceneMedia(segments: TimedSegment[]): SceneDiagnostic[] 
   return found;
 }
 
+/** Frame the layout is checked against. Portrait, because it is the tighter of
+ * the two targets — anything that fits 9:16 fits 16:9, and this project's
+ * Shorts are authored portrait-first. */
+const CHECK_FRAME = { width: 1080, height: 1920 };
+
+/** Fraction of the smaller box's area that may be covered before it counts.
+ * A few pixels of contact between two rounded silhouettes is not a defect;
+ * a satellite sitting on top of another one is. */
+const OVERLAP_AREA_TOLERANCE = 0.04;
+
+/**
+ * Runs the REAL layout engine and reports objects that end up on top of each
+ * other, captions included.
+ *
+ * Stage has never had a geometry check — `validateGeometry.ts` covers Canvas
+ * coordinates and diagram nodes, and Stage was exempt because its nine regions
+ * made overlap unlikely by construction. Free-form `{x, y}` placement removes
+ * that guarantee, and the first scene authored with it shipped two overlapping
+ * satellites with their labels written across each other.
+ *
+ * The engine already tries hard to prevent this: `separate()` pushes boxes
+ * apart using the caption footprint, not just the silhouette. But separation
+ * and `fitToSafeArea` pull in opposite directions — one pushes objects apart,
+ * the other clamps them back inside the frame — so a composition authored too
+ * tight for its own labels reaches a stalemate and renders overlapped anyway.
+ * Nothing reported that; it was only visible by looking at a render.
+ *
+ * Soft, like everything else here: the author decides whether to move the
+ * objects, shorten the labels, or accept it.
+ */
+export function checkStageOverlap(visual: StageVisual, sceneIndex: number): SceneDiagnostic[] {
+  const objects = (visual.objects ?? []) as unknown as StageObjectInput[];
+  if (objects.length < 2) return [];
+
+  let layout;
+  try {
+    layout = layoutStage(objects, visual.edges ?? [], {}, { frame: CHECK_FRAME });
+  } catch {
+    // A layout that cannot even be computed is a different problem, reported by
+    // whichever check owns it — this one has nothing to say about it.
+    return [];
+  }
+
+  const found: SceneDiagnostic[] = [];
+  const boxes = layout.boxes.filter((b) => !b.hidden);
+  // boxExtent resolves a derived vector against its host, so it needs the full
+  // index rather than just the visible subset.
+  const byId = new Map(layout.boxes.map((b) => [b.id, b]));
+
+  for (let i = 0; i < boxes.length; i++) {
+    for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i];
+      const b = boxes[j];
+      // A child inside its own parent is containment, not collision — that is
+      // the entire point of a `region`.
+      if (a.parentId === b.id || b.parentId === a.id) continue;
+
+      // Caption included: a label written across a neighbour is the failure
+      // being caught, and it is invisible if only silhouettes are compared.
+      const ea = boxExtent(a, byId, true);
+      const eb = boxExtent(b, byId, true);
+      const overlapX = Math.min(ea.maxX, eb.maxX) - Math.max(ea.minX, eb.minX);
+      const overlapY = Math.min(ea.maxY, eb.maxY) - Math.max(ea.minY, eb.minY);
+      if (overlapX <= 0 || overlapY <= 0) continue;
+
+      const areaA = (ea.maxX - ea.minX) * (ea.maxY - ea.minY);
+      const areaB = (eb.maxX - eb.minX) * (eb.maxY - eb.minY);
+      const smaller = Math.min(areaA, areaB);
+      if (smaller <= 0) continue;
+      if ((overlapX * overlapY) / smaller < OVERLAP_AREA_TOLERANCE) continue;
+
+      found.push(
+        diagnostic(
+          sceneIndex,
+          1,
+          "soft",
+          "stage-overlap",
+          `"${a.id}" and "${b.id}" overlap once laid out (including their labels). Move them further apart, shorten a label, or drop one — the layout engine already tried to separate them and could not.`,
+        ),
+      );
+    }
+  }
+  return found;
+}
+
 export function diagnoseStageScenes(segments: TimedSegment[], scriptName?: string): SceneDiagnostic[] {
   const found: SceneDiagnostic[] = [];
   let firstStageIndex = -1;
@@ -308,6 +394,8 @@ export function diagnoseStageScenes(segments: TimedSegment[], scriptName?: strin
     const visual = segment.visual;
     const timeline = visual.timeline ?? [];
     const duration = segment.narrationSeconds ?? segment.durationSeconds ?? 0;
+
+    found.push(...checkStageOverlap(visual, sceneIndex));
 
     if (timeline.length === 0) {
       found.push(
@@ -552,7 +640,12 @@ export function diagnoseStageScenes(segments: TimedSegment[], scriptName?: strin
     const MAX_EDGE_CAPTION_CHARS = 24;
     for (const object of visual.objects ?? []) {
       const label = object.label ?? "";
-      if (!EDGE_REGIONS.has(object.at ?? "center")) continue;
+      // Only meaningful for REGION placement: an edge region has a known,
+      // fixed anchor a caption has to fit beside. A free point carries no such
+      // guarantee in either direction, so this check does not apply to it —
+      // the general geometry pass covers those.
+      if (typeof object.at !== "string") continue;
+      if (!EDGE_REGIONS.has(object.at)) continue;
       if (label.length <= MAX_EDGE_CAPTION_CHARS) continue;
       found.push(
         diagnostic(

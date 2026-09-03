@@ -3,6 +3,7 @@ import {
   blendLayouts,
   contentBounds,
   defaultSafeArea,
+  densityScale,
   layoutStage,
   paneAreas,
   pointOnStageEdge,
@@ -181,8 +182,8 @@ describe("pointOnStageEdge", () => {
   it("returns the endpoints at t=0 and t=1", () => {
     const [edge] = routeStageEdges(
       [
-        { id: "a", kind: "client", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, homeRegion: "center", captionBelow: false, captionHeight: 0, captionWidth: 0, hidden: false, x: 100, y: 100, width: 50, height: 50 },
-        { id: "b", kind: "server", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, homeRegion: "center", captionBelow: false, captionHeight: 0, captionWidth: 0, hidden: false, x: 400, y: 100, width: 50, height: 50 },
+        { id: "a", kind: "client", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, homeRegion: "center", homeAnchor: { fx: 0.5, fy: 0.5 }, captionBelow: false, captionHeight: 0, captionWidth: 0, hidden: false, x: 100, y: 100, width: 50, height: 50 },
+        { id: "b", kind: "server", accent: "neutral", emphasis: "normal", replicas: 1, isContainer: false, homeRegion: "center", homeAnchor: { fx: 0.5, fy: 0.5 }, captionBelow: false, captionHeight: 0, captionWidth: 0, hidden: false, x: 400, y: 100, width: 50, height: 50 },
       ],
       [{ from: "a", to: "b" }],
       1080,
@@ -562,5 +563,98 @@ describe("a container never grows past the frame", () => {
     const b = layout.boxes.find((b) => b.id === "b")!;
     expect(b.x).toBeGreaterThan(a.x);
     expect(b.y).toBeGreaterThan(a.y);
+  });
+});
+
+describe("free-form placement", () => {
+  const objectAt = (id: string, at: Parameters<typeof layoutStage>[0][number]["at"]) =>
+    ({ id, kind: "client" as const, at }) as Parameters<typeof layoutStage>[0][number];
+
+  const layoutOf = (objects: Parameters<typeof layoutStage>[0]) =>
+    layoutStage(objects, [], {}, { frame: { width: 1080, height: 1920 } });
+
+  it("places a free point where it was asked, not at the nearest region", () => {
+    // The whole point of the escape hatch: nine slots is why compositions look
+    // alike, so a point must be honoured exactly rather than snapped.
+    const { boxes } = layoutOf([objectAt("a", { x: 0.33, y: 0.42 })]);
+    expect(boxes[0].homeAnchor.fx).toBeCloseTo(0.33, 3);
+    expect(boxes[0].homeAnchor.fy).toBeCloseTo(0.42, 3);
+  });
+
+  it("still resolves a region to its own anchor", () => {
+    const { boxes } = layoutOf([objectAt("a", "center")]);
+    expect(boxes[0].homeRegion).toBe("center");
+    expect(boxes[0].homeAnchor.fx).toBeCloseTo(0.5, 3);
+  });
+
+  it("gives a free point a nearest region so region-based passes keep working", () => {
+    // Row packing, nesting and the distinct-region checks all reason in
+    // regions. Assigning the closest one means none of them need to know free
+    // placement exists.
+    const { boxes } = layoutOf([objectAt("a", { x: 0.02, y: 0.02 })]);
+    expect(boxes[0].homeRegion).toBe("top-left");
+  });
+
+  it("clamps an out-of-range point into the frame instead of rejecting it", () => {
+    const { boxes } = layoutOf([objectAt("a", { x: 5, y: -3 })]);
+    expect(boxes[0].homeAnchor.fx).toBe(1);
+    expect(boxes[0].homeAnchor.fy).toBe(0);
+  });
+
+  it("keeps two distinct free points apart rather than treating them as one place", () => {
+    // Same-place separation used to key on the declared region, which would
+    // have shoved two deliberately-separate points together the moment they
+    // happened to round to the same region.
+    const { boxes } = layoutOf([
+      objectAt("a", { x: 0.30, y: 0.5 }),
+      objectAt("b", { x: 0.62, y: 0.5 }),
+    ]);
+    expect(Math.abs(boxes[0].x - boxes[1].x)).toBeGreaterThan(100);
+  });
+
+  it("mixes regions and free points in one composition", () => {
+    const { boxes } = layoutOf([objectAt("a", "top"), objectAt("b", { x: 0.5, y: 0.75 })]);
+    expect(boxes[0].y).toBeLessThan(boxes[1].y);
+  });
+});
+
+describe("density-aware sizing", () => {
+  const obj = (id: string, extra: Partial<StageObjectInput> = {}): StageObjectInput =>
+    ({ id, kind: "server", label: id, at: "center", ...extra }) as StageObjectInput;
+  const widthOf = (objects: StageObjectInput[], id: string) =>
+    layoutStage(objects, [], {}, { frame: PORTRAIT }).boxes.find((b) => b.id === id)!.width;
+
+  it("makes objects bigger on a sparse stage than a crowded one", () => {
+    // The failure this fixes: a two-object scene rendered as two small shapes
+    // marooned in black, which the critique pass kept reporting as a mostly
+    // empty frame.
+    const sparse = widthOf([obj("a"), obj("b")], "a");
+    const crowded = widthOf(
+      ["a", "b", "c", "d", "e", "f", "g", "h"].map((id) => obj(id)),
+      "a",
+    );
+    expect(sparse).toBeGreaterThan(crowded);
+  });
+
+  it("shrinks monotonically as the stage gets busier", () => {
+    // Asserted on densityScale directly rather than on rendered width, because
+    // fitToSafeArea legitimately rescales content to fill the frame afterwards
+    // — so final width answers a different question than "how big did sizing
+    // ask for".
+    const scales = [1, 2, 3, 4, 5, 6, 8, 12].map(densityScale);
+    for (let i = 1; i < scales.length; i++) {
+      expect(scales[i]).toBeLessThanOrEqual(scales[i - 1]);
+    }
+    expect(densityScale(2)).toBeGreaterThan(1);
+    // A crowded stage keeps exactly the size that was already known to pack.
+    expect(densityScale(12)).toBe(1);
+  });
+
+  it("damps the sparsity bonus for a lead object so the camera keeps headroom", () => {
+    // `lead` already makes the subject dominate; compounding the two filled the
+    // frame so completely that a deliberate push-in had nowhere to go.
+    const withLead = widthOf([obj("a", { emphasis: "lead" }), obj("b")], "a");
+    const undamped = widthOf([obj("a", { emphasis: "lead" }), obj("b")], "b") * (1.5 / 1);
+    expect(withLead).toBeLessThan(undamped * 1.3);
   });
 });

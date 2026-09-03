@@ -90,6 +90,12 @@ export type StageAccent = "neutral" | "primary" | "warn" | "success" | "danger" 
  * SQL tables, containers/pods, code blocks — is deliberately NOT here yet; that
  * is its own build, not something to half-do inside the layout engine. */
 export type StageObjectKind =
+  // file types — what a viewer already recognizes from their own desktop
+  | "folder"
+  | "fileDoc"
+  | "fileImage"
+  | "fileVideo"
+  | "fileZip"
   // people & devices — where a request starts
   | "client"
   | "browser"
@@ -147,6 +153,7 @@ export type StageObjectKind =
   | "globe"
   | "compass"
   | "bars"
+  | "scoreField"
   | "browserWindow"
   | "memory";
 
@@ -266,8 +273,9 @@ export interface StageObjectInput {
   kind: StageObjectKind;
   label?: string;
   sublabel?: string;
-  /** Home region — where this object sits until a composition moves it. */
-  at: StageRegion;
+  /** Where this object sits until a composition moves it — a named region, or
+   * an exact `{x, y}` point as fractions of the safe area. See StagePlacement. */
+  at: StagePlacement;
   emphasis?: StageEmphasis;
   accent?: StageAccent;
   /** Drawn as a dark anchor rather than a tinted outline, so a light
@@ -337,7 +345,7 @@ export interface StageEdgeInput {
  * is what keeps a four-act Short readable as four short deltas rather than four
  * full re-declarations of the world. */
 export interface StageComposition {
-  place?: Partial<Record<string, StageRegion>>;
+  place?: Partial<Record<string, StagePlacement>>;
   emphasis?: Partial<Record<string, StageEmphasis>>;
   /** Objects not yet introduced, or deliberately removed from the frame.
    * Hidden objects are still laid out (so they animate back to a stable place
@@ -400,6 +408,12 @@ export interface StageBox {
    * be placed where it said it lives inside its parent, instead of being
    * grid-packed in declaration order. */
   homeRegion: StageRegion;
+  /** The exact anchor this object resolved to, as fractions of the safe area.
+   * Equal to its region's anchor for region placement, and the authored point
+   * for free placement — so passes that need real position use this, while
+   * passes that reason about "which third of the frame" keep using
+   * `homeRegion`. */
+  homeAnchor: { fx: number; fy: number };
   /** True for a `region` — the renderer draws it as a quiet frame behind its
    * children rather than as a solid object. */
   isContainer: boolean;
@@ -480,6 +494,60 @@ const REGION_ANCHORS: Record<StageRegion, { fx: number; fy: number }> = {
   "bottom-right": { fx: 0.8, fy: 0.86 },
 };
 
+/** Where an object sits: one of the nine named regions, or an exact point.
+ *
+ * Regions came first and stay the default, because a stable vocabulary of
+ * places is what lets a viewer learn the space across a series — an object put
+ * in `center` is in the same spot in every scene that puts it there. But nine
+ * slots is also why Stage compositions look alike: however many verbs the
+ * timeline has, every object can only ever be in one of nine places, so scenes
+ * built from different ideas still resolve to the same handful of arrangements.
+ *
+ * A free point `{x, y}` (fractions of the safe area, 0-1) removes that ceiling
+ * without discarding the vocabulary. Both forms coexist: an author reaches for
+ * a region when the meaning is "the usual place for this", and for a point when
+ * the composition itself carries meaning — an orbit, a stack, a diagonal, a
+ * cluster that has to read as a cluster. */
+export type StagePlacement = StageRegion | { x: number; y: number };
+
+/** The region nearest a free point.
+ *
+ * Free placement still needs a region, because several later passes reason in
+ * regions rather than coordinates — row packing, nesting, the "are these kids
+ * in distinct places" check. Rather than special-case every one of them (and
+ * miss one), a point is given the region it is closest to, so all of that logic
+ * keeps working and only the exact anchor differs. */
+export function nearestRegion(x: number, y: number): StageRegion {
+  let best: StageRegion = "center";
+  let bestDistance = Infinity;
+  for (const region of STAGE_REGIONS) {
+    const anchor = REGION_ANCHORS[region];
+    const distance = (anchor.fx - x) ** 2 + (anchor.fy - y) ** 2;
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = region;
+    }
+  }
+  return best;
+}
+
+/** Normalizes either placement form into the region + exact anchor the layout
+ * engine works in. Coordinates are clamped rather than rejected: an out-of-range
+ * value is an authoring slip that should still render inside the frame, and the
+ * geometry validators report it separately. */
+export function resolvePlacement(placement: StagePlacement | undefined): {
+  region: StageRegion;
+  anchor: { fx: number; fy: number };
+} {
+  if (placement === undefined) return { region: "center", anchor: REGION_ANCHORS.center };
+  if (typeof placement === "string") {
+    return { region: placement, anchor: REGION_ANCHORS[placement] ?? REGION_ANCHORS.center };
+  }
+  const fx = Math.min(1, Math.max(0, placement.x));
+  const fy = Math.min(1, Math.max(0, placement.y));
+  return { region: nearestRegion(fx, fy), anchor: { fx, fy } };
+}
+
 const EMPHASIS_SCALE: Record<StageEmphasis, number> = {
   lead: 1.5,
   normal: 1,
@@ -493,9 +561,41 @@ const EMPHASIS_SCALE: Record<StageEmphasis, number> = {
 const BASE_WIDTH_UNITS = 0.27;
 const BASE_HEIGHT_UNITS = 0.17;
 
+/** How much to grow objects, by how many share the stage.
+ *
+ * A flat size cannot serve both cases, and raising it uniformly is what broke
+ * the no-overlap guarantee: on a busy stage there is simply no arrangement in
+ * which eight enlarged boxes fit, so separation pushes them off the frame or
+ * gives up. It also erased the headroom a camera push-in needs, since content
+ * already filling the frame cannot be zoomed into without cropping.
+ *
+ * But the old flat size was tuned for the busy case and applied to every case,
+ * which is why a two-object scene rendered as two small shapes marooned in
+ * black — the failure the critique pass kept reporting as "the vast majority of
+ * the frame is wasted empty dark background".
+ *
+ * So the multiplier tracks occupancy: a scene with two or three objects gets
+ * genuinely large ones, and a crowded scene keeps the size that is known to
+ * pack. This also states the design rule in code — the fix for a sparse scene
+ * is FEWER, BIGGER objects, and the engine now rewards that automatically. */
+export function densityScale(count: number): number {
+  if (count <= 2) return 1.3;
+  if (count === 3) return 1.2;
+  if (count === 4) return 1.1;
+  if (count <= 6) return 1.04;
+  return 1;
+}
+
 /** Per-kind size multipliers, so a database does not render the same shape as a
  * browser window. Widths only where the silhouette is genuinely wider. */
 const KIND_SIZE: Partial<Record<StageObjectKind, { w?: number; h?: number }>> = {
+  // File types carry their own proportions or they all read as the same box:
+  // a page is portrait, a folder is landscape, a film strip is squarer.
+  folder: { w: 1.0, h: 0.86 },
+  fileDoc: { w: 0.74, h: 1.14 },
+  fileImage: { w: 0.86, h: 1.0 },
+  fileVideo: { w: 0.9, h: 1.0 },
+  fileZip: { w: 0.7, h: 1.12 },
   browser: { w: 1.18, h: 1.05 },
   server: { w: 0.82, h: 1.35 },
   database: { w: 0.86 },
@@ -540,6 +640,7 @@ const KIND_SIZE: Partial<Record<StageObjectKind, { w?: number; h?: number }>> = 
   // Long and thin: a vector is read by its direction, not its bulk.
   vector: { w: 0.45, h: 0.95 },
   bars: { w: 2.0, h: 1.25 },
+  scoreField: { w: 2.35, h: 1.15 },
   // Both signature objects want real width on a 16:9 canvas.
   // Wide enough to hold the window AND the work it sheds, so the layout can
   // keep other objects clear of both.
@@ -554,7 +655,10 @@ const KIND_SIZE: Partial<Record<StageObjectKind, { w?: number; h?: number }>> = 
  * purely from box height — a small box shrinking its label below this is the
  * failure that made sparse diagrams unreadable on a phone; the box grows to fit
  * the text instead of the text shrinking to fit the box. */
-export const STAGE_MIN_LABEL_PX = 30;
+// Raised from 30. Measured against a 1080px-wide portrait frame: 30px is ~2.8%
+// of the width, which is caption-sized, not label-sized. The critique pass
+// scored a real frame 0/10 on legibility with labels at the old floor.
+export const STAGE_MIN_LABEL_PX = 44;
 /** Code has its own readability floor — smaller than a label (it is a block,
  * not a headline) but still a hard minimum, because unreadable code on screen
  * is worse than no code. */
@@ -562,7 +666,9 @@ export const CODE_MIN_PX = 24;
 export const CODE_LINE_HEIGHT = 1.5;
 /** Monospace advance width at 1em. */
 export const CODE_CHAR_ADVANCE = 0.6;
-export const STAGE_MIN_SUBLABEL_PX = 22;
+// Raised from 22. Small text needs MORE contrast and size than large text, not
+// less — a 22px grey sublabel is the first thing that disappears on a phone.
+export const STAGE_MIN_SUBLABEL_PX = 30;
 /** Approximate advance width of the display face at 1em, used to size a box to
  * its own text. Intentionally generous — over-estimating widths costs a little
  * whitespace, under-estimating costs a clipped label. */
@@ -613,9 +719,16 @@ interface SizedBox {
   captionWidth: number;
 }
 
-function sizeOf(object: StageObjectInput, emphasis: StageEmphasis, unit: number): SizedBox {
+function sizeOf(object: StageObjectInput, emphasis: StageEmphasis, unit: number, density = 1): SizedBox {
   const kind = KIND_SIZE[object.kind] ?? {};
-  const scale = EMPHASIS_SCALE[emphasis];
+  // Density is DAMPED for a lead object, because `lead` already exists to make
+  // the subject dominate. Compounding the two double-counts the same intent:
+  // on a two-object scene a lead was coming out at nearly twice base size,
+  // filling the frame so completely that hiding the other object bought the
+  // camera no room to push in at all. The sparsity bonus is really for the
+  // NORMAL objects around the subject — they are the ones that were marooned.
+  const emphasisScale = EMPHASIS_SCALE[emphasis];
+  const scale = emphasisScale * (emphasis === "lead" ? Math.sqrt(density) : density);
   let baseW = BASE_WIDTH_UNITS * unit * (kind.w ?? 1) * scale;
   let baseH = BASE_HEIGHT_UNITS * unit * (kind.h ?? 1) * scale;
 
@@ -937,10 +1050,28 @@ export function layoutStage(
   const safe = options.safeArea ?? defaultSafeArea(frame);
   const hidden = new Set(composition.hidden ?? []);
 
+  // Counted from every DECLARED object, deliberately including hidden ones.
+  //
+  // Sizing by what is visible right now looks correct and is badly wrong:
+  // `hidden` changes over the course of a scene as objects enter and exit, so
+  // every object would grow and shrink each time anything else appeared or
+  // left. A scene's objects must be one stable size for its whole duration.
+  //
+  // It also keeps a deliberate push-in working: hiding an object to focus on
+  // another frees real space for the camera, which is the point — if the
+  // survivors simply expanded to fill the gap, clearing the stage would buy
+  // nothing.
+  //
+  // `app`/`context` are excluded because they fill the safe area by definition
+  // rather than competing for it, and children ride their parent.
+  const occupying = objects.filter(
+    (o) => o.kind !== "app" && o.kind !== "context" && !o.parent,
+  ).length;
+  const density = densityScale(occupying);
+
   const boxes: StageBox[] = objects.map((object) => {
-    const region = composition.place?.[object.id] ?? object.at;
+    const { region, anchor } = resolvePlacement(composition.place?.[object.id] ?? object.at);
     const emphasis = composition.emphasis?.[object.id] ?? object.emphasis ?? "normal";
-    const anchor = REGION_ANCHORS[region] ?? REGION_ANCHORS.center;
     // AN APPLICATION IS THE ENVIRONMENT, so it fills the safe area exactly
     // rather than being sized like an object and scaled by emphasis. Sized the
     // ordinary way it overflowed the frame at `lead` and left the shell cut off
@@ -959,7 +1090,7 @@ export function layoutStage(
           }
         : object.kind === "app" || object.kind === "context"
           ? { width: safe.width, height: safe.height, captionBelow: false, captionHeight: 0, captionWidth: 0 }
-          : sizeOf(object, emphasis, unit);
+          : sizeOf(object, emphasis, unit, density);
     return {
       id: object.id,
       kind: object.kind,
@@ -991,6 +1122,7 @@ export function layoutStage(
       captionHeight: sized.captionHeight,
       captionWidth: sized.captionWidth,
       homeRegion: region,
+      homeAnchor: anchor,
       surface: object.surface,
       series: object.series,
       tabs: object.tabs,
@@ -1047,12 +1179,17 @@ export function layoutStage(
 
   // Only top-level objects compete for regions; children ride their parent.
   const byRegion = new Map<string, StageBox[]>();
-  boxes.forEach((box, index) => {
+  boxes.forEach((box) => {
     if (box.parentId && byId.has(box.parentId)) return;
     if (isDerivedVector(box)) return;
-    const region = composition.place?.[objects[index].id] ?? objects[index].at;
-    if (!byRegion.has(region)) byRegion.set(region, []);
-    byRegion.get(region)!.push(box);
+    // Keyed on the resolved anchor rather than the declared placement: two
+    // objects at the same named region collide and must be separated, but so do
+    // two at the same free point — while two free points a frame apart are not
+    // the same place at all, even when they round to the same region.
+    const { fx, fy } = box.homeAnchor;
+    const key = `${fx.toFixed(3)}:${fy.toFixed(3)}`;
+    if (!byRegion.has(key)) byRegion.set(key, []);
+    byRegion.get(key)!.push(box);
   });
   const gutter = unit * 0.045;
   for (const group of byRegion.values()) {

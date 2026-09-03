@@ -261,8 +261,15 @@ const NodeBox: React.FC<{
 }> = ({ node, opacity, accent, scale, fontScale, valueOverride, meter }) => {
   const isGroup = node.shape === "group";
   const palette = ACCENT_COLORS[accent];
-  const stroke = isGroup ? GROUP_STROKE : palette.stroke;
-  const fill = isGroup ? GROUP_FILL : palette.fill;
+  // AN UNLABELLED GROUP IS A LAYOUT GROUPING, NOT A BOUNDARY.
+  //
+  // Groups exist to say "these belong together" — a VPC, a cluster — and they
+  // draw a frame to say it. But a group used purely to lay three icons out in a
+  // row has nothing to enclose, and the frame then reads as a stray rectangle
+  // around the end card. No label, no boundary.
+  const isBareGroup = isGroup && !node.label;
+  const stroke = isBareGroup ? "transparent" : isGroup ? GROUP_STROKE : palette.stroke;
+  const fill = isBareGroup ? "transparent" : isGroup ? GROUP_FILL : palette.fill;
   const labelSize = Math.max(MIN_LABEL_PX, Math.min(38, node.height * 0.22)) * fontScale;
   const subSize = Math.max(MIN_SUB_PX, labelSize * 0.72);
 

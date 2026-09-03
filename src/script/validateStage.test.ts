@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diagnoseStageScenes, diagnoseSceneMedia } from "./validateStage";
+import { diagnoseStageScenes, diagnoseSceneMedia, checkStageOverlap } from "./validateStage";
 import type { TimedSegment } from "../model/Segment";
 
 // The renderer resolves every id by map lookup and does nothing when one
@@ -342,5 +342,76 @@ describe("caption width against the frame edge", () => {
       }),
     );
     expect(found).not.toContain("caption-too-wide");
+  });
+});
+
+describe("checkStageOverlap", () => {
+  const stage = (objects: unknown[]) =>
+    ({ kind: "stage", objects, edges: [], timeline: [] }) as never;
+
+  it("catches two objects laid out on top of each other", () => {
+    // The exact defect that shipped: free-form points authored closer together
+    // than their own labels are wide. `separate()` pushes them apart and
+    // `fitToSafeArea` clamps them back inside the frame, so the two passes
+    // stalemate and the overlap renders silently.
+    const found = checkStageOverlap(
+      stage([
+        // The real shipped scene: three globes across the full width, close
+        // enough to the frame edges that `fitToSafeArea` clamps them back in as
+        // fast as `separate()` pushes them apart.
+        { id: "s1", kind: "globe", label: "SAT 1", at: { x: 0.16, y: 0.2 } },
+        { id: "s2", kind: "globe", label: "SAT 2", at: { x: 0.5, y: 0.11 } },
+        { id: "s3", kind: "globe", label: "SAT 3", at: { x: 0.84, y: 0.2 } },
+        { id: "ph", kind: "phone", label: "YOUR PHONE", sublabel: "receive only", at: { x: 0.5, y: 0.74 }, emphasis: "lead" },
+        { id: "seal", kind: "lock", label: "NO UPLINK", at: { x: 0.5, y: 0.5 } },
+      ]),
+      0,
+    );
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].category).toBe("stage-overlap");
+    expect(found[0].message).toContain("s1");
+    expect(found[0].message).toContain("s2");
+  });
+
+  it("passes objects with real space between them", () => {
+    const found = checkStageOverlap(
+      stage([
+        { id: "a", kind: "server", label: "A", at: { x: 0.2, y: 0.2 } },
+        { id: "b", kind: "server", label: "B", at: { x: 0.8, y: 0.8 } },
+      ]),
+      0,
+    );
+    expect(found).toEqual([]);
+  });
+
+  it("stays quiet for a single object", () => {
+    expect(checkStageOverlap(stage([{ id: "a", kind: "server", at: "center" }]), 0)).toEqual([]);
+  });
+
+  it("does not report a child sitting inside its own parent", () => {
+    // Containment is the entire point of a `region`; flagging it would make the
+    // check useless on exactly the compositions it should be checking.
+    const found = checkStageOverlap(
+      stage([
+        { id: "r", kind: "region", label: "us-east-1", at: "center" },
+        { id: "svc", kind: "service", label: "Playback", at: "center", parent: "r" },
+      ]),
+      0,
+    );
+    expect(found.some((d) => d.message.includes('"r"') && d.message.includes('"svc"'))).toBe(false);
+  });
+
+  it("is advisory, never blocking", () => {
+    // Standing rule on this project: diagnostics report and the author renders
+    // and looks. A geometry check that refused to generate would be deleted.
+    const found = checkStageOverlap(
+      stage([
+        { id: "s1", kind: "globe", label: "SAT 1", at: { x: 0.16, y: 0.2 } },
+        { id: "s2", kind: "globe", label: "SAT 2", at: { x: 0.5, y: 0.11 } },
+        { id: "s3", kind: "globe", label: "SAT 3", at: { x: 0.84, y: 0.2 } },
+      ]),
+      0,
+    );
+    expect(found.every((d) => d.severity === "soft")).toBe(true);
   });
 });

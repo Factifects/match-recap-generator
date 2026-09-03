@@ -1,7 +1,7 @@
 import path from "node:path";
 import { parseMedia } from "@remotion/media-parser";
 import { nodeReader } from "@remotion/media-parser/node";
-import { generateSoundEffect, generateSpeech, type GeneratedSpeech } from "./elevenLabs";
+import { generateSoundEffect, generateSpeechWithTimestamps as generateSpeech, type GeneratedSpeech } from "./elevenLabs";
 import { generateSpeechEdge } from "./edgeTts";
 import type { TimedSegment, Visual } from "../model/Segment";
 import { getCanvasSoundCue, type CanvasSoundEvent } from "../cadence/canvasCadences";
@@ -523,6 +523,9 @@ export async function resolveSegmentAudio(
       // folded in — this is what narrationFit.ts schedules choreography against.
       narrationSeconds: speech.durationSeconds,
       audioStaticPath: speech.staticFilePath,
+      // Real per-word timings when the provider measured them; absent otherwise,
+      // which every consumer already treats as "estimate instead".
+      wordTimings: speech.wordTimings,
       sfxStaticPath: segment.type === "chapter"
         ? chapterSfx?.staticFilePath
         : sfxAsset?.staticFilePath,

@@ -1,3 +1,4 @@
+import { luminance } from "./brandTile";
 export const FPS = 30;
 
 /** WordCaptionOverlay / PhaseCaptionOverlay render a bottom-pinned pill at a
@@ -153,4 +154,30 @@ export function hashString(value: string): number {
  * colors explicitly — the same character name always gets the same color. */
 export function colorForCharacter(name: string): string {
   return CHARACTER_PALETTE[hashString(name) % CHARACTER_PALETTE.length];
+}
+
+/** The luminance above which a fill is light enough that dark text reads
+ * better on it than white. Sits above the midpoint on purpose: white-on-mid
+ * is comfortable, dark-on-mid is not, so the tie goes to white text. */
+export const LIGHT_FILL_THRESHOLD = 0.45;
+
+/**
+ * The text color to use for a label drawn DIRECTLY on a solid fill.
+ *
+ * Exists because the doctrine's "text never sits directly on content" rule has
+ * one unavoidable exception — a label centered inside the shape it names — and
+ * that exception is where contrast quietly fails. The failure mode this was
+ * extracted from: Canvas rectangles were assumed to always have a bright fill,
+ * so their labels hard-coded dark text. A dark filled rect (a slab of #0f172a
+ * standing in for a container) then rendered near-black text on near-black,
+ * invisible in exactly the frames the label existed to carry.
+ *
+ * The generalizable root cause is that contrast was ASSUMED from an object's
+ * type rather than READ from its actual color. Which side of the threshold a
+ * color falls on is a fact about that color, so every site drawing text on a
+ * fill should call this rather than decide for itself.
+ */
+export function labelColorOnFill(fillHex: string | undefined): string {
+  if (!fillHex) return COLORS.text;
+  return luminance(fillHex) > LIGHT_FILL_THRESHOLD ? COLORS.textOnLight : COLORS.text;
 }

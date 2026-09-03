@@ -1195,6 +1195,24 @@ const stageRegionSchema = z.enum([
   "bottom-right",
 ]);
 
+/** An exact point on the stage, as fractions of the safe area (0-1, origin
+ * top-left). The escape hatch from the nine regions.
+ *
+ * Regions are still the default and still the right answer most of the time —
+ * a stable vocabulary of places is what lets a viewer learn the space across a
+ * series. But nine slots is also the reason Stage compositions look alike:
+ * however many verbs the timeline carries, every object can only ever be in one
+ * of nine spots, so scenes built from completely different ideas still resolve
+ * to the same few arrangements. Use a point when the ARRANGEMENT ITSELF carries
+ * meaning — an orbit, a diagonal, a stack, a cluster that has to read as a
+ * cluster — and a region when the meaning is just "the usual place for this". */
+const stagePointSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+});
+
+const stagePlacementSchema = z.union([stageRegionSchema, stagePointSchema]);
+
 /** Visual weight. `lead` is the object being explained RIGHT NOW and grows to
  * dominate; `recede` is context the viewer must still see but must not read as
  * the subject, and genuinely shrinks (a purely dimmed object reads as "faded
@@ -1217,6 +1235,23 @@ const stageAccentSchema = z.enum(["neutral", "primary", "warn", "success", "dang
  * card (`note`). Represent the actual thing being discussed: a browser is a
  * browser window, a database is a cylinder, a queue has real slots. */
 const stageObjectKindSchema = z.enum([
+  // FILE TYPES — the objects a viewer already recognizes from their own desktop.
+  //
+  // Added because a video about storage has to START from something familiar
+  // before it takes the abstraction apart, and the only file-ish kinds here
+  // were `note` (a dashed rectangle) and `code`. A desktop built from those
+  // renders as a row of identical shapes, which is exactly the generic-shape
+  // failure the asset doctrine bans. Brand marks do not help: they resolve
+  // company logos, not file types.
+  //
+  // Deliberately generic silhouettes rather than imitations of any vendor's
+  // artwork — a folder, a page with a corner fold, a picture, a film strip.
+  // Recognizable at a glance, which is the whole requirement.
+  "folder",
+  "fileDoc",
+  "fileImage",
+  "fileVideo",
+  "fileZip",
   // devices — where a request starts
   "client",
   "browser",
@@ -1339,6 +1374,18 @@ const stageObjectKindSchema = z.enum([
    * needing to be projected back out of the scene. Depth earns its place when
    * something is physically happening in space; a chart is read, not inhabited. */
   "bars",
+  /** A SCORE FIELD — the same competing quantities as `bars`, but drawn as
+   * discs whose AREA is the value rather than rows whose length is.
+   *
+   * Built because a distribution that is about to spread, breathe and collapse
+   * reads wrong as a bar chart: rows are a table, and a viewer compares them by
+   * scanning left to right. Mass is compared at a glance and survives being
+   * animated — when the field collapses onto one candidate, a disc swallowing
+   * the frame while the others shrink to dots is the event itself, where four
+   * bars changing length is a chart updating. Area, not radius, is proportional
+   * to the value, because radius exaggerates differences the eye then
+   * over-reads. Shares `series` and the `score` action with `bars`. */
+  "scoreField",
   /** THE PLANET, drawn as a sphere with meridians rather than a flat disc —
    * the one object that establishes "this is happening in the world, not on a
    * screen". Its `states` carry what is being said about it: `field` draws the
@@ -1432,8 +1479,9 @@ const stageObjectSchema = z.object({
   kind: stageObjectKindSchema,
   label: z.string().optional(),
   sublabel: z.string().optional(),
-  /** Home region — where this object sits until a `compose` moves it. */
-  at: stageRegionSchema,
+  /** Where this object sits until a `compose` moves it — a named region, or an
+   * exact `{x, y}` point. See stagePlacementSchema. */
+  at: stagePlacementSchema,
   emphasis: stageEmphasisSchema.optional(),
   accent: stageAccentSchema.optional(),
   /** Draws this object as a DARK ANCHOR rather than a tinted outline.
@@ -1755,7 +1803,7 @@ const stageTimelineActionSchema = z.discriminatedUnion("type", [
     type: z.literal("compose"),
     startSeconds: z.number().min(0),
     durationSeconds: z.number().min(0).default(0.9),
-    place: z.record(z.string(), stageRegionSchema).optional(),
+    place: z.record(z.string(), stagePlacementSchema).optional(),
     emphasis: z.record(z.string(), stageEmphasisSchema).optional(),
     hidden: z.array(z.string()).optional(),
   }),
@@ -3618,6 +3666,24 @@ export const VISUAL_DEFINITIONS = [
     }),
   },
   {
+    kind: "motion",
+    category: "generic-diagrams",
+    label: "Motion",
+    description:
+      "A bespoke animation written for THIS concept — arbitrary Remotion motion design (keyframes, springs, masks, morphs, camera, particles) rather than a pre-built medium. Use when no existing medium demonstrates the mechanism honestly, instead of shoehorning the concept into the nearest one.",
+    sceneTypeKey: "motion",
+    schema: z.object({
+      kind: z.literal("motion"),
+      /** Registry id of a component under src/video/generated/. Written by the
+       * generator, never authored by hand — see GeneratedMotionCard for what
+       * happens when it does not resolve. */
+      component: z.string().min(1),
+      /** Human-readable note about what the component demonstrates. Carried so
+       * a generated scene is legible in the script without reading the .tsx. */
+      title: z.string().optional(),
+    }),
+  },
+  {
     kind: "quote",
     category: "narrative-callouts",
     label: "Quote",
@@ -4147,7 +4213,7 @@ export const VISUAL_DEFINITIONS = [
        * Defaults to `network` — the most common Techijest topic shape, and the
        * one whose grammar (something travels from A to B) the medium is built
        * around. */
-      world: z.enum(["network", "storage", "security", "compute", "data", "scan", "city", "reasoning", "privacy"]).optional(),
+      world: z.enum(["network", "storage", "security", "compute", "data", "scan", "city", "reasoning", "privacy", "inference"]).optional(),
       /** How alive the frame is between authored events. `calm` is nearly
        * static (for a scene where one thing must be read carefully), `busy`
        * keeps wires flowing and active objects breathing continuously.
@@ -4161,7 +4227,12 @@ export const VISUAL_DEFINITIONS = [
        * caption needs to share the frame without crowding. Never solve a busy
        * frame by shrinking the system; solve it by removing objects. */
       composition: z.enum(["full", "inset"]).optional(),
-      objects: z.array(stageObjectSchema).min(1),
+      /** Allowed to be empty. A beat carried entirely by a headline — the
+       * reference formula's own "a single sentence in giant type" — has no
+       * objects by design, and requiring one made such a scene fail validation
+       * and fall back to a plain caption card, which dumps the whole narration
+       * on screen as a paragraph. */
+      objects: z.array(stageObjectSchema),
       /** Persistent packets — see stagePacketSchema. Prefer these over one-shot
        * `flow` whenever the same thing appears in more than one beat. */
       packets: z.array(stagePacketSchema).optional(),

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { VISUAL_DEFINITIONS } from "./visualDefinitions";
 import type { SceneContract } from "../script/sceneContract";
+import type { WordTiming } from "../audio/elevenLabs";
 
 /** Whole-video render option (not per-segment data) — lives here since this
  * model file is already the one shared import point for both the node-side
@@ -123,6 +124,14 @@ export type TimedSegment = Segment & {
   manualDurationOverride?: boolean;
   /** Set once ElevenLabs generation has run; absent means duration is still a word-count estimate. */
   audioStaticPath?: string;
+  /** Per-word timings measured from the generated speech, when the TTS provider
+   * reports them (Edge TTS does, via WordBoundary events).
+   *
+   * Optional and must stay that way: audio cached before this existed has none,
+   * and ElevenLabs does not report them on the endpoint this project calls. Any
+   * consumer has to fall back to estimated timing rather than assume presence —
+   * see wordCaptions.ts, which does exactly that. */
+  wordTimings?: WordTiming[];
   /** The REAL spoken length of this segment's narration, as measured from the
    * generated TTS audio — the narration temporal spine (see CLAUDE.md). Kept
    * separate from `durationSeconds` on purpose: `durationSeconds` is the

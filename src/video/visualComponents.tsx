@@ -38,6 +38,7 @@ import { TerminalMockCard } from "./compositions/TerminalMockCard";
 import { WorkspaceCard } from "./compositions/WorkspaceCard";
 import { DiagramCard } from "./compositions/DiagramCard";
 import { StageCard } from "./compositions/StageCard";
+import { GeneratedMotionCard } from "./compositions/GeneratedMotionCard";
 import { SpatialStage } from "./compositions/SpatialStage";
 import { HoldingsWall } from "./compositions/HoldingsWall";
 import { ChannelStack } from "./compositions/ChannelStack";
@@ -93,6 +94,7 @@ export const VISUAL_COMPONENTS: { [K in Visual["kind"]]: React.FC<{ data: DataFo
   workspace: WorkspaceCard,
   diagram: DiagramCard,
   stage: StageCard,
+  motion: GeneratedMotionCard,
   "career-path": CareerPathCard,
   grid: GridCard,
   icon: IconInfographicCard,

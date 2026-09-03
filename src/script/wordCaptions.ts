@@ -1,15 +1,28 @@
-// Karaoke-style caption timing: given a segment's narration TEXT and its real
-// (post-TTS) spoken duration, produce short lines of a few words each with a
+import type { WordTiming } from "../audio/elevenLabs";
+
+// Karaoke-style caption timing: short lines of a few words each, with a
 // per-word [startFrame, endFrame) window so a caption overlay can highlight
-// whichever word is being spoken right now. There is no per-word ASR/alignment
-// available from either TTS provider this project uses (see resolveAudio.ts —
-// ElevenLabs/Edge both return only a whole-clip duration), so word timing is
-// ESTIMATED by distributing the real total duration across words proportional
-// to a weight (character count, with a bonus for trailing punctuation to admit
-// the small pause a comma/period actually gets spoken with) — the same
-// estimate-against-a-real-total approach estimateDuration.ts and narrationFit.ts
-// already use elsewhere in this pipeline, just at word granularity instead of
-// scene granularity.
+// whichever word is being spoken right now.
+//
+// TWO SOURCES OF TIMING, and the difference is not academic.
+//
+// `buildWordCaptionLinesFromTimings` uses REAL per-word timings measured by the
+// speech synthesiser. Edge TTS emits WordBoundary events on every synthesis and
+// the client library already parses them into millisecond offsets — this file
+// previously asserted that no such alignment existed, which was simply wrong,
+// and the timings were being generated and discarded on every render.
+//
+// `buildWordCaptionLines` ESTIMATES, by distributing a real total duration
+// across words proportional to a weight (character count, plus a bonus for
+// trailing punctuation to admit the pause a comma actually gets spoken with).
+// It remains the fallback for audio cached before timings were captured, and
+// for providers that do not report them.
+//
+// Prefer the real one wherever it is available. For a subtitle sitting under a
+// diagram the estimate is fine. For short-form captions — where the caption IS
+// the content and the viewer is watching the word, not the picture — a word
+// landing 200ms off the voice is the whole difference between a video that
+// reads as produced and one that reads as generated.
 
 const DEFAULT_WORDS_PER_LINE = 4;
 // A held pause (comma/period/etc.) reads as roughly one extra short word of
@@ -34,6 +47,121 @@ function wordWeight(word: string): number {
   const bare = word.replace(/[^\p{L}\p{N}]/gu, "");
   const bonus = /[,.;:!?]\s*$/.test(word) ? PAUSE_PUNCTUATION_BONUS : 0;
   return Math.max(1, bare.length) + bonus;
+}
+
+/** Words that carry grammar rather than meaning.
+ *
+ * Not a stopword list for search — a list of words a viewer's eye should never
+ * be stopped on. Short-form captions mark the word being spoken, and marking
+ * "the" or "of" wastes the single strongest emphasis the format has on a word
+ * nobody reads. The set is deliberately small and closed: articles,
+ * prepositions, conjunctions, auxiliaries and pronouns. Anything outside it is
+ * treated as carrying meaning, because a false negative (emphasising a real
+ * word) costs nothing, while a false positive (skipping a meaningful one) is a
+ * missed beat. */
+const FUNCTION_WORDS = new Set([
+  "a", "an", "the", "and", "or", "but", "so", "if", "of", "to", "in", "on", "at", "by", "for",
+  "with", "from", "into", "over", "as", "is", "are", "was", "were", "be", "been", "am", "do",
+  "does", "did", "has", "have", "had", "will", "would", "can", "could", "it", "its", "this",
+  "that", "these", "those", "you", "your", "we", "our", "they", "their", "he", "she", "his",
+  "her", "i", "my", "me", "us", "them", "there", "here", "than", "then", "up", "out", "off",
+]);
+
+/** True when a word carries meaning worth stopping the eye on. */
+export function isContentWord(word: string): boolean {
+  const bare = word.toLowerCase().replace(/[^\p{L}\p{N}']/gu, "");
+  if (bare.length === 0) return false;
+  return !FUNCTION_WORDS.has(bare);
+}
+
+/** True when a word ends a clause — the natural place to break a caption line. */
+function endsClause(word: string): boolean {
+  return /[.,;:!?—]$/.test(word.trim());
+}
+
+/**
+ * Groups words into caption lines that break where the SENTENCE breaks.
+ *
+ * Fixed-size chunking is what produced lines like "RUNNING, EATING THE" — it
+ * counts to three and cuts, so a line routinely ends on an article left
+ * dangling from the phrase it belongs to. Two rules fix almost all of it:
+ * break after punctuation even when the line is short, and never end a line on
+ * a function word if there is a following word to keep it with.
+ */
+function groupIntoLines(words: CaptionWord[], wordsPerLine: number): CaptionLine[] {
+  const lines: CaptionLine[] = [];
+  let current: CaptionWord[] = [];
+
+  const flush = () => {
+    if (current.length === 0) return;
+    lines.push({
+      words: current,
+      startFrame: current[0].startFrame,
+      endFrame: current[current.length - 1].endFrame,
+    });
+    current = [];
+  };
+
+  for (let i = 0; i < words.length; i++) {
+    current.push(words[i]);
+    const isLast = i === words.length - 1;
+    if (isLast) break;
+
+    // A clause boundary is a better break than any word count, and breaking
+    // there is what makes a caption read as speech rather than as a buffer
+    // being flushed.
+    if (endsClause(words[i].text) && current.length >= 2) {
+      flush();
+      continue;
+    }
+    if (current.length < wordsPerLine) continue;
+    // At the limit — but a trailing function word belongs with what follows it,
+    // so carry it over rather than stranding it at the end of the line.
+    if (!isContentWord(words[i].text) && current.length > 1) {
+      const carried = current.pop()!;
+      flush();
+      current.push(carried);
+      continue;
+    }
+    flush();
+  }
+  flush();
+  return lines;
+}
+
+/** Builds caption lines from REAL per-word timings measured by the synthesiser.
+ *
+ * `timings` comes from the TTS provider (see WordTiming in elevenLabs.ts) and
+ * is authoritative: no weighting, no estimating, each word shown exactly when
+ * it is spoken.
+ *
+ * Returns `[]` when there is nothing to time, so a caller can fall back to the
+ * estimating builder with a plain empty check rather than a try/catch. */
+export function buildWordCaptionLinesFromTimings(
+  timings: WordTiming[],
+  fps: number,
+  wordsPerLine: number = DEFAULT_WORDS_PER_LINE,
+): CaptionLine[] {
+  if (timings.length === 0) return [];
+
+  const words: CaptionWord[] = timings.map((timing, index) => {
+    const startFrame = Math.max(0, Math.round((timing.startMs / 1000) * fps));
+    // A word's window is extended to the moment the NEXT word begins rather
+    // than ending at its own measured end. The synthesiser reports the span in
+    // which a word is voiced, which leaves a gap during the natural pause after
+    // it — and a highlight that switches off during that gap flickers between
+    // every pair of words. Holding until the next word starts is what makes the
+    // highlight read as moving through the sentence.
+    const nextStartMs = timings[index + 1]?.startMs;
+    const endMs = nextStartMs !== undefined ? Math.max(timing.endMs, nextStartMs) : timing.endMs;
+    return {
+      text: timing.text,
+      startFrame,
+      endFrame: Math.max(startFrame + 1, Math.round((endMs / 1000) * fps)),
+    };
+  });
+
+  return groupIntoLines(words, wordsPerLine);
 }
 
 /** Splits narration text into short (default 4-word) lines, each word given an

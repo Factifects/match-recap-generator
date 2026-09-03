@@ -1279,6 +1279,74 @@ const Shape: React.FC<SilhouetteProps> = ({ box, stroke, fill, strokeWidth }) =>
       );
     }
 
+    // --- FILE TYPES ---------------------------------------------------
+    // Generic silhouettes, not imitations of any vendor's icon set: a tabbed
+    // folder, a page with a folded corner, a picture, a film strip, a sealed
+    // archive. Each has to read at a glance on a desktop that is only on
+    // screen for a few seconds, so detail is kept to the one feature that
+    // identifies the type.
+    case "folder": {
+      const tab = h * 0.16;
+      return (
+        <>
+          <path d={`M ${x} ${y + tab} L ${x} ${y + tab * 0.4} Q ${x} ${y} ${x + tab * 0.5} ${y} L ${x + w * 0.34} ${y} L ${x + w * 0.44} ${y + tab} Z`} {...common} />
+          <rect x={x} y={y + tab} width={w} height={h - tab} rx={12} {...common} />
+        </>
+      );
+    }
+    case "fileDoc": {
+      const pw = w * 0.66;
+      const px = x + (w - pw) / 2;
+      const fold = pw * 0.28;
+      return (
+        <>
+          <path d={`M ${px} ${y} L ${px + pw - fold} ${y} L ${px + pw} ${y + fold} L ${px + pw} ${y + h} L ${px} ${y + h} Z`} {...common} />
+          <path d={`M ${px + pw - fold} ${y} L ${px + pw - fold} ${y + fold} L ${px + pw} ${y + fold}`} {...line} />
+          {[0.46, 0.62, 0.78].map((f) => (
+            <line key={f} x1={px + pw * 0.16} y1={y + h * f} x2={px + pw * 0.84} y2={y + h * f} {...line} />
+          ))}
+        </>
+      );
+    }
+    case "fileImage": {
+      const pw = w * 0.72;
+      const px = x + (w - pw) / 2;
+      return (
+        <>
+          <rect x={px} y={y} width={pw} height={h} rx={10} {...common} />
+          <circle cx={px + pw * 0.28} cy={y + h * 0.3} r={Math.min(pw, h) * 0.09} {...line} />
+          <path d={`M ${px + pw * 0.1} ${y + h * 0.8} L ${px + pw * 0.4} ${y + h * 0.46} L ${px + pw * 0.62} ${y + h * 0.66} L ${px + pw * 0.78} ${y + h * 0.54} L ${px + pw * 0.9} ${y + h * 0.8} Z`} {...line} />
+        </>
+      );
+    }
+    case "fileVideo": {
+      const pw = w * 0.74;
+      const px = x + (w - pw) / 2;
+      const hole = h * 0.1;
+      return (
+        <>
+          <rect x={px} y={y} width={pw} height={h} rx={10} {...common} />
+          {[0.22, 0.5, 0.78].map((f) => (
+            <React.Fragment key={f}>
+              <rect x={px + pw * 0.04} y={y + h * f - hole / 2} width={pw * 0.1} height={hole} rx={3} {...line} />
+              <rect x={px + pw * 0.86} y={y + h * f - hole / 2} width={pw * 0.1} height={hole} rx={3} {...line} />
+            </React.Fragment>
+          ))}
+          <path d={`M ${px + pw * 0.4} ${y + h * 0.34} L ${px + pw * 0.68} ${y + h * 0.5} L ${px + pw * 0.4} ${y + h * 0.66} Z`} {...line} />
+        </>
+      );
+    }
+    case "fileZip": {
+      const pw = w * 0.62;
+      const px = x + (w - pw) / 2;
+      return (
+        <>
+          <rect x={px} y={y} width={pw} height={h} rx={10} {...common} />
+          <line x1={px + pw * 0.5} y1={y + h * 0.08} x2={px + pw * 0.5} y2={y + h * 0.72} {...line} strokeDasharray="6 7" />
+          <rect x={px + pw * 0.36} y={y + h * 0.72} width={pw * 0.28} height={h * 0.2} rx={4} {...common} />
+        </>
+      );
+    }
     case "note":
       return <rect x={x} y={y} width={w} height={h} rx={10} {...common} strokeDasharray="10 8" />;
     case "service":
@@ -1361,7 +1429,15 @@ export function boxZones(box: StageBox, labelPx: number, subPx: number, offset: 
 
   const labelY = stackY + labelPx * 0.82;
   const sublabelY = labelY + subPx * 1.25;
-  const plateW = Math.min(box.width * 0.94, Math.max(120, (box.label?.length ?? 0) * labelPx * 0.58 + labelPx * 0.6));
+  // THE PLATE HAS TO COVER THE WHOLE STACK IT SITS BEHIND.
+  //
+  // Sized from the label alone, it was narrower than a longer sublabel — so on a
+  // card titled "RUN A" over "the sky is blue because…" the plate covered the
+  // middle of the body text and stopped short of both ends, reading as a box
+  // stamped across the sentence. It now takes whichever line is wider.
+  const labelW = (box.label?.length ?? 0) * labelPx * 0.58;
+  const subW = (box.sublabel?.length ?? 0) * subPx * 0.58;
+  const plateW = Math.min(box.width * 0.94, Math.max(120, Math.max(labelW, subW) + labelPx * 0.6));
 
   return {
     logo: hasLogo ? { cx: box.x, cy: logoTop + logoSize / 2, size: logoSize } : null,

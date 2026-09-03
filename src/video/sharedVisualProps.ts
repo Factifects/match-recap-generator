@@ -93,6 +93,9 @@ export type TerminalMockData = Extract<Visual, { kind: "terminal-mock" }>;
 export type WorkspaceData = Extract<Visual, { kind: "workspace" }>;
 export type DiagramData = Extract<Visual, { kind: "diagram" }>;
 export type StageData = Extract<Visual, { kind: "stage" }>;
+/** An AI-generated bespoke animation — carries only the registry id of the
+ * component to render (see src/video/generated/). */
+export type MotionData = Extract<Visual, { kind: "motion" }>;
 export type CareerPathData = Extract<Visual, { kind: "career-path" }>;
 export type IconData = Extract<Visual, { kind: "icon" }>;
 export type CanvasData = Extract<Visual, { kind: "canvas" }>;

@@ -2,6 +2,7 @@ import "./index.css";
 import { Composition } from "remotion";
 import { AnalysisVideo, transitionFramesFor } from "./compositions/AnalysisVideo";
 import { InfiniteRoadBenchmark, BENCHMARK_DURATION_FRAMES, BENCHMARK_WIDTH, BENCHMARK_HEIGHT } from "./compositions/InfiniteRoadBenchmark";
+import { ShortVideo, shortTotalFrames, type ShortClip, type ShortVideoProps } from "./compositions/ShortVideo";
 import { FPS } from "./theme";
 import type { TimedSegment, AspectRatio, AudioClipPlacement } from "../model/Segment";
 
@@ -51,6 +52,37 @@ export const RemotionRoot: React.FC = () => {
           };
         }}
       />
+      {/* The footage-backed short: looping background, narration, punch
+          captions. A separate composition from AnalysisVideo rather than a
+          scene type inside it, because it is a different product — one
+          continuous clip where the captions are the content, not a sequence of
+          authored visuals. See ShortVideo.tsx. */}
+      <Composition
+        id="ShortVideo"
+        component={ShortVideo as unknown as React.FC<Record<string, unknown>>}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        durationInFrames={150}
+        defaultProps={{
+          clips: [] as ShortClip[],
+          backgroundVideo: undefined as string | undefined,
+          backgroundColor: "#0b0d10",
+          backgroundRate: 1,
+          backgroundDurationSeconds: 10,
+          captionStyle: undefined,
+        }}
+        calculateMetadata={async ({ props }) => {
+          const { clips, aspectRatio } = props as unknown as ShortVideoProps & { aspectRatio?: AspectRatio };
+          return {
+            durationInFrames: shortTotalFrames(clips ?? []),
+            // Defaults to portrait: this format exists for vertical feeds, so
+            // landscape has to be asked for rather than fallen into.
+            ...DIMENSIONS[aspectRatio ?? "9:16"],
+          };
+        }}
+      />
+
       {/* Standalone proof scene — isolated from the segment/script pipeline
           above on purpose (see InfiniteRoadBenchmark.tsx's own header
           comment). Fixed props, nothing to pass in. */}

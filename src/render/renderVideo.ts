@@ -1,7 +1,8 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { bundle } from "@remotion/bundler";
-import { renderMedia, selectComposition, makeCancelSignal, type CancelSignal } from "@remotion/renderer";
+import { renderMedia, renderStill, selectComposition, makeCancelSignal, type CancelSignal } from "@remotion/renderer";
 import { config } from "../config";
 
 const ENTRY_POINT = path.join(__dirname, "..", "video", "index.ts");
@@ -229,4 +230,69 @@ export async function renderVideo<T extends Record<string, unknown>>(
     }
     throw err;
   }
+}
+
+// --- Probe stills ----------------------------------------------------------
+
+export interface ProbeStillOptions<T extends Record<string, unknown>> {
+  compositionId: string;
+  inputProps: T;
+  /** Absolute frames to capture. */
+  frames: number[];
+  outDir: string;
+  namePrefix: string;
+}
+
+/**
+ * Renders a handful of individual FRAMES as PNGs, for looking at rather than
+ * watching.
+ *
+ * Deliberately built on `renderStill` rather than a short `renderMedia`, and
+ * the difference is not cosmetic on this machine. A video render spins up N
+ * headless-Chrome workers plus the compositor and an encoder, and holds them
+ * all for the duration — which is why the concurrency policy above is as
+ * conservative as it is, and why a long render has been observed degrading as
+ * free memory drops. A still renders one frame in one browser, writes a PNG,
+ * and tears down.
+ *
+ * Frames are captured strictly sequentially for the same reason: three stills
+ * in parallel would be three simultaneous browsers, which is precisely the
+ * contention this exists to avoid. It is slower and that is the intended
+ * trade — this runs alongside real work on a machine that thermally throttles.
+ *
+ * The bundle is shared with the video path via getBundleLocation(), so a
+ * critique pass inside a long-running server process pays no webpack cost.
+ */
+export async function renderProbeStills<T extends Record<string, unknown>>(
+  options: ProbeStillOptions<T>,
+): Promise<string[]> {
+  const serveUrl = await getBundleLocation();
+  const composition = await selectComposition({
+    serveUrl,
+    id: options.compositionId,
+    inputProps: options.inputProps,
+  });
+
+  fs.mkdirSync(options.outDir, { recursive: true });
+  const paths: string[] = [];
+
+  for (const frame of options.frames) {
+    // Clamped rather than trusted: a caller computing frames from an estimated
+    // duration can easily ask for one past the end, and renderStill throws on
+    // an out-of-range frame — which would fail the whole critique over an
+    // off-by-one instead of simply sampling the last available frame.
+    const safeFrame = Math.max(0, Math.min(frame, composition.durationInFrames - 1));
+    const outputLocation = path.join(options.outDir, `${options.namePrefix}-f${safeFrame}.png`);
+    await renderStill({
+      composition,
+      serveUrl,
+      output: outputLocation,
+      frame: safeFrame,
+      inputProps: options.inputProps,
+      overwrite: true,
+    });
+    paths.push(outputLocation);
+  }
+
+  return paths;
 }

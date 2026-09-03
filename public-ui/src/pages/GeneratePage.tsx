@@ -7,6 +7,7 @@ import { SceneDiagnosticsPanel } from "../components/SceneDiagnosticsPanel";
 import { ScenePreviewRow } from "../components/ScenePreviewRow";
 import { EDGE_VOICES } from "../../../src/audio/ttsVoices";
 import { useRenderProgress } from "../hooks/useRenderProgress";
+import { useAuthorJob } from "../hooks/useAuthorJob";
 import { uploadAudio } from "../lib/uploadAudio";
 import type { TimedSegment, AspectRatio, AudioClipPlacement } from "../../../src/model/Segment";
 import type { SceneDiagnostic } from "../../../src/script/sceneDiagnostics";
@@ -130,10 +131,18 @@ export const GeneratePage: React.FC = () => {
   // kind of "build here, see it update over there" tool (Descript's editor,
   // the standard SaaS build/live-preview split) keeps both visible together.
   const [script, setScript] = useState("");
+  // The prompt that AUTHORS a script, as opposed to `script` which holds one.
+  // Kept adjacent on purpose: authoring's only output is to write into
+  // `script`, and everything downstream (the /parse effect, the timeline
+  // preview, the diagnostics panel, Generate) then runs unchanged.
+  const [topic, setTopic] = useState("");
+  const [sceneCount, setSceneCount] = useState("");
+  const [llm, setLlm] = useState("gemini");
   const [withAudio, setWithAudio] = useState(false);
   const [voiceSelection, setVoiceSelection] = useState("elevenlabs");
   const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16">("16:9");
   const progress = useRenderProgress();
+  const author = useAuthorJob();
 
   // Populated once generation finishes — the resolved segments/audio for the
   // just-generated video, editable right here on the same page instead of
@@ -196,6 +205,31 @@ export const GeneratePage: React.FC = () => {
     }, 600);
     return () => clearTimeout(timer);
   }, [script]);
+
+  async function handleAuthor() {
+    if (!topic.trim()) return;
+    try {
+      const res = await fetch("/author", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          aspectRatio,
+          sceneCount: sceneCount ? Number(sceneCount) : undefined,
+          llm,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Could not start authoring.");
+      // Writing into `script` is the entire integration: the existing effect
+      // on [script] re-parses, rebuilds the timeline preview and refreshes
+      // diagnostics, so an authored script arrives already reviewable rather
+      // than as a blob to copy somewhere else.
+      author.watch(body.jobId, (data) => setScript(data.scriptText));
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Could not start authoring.");
+    }
+  }
 
   async function handleGenerate() {
     if (!script.trim()) {
@@ -392,9 +426,58 @@ export const GeneratePage: React.FC = () => {
   return (
     <div className="flex flex-col gap-4">
     <div className="grid grid-cols-12 gap-4">
+      <Card span={12} tone="accent" eyebrow="Author with AI">
+        <p className="text-sm mb-3 opacity-80">
+          Describe the video. The model picks a medium per scene, writes each scene against that
+          medium's real schema, and repairs its own output against the same validators this page
+          already runs — then drops the script below, ready to review.
+        </p>
+        <div className="flex flex-wrap gap-2.5 items-start">
+          <input
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !author.authoring && topic.trim()) handleAuthor();
+            }}
+            placeholder="e.g. why your phone battery drains faster in the cold"
+            className="flex-1 min-w-[280px] bg-bg text-text border-2 border-border rounded-xl px-3.5 py-2.5 text-[13px]"
+          />
+          <select
+            value={llm}
+            onChange={(e) => setLlm(e.target.value)}
+            className="bg-bg text-text border-2 border-border rounded-xl px-3 py-2.5 text-[13px]"
+          >
+            <option value="gemini">Gemini (free)</option>
+            <option value="groq">Groq (free)</option>
+            <option value="cerebras">Cerebras (free)</option>
+            <option value="openrouter">OpenRouter (free)</option>
+            <option value="mistral">Mistral (free)</option>
+            <option value="ollama">Ollama (local)</option>
+            <option value="anthropic">Claude (paid)</option>
+          </select>
+          <input
+            value={sceneCount}
+            onChange={(e) => setSceneCount(e.target.value.replace(/[^0-9]/g, ""))}
+            placeholder="scenes"
+            title="Leave blank to let the model choose how many scenes the topic needs."
+            className="w-[92px] bg-bg text-text border-2 border-border rounded-xl px-3 py-2.5 text-[13px]"
+          />
+        </div>
+        <Button onClick={handleAuthor} disabled={author.authoring || !topic.trim()}>
+          {author.authoring ? "Authoring..." : "Author script"}
+        </Button>
+        {author.status && (
+          <p
+            className={`text-[13px] mt-3 font-mono ${author.statusIsError ? "text-red-700" : "opacity-80"}`}
+          >
+            {author.status}
+          </p>
+        )}
+      </Card>
+
       <Card span={8} eyebrow="Script">
         <p className="text-text-dim text-sm mb-3">
-          Paste an analysis script — either the prose+tags format or the Scene Specification (
+          Author one above, or paste an analysis script — either the prose+tags format or the Scene Specification (
           <code className="bg-white/5 px-1.5 py-0.5 rounded text-[0.92em]">### SCENE N</code>) format,
           auto-detected.
         </p>

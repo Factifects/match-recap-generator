@@ -23,6 +23,8 @@ import {
 import { AppSurface } from "./AppSurface";
 import { ContextSurface } from "./ContextSurface";
 import { Silhouette, BrandMark, boxZones, labelOffsetFor, hexCells, hexPath, CityMap } from "./stageSilhouettes";
+import { moveWithWeight, springSettle, squashFromIntensity, staggerDelay } from "../choreography";
+import { FPS as PROJECT_FPS } from "../theme";
 import { tokenizeLine, CODE_COLORS } from "../../script/tokenizeCode";
 import type { SharedVisualProps, StageData } from "../sharedVisualProps";
 
@@ -58,14 +60,29 @@ const MONO_FONT = '"JetBrains Mono", "SF Mono", "Menlo", monospace';
 
 type AccentSet = Record<StageAccent, { stroke: string; fill: string; glow: string }>;
 
+/** Fill opacity for a dark-ground object.
+ *
+ * Was 0.13-0.16, which is why every dark-theme scene read as a WIREFRAME: at
+ * that alpha a shape is a stroked outline with a barely-tinted interior, so a
+ * frame full of objects is a frame full of thin lines and the eye has nothing
+ * to land on. Rendered and looked at (2026-09-01), the whole medium read as a
+ * blueprint of a video rather than a finished one.
+ *
+ * At ~0.4 a shape has a BODY: it separates from the background, reads as an
+ * object rather than an annotation, and gives large type something solid to sit
+ * on. Still translucent enough that overlapping shapes and the ground texture
+ * behind them stay visible, which is what the low value was protecting. */
+const DARK_FILL_ALPHA = 0.4;
+const DARK_FILL_ALPHA_STRONG = 0.46;
+
 function accentSet(primary: string, primaryRgb: string, neutral: string, neutralRgb: string): AccentSet {
   return {
-    neutral: { stroke: neutral, fill: `rgba(${neutralRgb}, 0.14)`, glow: `rgba(${neutralRgb}, 0)` },
-    primary: { stroke: primary, fill: `rgba(${primaryRgb}, 0.13)`, glow: `rgba(${primaryRgb}, 0.32)` },
-    warn: { stroke: "#f59e0b", fill: "rgba(245, 158, 11, 0.14)", glow: "rgba(245, 158, 11, 0.30)" },
-    success: { stroke: "#22c55e", fill: "rgba(34, 197, 94, 0.14)", glow: "rgba(34, 197, 94, 0.30)" },
-    danger: { stroke: "#f43f5e", fill: "rgba(244, 63, 94, 0.16)", glow: "rgba(244, 63, 94, 0.34)" },
-    profile: { stroke: "#c084fc", fill: "rgba(192, 132, 252, 0.15)", glow: "rgba(192, 132, 252, 0.32)" },
+    neutral: { stroke: neutral, fill: `rgba(${neutralRgb}, ${DARK_FILL_ALPHA})`, glow: `rgba(${neutralRgb}, 0)` },
+    primary: { stroke: primary, fill: `rgba(${primaryRgb}, ${DARK_FILL_ALPHA})`, glow: `rgba(${primaryRgb}, 0.32)` },
+    warn: { stroke: "#f59e0b", fill: `rgba(245, 158, 11, ${DARK_FILL_ALPHA})`, glow: "rgba(245, 158, 11, 0.30)" },
+    success: { stroke: "#22c55e", fill: `rgba(34, 197, 94, ${DARK_FILL_ALPHA})`, glow: "rgba(34, 197, 94, 0.30)" },
+    danger: { stroke: "#f43f5e", fill: `rgba(244, 63, 94, ${DARK_FILL_ALPHA_STRONG})`, glow: "rgba(244, 63, 94, 0.34)" },
+    profile: { stroke: "#c084fc", fill: `rgba(192, 132, 252, ${DARK_FILL_ALPHA_STRONG})`, glow: "rgba(192, 132, 252, 0.32)" },
   };
 }
 
@@ -87,6 +104,21 @@ const WORLDS: Record<
   string,
   { accents: AccentSet; backdrop: "grid" | "scanlines" | "field" | "depth" | "scanner" | "streets" | "branches" | "none"; edge: string; tint: string; flow: number; pulse: number }
 > = {
+  // A world for INFERENCE — computation that is deciding rather than moving
+  // data around. Editorial rather than instrumental: an electric blue that
+  // reads as live computation, a violet for the probability side, and a
+  // deliberately BRIGHT neutral, because this world spends most of its time
+  // drawing bar tracks and score fields. `network`'s #4a5a72 at 14% alpha is
+  // what made those tracks read as mud and the whole frame as gloomy — an
+  // inactive value still has to look like a value, not like a shadow.
+  inference: {
+    accents: accentSet("#3B82F6", "59, 130, 246", "#9FB0CC", "159, 176, 204"),
+    backdrop: "depth",
+    edge: "rgba(190, 205, 235, 0.6)",
+    tint: "rgba(59, 130, 246, 0.06)",
+    flow: 1.15,
+    pulse: 1.1,
+  },
   network: {
     accents: accentSet("#22d3ee", "34, 211, 238", "#4a5a72", "74, 90, 114"),
     backdrop: "grid",
@@ -254,19 +286,18 @@ function ease(t: number): number {
   return interpolate(t, [0, 1], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) });
 }
 
-/** Overshoot. A composition change eased with plain cubic-out is CORRECT and
- * reads as soft — objects glide politely into place and the frame feels like a
- * slide transition. Short-form motion lands: it goes slightly past its mark and
- * settles back, which is what makes a move read as a decision rather than a
- * drift. This is the default for anything that MOVES (compositions, entrances,
- * impacts); plain `ease` stays the default for anything that FADES, because
- * overshooting an opacity just flickers. */
-function easeSnap(t: number): number {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  const x = Math.max(0, Math.min(1, t));
-  return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
-}
+/** THE RULE THAT SURVIVED `easeSnap`, which this file used to define here.
+ *
+ * A composition change eased with plain cubic-out is CORRECT and reads as soft
+ * — objects glide politely into place and the frame feels like a slide
+ * transition. Motion that LANDS goes slightly past its mark and settles back,
+ * which is what makes a move read as a decision rather than a drift.
+ *
+ * That is the default for anything that MOVES (compositions, entrances,
+ * impacts), and `moveWithWeight` in choreography.ts now supplies it along with
+ * the anticipation `easeSnap` lacked. Plain `ease` remains the default for
+ * anything that FADES: an overshooting opacity just flickers.
+ */
 
 function progress(atSeconds: number, start: number, duration: number): number {
   if (duration <= 0) return atSeconds >= start ? 1 : 0;
@@ -358,6 +389,50 @@ function cloneComposition(composition: StageComposition): StageComposition {
  * discrete `hidden` set on purpose: layout packing needs a yes/no answer (a
  * half-present object should already have its final slot reserved), while
  * drawing needs a smooth one. */
+/** RAW (un-eased) entrance progress per object, 0-1.
+ *
+ * `visibilityAt` returns progress already through a cubic ease-out, which is
+ * correct for opacity and wrong for anything that should LAND. Applying a
+ * spring on top of an eased value curves an already-curved input and loses the
+ * overshoot; a spring needs the linear ramp.
+ *
+ * Kept as a second pass rather than folded into `visibilityAt` because the two
+ * answer different questions — that function reports how PRESENT an object is
+ * (which exits and composition-hides also change), while this reports how far
+ * through its own entrance it is, and only entrances have one. */
+function entranceRawAt(objects: StageObjectInput[], timeline: StageAction[], atSeconds: number): Map<string, number> {
+  type EnterAction = Extract<StageAction, { type: "enter" }>;
+  const enters = timeline.filter((a): a is EnterAction => a.type === "enter");
+  const entering = new Set(enters.map((a) => a.id));
+  const result = new Map<string, number>(objects.map((o) => [o.id, entering.has(o.id) ? 0 : 1]));
+
+  // Objects declared to enter on the SAME beat are cascaded a few frames apart
+  // rather than arriving together. Simultaneous arrival reads as a diagram
+  // being switched on; a cascade has a direction, and the eye follows it
+  // instead of trying to take in the whole frame at once. This is the single
+  // cheapest upgrade available to any multi-object scene, and it costs the
+  // author nothing — scenes already written keep their authored timings and
+  // simply gain the offset.
+  const byBeat = new Map<number, EnterAction[]>();
+  for (const action of enters) {
+    const group = byBeat.get(action.startSeconds) ?? [];
+    group.push(action);
+    byBeat.set(action.startSeconds, group);
+  }
+
+  for (const group of byBeat.values()) {
+    group.forEach((action, index) => {
+      // staggerDelay works in frames; entrance timings here are in seconds.
+      const delaySeconds = staggerDelay(index, group.length) / PROJECT_FPS;
+      result.set(
+        action.id,
+        rawProgress(atSeconds, action.startSeconds + delaySeconds, action.durationSeconds ?? 0.5),
+      );
+    });
+  }
+  return result;
+}
+
 function visibilityAt(objects: StageObjectInput[], timeline: StageAction[], atSeconds: number): Map<string, number> {
   const everEntered = new Set(timeline.filter((a) => a.type === "enter").map((a) => (a as { id: string }).id));
   const result = new Map<string, number>(objects.map((o) => [o.id, everEntered.has(o.id) ? 0 : 1]));
@@ -529,13 +604,18 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
     }
     if (index === 0) return layouts[0];
     const k = keyframes[index];
-    // Geometry overshoots and settles; this is the single biggest difference
-    // between "the diagram rearranged" and "the system moved".
-    const t = easeSnap(rawProgress(atSeconds, k.atSeconds, k.durationSeconds));
+    // Geometry WINDS UP, travels, overshoots and settles. The previous curve
+    // gave it the overshoot, which is most of the difference between "the
+    // diagram rearranged" and "the system moved" — but it started instantly, so
+    // the move still began as a jump. Anticipation is the missing third of it:
+    // a composition that drifts slightly against its direction of travel before
+    // going reads as having DECIDED to move, because that is what mass does.
+    const t = moveWithWeight(rawProgress(atSeconds, k.atSeconds, k.durationSeconds), 0, 1, 0, 1);
     return blendLayouts(layouts[index - 1], layouts[index], t, edges, unit);
   }, [keyframes, layouts, atSeconds, edges, unit]);
 
   const visibility = React.useMemo(() => visibilityAt(objects, timeline, atSeconds), [objects, timeline, atSeconds]);
+  const entranceRaw = React.useMemo(() => entranceRawAt(objects, timeline, atSeconds), [objects, timeline, atSeconds]);
   const boxById = React.useMemo(() => new Map(layout.boxes.map((b) => [b.id, b])), [layout]);
 
   // ---- folded per-object state -------------------------------------------
@@ -1387,7 +1467,10 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
   // over normal-speed motion.
   const clockFactor = timeLapse ? 1 + (timeLapse.factor - 1) * Math.min(1, timeLapse.t * 4) : 1;
 
-  const strokeBase = Math.max(2.5, unit * 0.0032);
+  // Raised from 2.5 / 0.0032. A 2.5px stroke on a 1080-wide frame is a hairline
+  // on a phone — it reads as a technical drawing rather than as a designed
+  // object, and it is half of why the medium looked weightless.
+  const strokeBase = Math.max(4, unit * 0.0046);
 
   return (
     <SceneFrame
@@ -1717,10 +1800,13 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
             const shapeTransform = spin === 0 ? undefined : `rotate(${spin} ${box.x} ${box.y})`;
             const boxInk = darkSurface ? "#fbf7ee" : INK;
             const boxInkSoft = darkSurface ? "rgba(251, 247, 238, 0.66)" : INK_SOFT;
-            const present = visibility.get(box.id) ?? 1;
-            // Entering objects scale up slightly into place; a pure fade reads
-            // as a slide deck, a slight overshoot reads as arrival.
             const pop = pops.get(box.id) ?? 0;
+            // A struck object DEFORMS. Until now an impact drew an expanding
+            // ring around a box that stayed perfectly rigid, which reads as an
+            // effect played over the object rather than something happening to
+            // it. Volume-conserving squash is what makes the hit land on the
+            // thing itself.
+            const impactSquash = squashFromIntensity(impacts.get(box.id) ?? 0);
             const isLeadBox = box.emphasis === "lead";
             // The subject BREATHES. Continuous, tiny, and only on whatever is
             // currently leading — enough that the frame is never completely
@@ -1730,9 +1816,19 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
             // not as the app being active — and the app shows it is active
             // through its own content. Same for a printed code: a QR that
             // pulses is a QR nobody can scan.
-            const inanimate = !!box.ui || box.kind === "qr" || box.kind === "bars";
+            const inanimate = !!box.ui || box.kind === "qr" || box.kind === "bars" || box.kind === "scoreField";
             const breathe = isLeadBox && !inanimate ? Math.sin(atSeconds * 2.1 * world.pulse) * 0.012 * energy : 0;
-            const rawScale = (0.9 + 0.1 * present) * (1 + pop * 0.14 + breathe);
+            // An entering object SETTLES rather than glides. `present` is
+            // already through a cubic ease-out — fine for opacity, but a scale
+            // driven by it grows politely into place and reads as a slide
+            // building itself. A spring on the raw entrance ramp overshoots
+            // slightly and comes back, which is what makes an object read as
+            // having arrived. Opacity deliberately keeps the plain ease: an
+            // overshooting opacity just flickers (see the landing-motion note
+            // near the top of this file).
+            const enterRaw = entranceRaw.get(box.id) ?? 1;
+            const entranceScale = springSettle(enterRaw, 0, 1, 0.9, 1, 0.28);
+            const rawScale = entranceScale * (1 + pop * 0.14 + breathe);
             // A pop is an emphasis, and an emphasis must not cost containment.
             // An object already sized close to the safe area — a container, a
             // map, anything at `lead` — has nowhere to grow into, so a 14% pop
@@ -1755,8 +1851,31 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
             // from box height alone, a `lead` object's caption grew into
             // headline type and collided with its neighbours — emphasis should
             // enlarge the OBJECT, not its label.
-            const labelPx = Math.min(boxUnit * 0.05, Math.max(30 * (boxUnit / 1080), box.height * 0.2));
-            const subPx = Math.min(boxUnit * 0.034, Math.max(22 * (boxUnit / 1080), box.height * 0.14));
+            // TYPE SCALES WITH ITS OBJECT.
+            //
+            // The cap came from the FRAME, not the box, so it topped out around
+            // 54px however large the object was — scaling an object up produced
+            // a bigger box holding the same small text, which is what made
+            // enlarged beats look under-filled rather than bolder. The ceiling
+            // is raised now that `fitPx` below shrinks anything too wide, so a
+            // big object can carry big type and a narrow one still can't spill.
+            const labelPxRaw = Math.min(boxUnit * 0.09, Math.max(30 * (boxUnit / 1080), box.height * 0.26));
+            const subPxRaw = Math.min(boxUnit * 0.055, Math.max(22 * (boxUnit / 1080), box.height * 0.16));
+            // A LABEL MUST FIT ITS OWN BOX.
+            //
+            // The plate was capped at the box width while the text was not, so a
+            // long label ran straight out through both sides — a whole sentence
+            // in a `note` clipped at each edge and read as neither. The type now
+            // shrinks to the room it actually has, which is the difference
+            // between a tight caption and an unreadable one.
+            const fitPx = (text: string | undefined, px: number, room: number) => {
+              if (!text) return px;
+              const measured = text.length * px * 0.56;
+              return measured > room ? Math.max(px * 0.45, px * (room / measured)) : px;
+            };
+            const textRoom = box.width * 0.9;
+            const labelPx = fitPx(box.label, labelPxRaw, textRoom);
+            const subPx = fitPx(box.sublabel, subPxRaw, textRoom);
             const shift = labelOffsetFor(box);
             const isLead = isLeadBox;
             return (
@@ -1764,7 +1883,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                 key={box.id}
                 opacity={op * (1 - decay * 0.45)}
                 style={decay > 0 ? { filter: `saturate(${1 - decay * 0.8})` } : undefined}
-                transform={`translate(${box.x + jitter + (nudges.get(box.id)?.dx ?? 0)} ${box.y + (nudges.get(box.id)?.dy ?? 0)}) scale(${enterScale}) translate(${-box.x} ${-box.y})`}
+                transform={`translate(${box.x + jitter + (nudges.get(box.id)?.dx ?? 0)} ${box.y + (nudges.get(box.id)?.dy ?? 0)}) scale(${enterScale * impactSquash.scaleX} ${enterScale * impactSquash.scaleY}) translate(${-box.x} ${-box.y})`}
               >
                 {impacts.has(box.id) ? (
                   // The target visibly TAKES the hit — a ring blowing outward
@@ -1810,7 +1929,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                     streets and blocks showed straight through the objects and
                     their labels became unreadable. An object has to separate
                     from whatever it stands on, whatever that happens to be. */}
-                {!box.ui && box.kind !== "hexmap" && box.kind !== "region" && box.kind !== "bars" && box.kind !== "memory" && box.kind !== "browserWindow" ? (
+                {!box.ui && box.kind !== "hexmap" && box.kind !== "region" && box.kind !== "bars" && box.kind !== "scoreField" && box.kind !== "memory" && box.kind !== "browserWindow" ? (
                   light ? (
                     // Neo-brutalist: one solid offset copy, no blur, no tint.
                     <g opacity={0.16} transform={`translate(${unit * 0.007} ${unit * 0.007}) ${shapeTransform ?? ""}`}>
@@ -1997,6 +2116,80 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                       );
                     })()
                   : null}
+                {box.kind === "scoreField"
+                  ? (() => {
+                      /** A FIELD OF POSSIBILITIES, READ BY MASS.
+                       *
+                       * Same data as `bars`, same `score` action driving it —
+                       * but drawn as discs whose AREA is the value, so the
+                       * distribution has weight instead of being a table. That
+                       * matters for anything that spreads and collapses: four
+                       * rows changing length is a chart updating, whereas one
+                       * disc swallowing the frame while the rest shrink to dots
+                       * is the collapse itself.
+                       *
+                       * Area — not radius — carries the value. Radius would
+                       * exaggerate every difference, and this field exists to
+                       * make an almost-tie look like an almost-tie. */
+                      const series = box.series ?? [];
+                      if (series.length === 0) return null;
+                      const values = series.map((sr, i) => Math.max(0, Math.min(1, (barScores.get(box.id) ?? series.map((x) => x.value))[i] ?? sr.value)));
+                      const peak = Math.max(...values, 0.0001);
+                      const slot = box.width / series.length;
+                      // The largest disc fills its slot without touching its
+                      // neighbour, and never taller than the box allows.
+                      const maxR = Math.min(slot * 0.42, box.height * 0.34);
+                      const captionPx = Math.min(box.height * 0.11, slot * 0.19);
+                      // PRECISION ENOUGH TO SHOW THE MARGIN.
+                      //
+                      // Rounding to whole percent printed 0.402 and 0.398 as the
+                      // same "40", which erased the four-thousandth gap an entire
+                      // explanation was built on: the narration said one was
+                      // ahead while the screen showed a tie. Enough decimals are
+                      // used to separate the closest pair, so a near-tie reads as
+                      // a near-tie rather than as equality.
+                      const sorted = [...values].sort((a, b) => b - a);
+                      const closest = sorted.length > 1 ? Math.min(...sorted.slice(1).map((x, k) => Math.abs(sorted[k] - x))) : 1;
+                      const decimals = closest >= 0.05 ? 2 : closest >= 0.005 ? 3 : 4;
+                      const left = box.x - box.width / 2;
+                      const cy = box.y - box.height * 0.08;
+                      return (
+                        <g>
+                          {series.map((sr, i) => {
+                            const v = values[i];
+                            const r = Math.max(maxR * 0.07, maxR * Math.sqrt(v / peak));
+                            const cx = left + slot * (i + 0.5);
+                            const leading = v >= peak - 0.0001;
+                            const acc = ACCENTS[sr.accent ?? (i === 0 ? "primary" : i === 1 ? "warn" : "neutral")];
+                            return (
+                              <g key={sr.label}>
+                                <circle cx={cx} cy={cy} r={r} fill={acc.fill} stroke={acc.stroke} strokeWidth={leading ? 3 : 1.6} />
+                                {/* The number lives inside only while the disc
+                                    can actually hold it; below that it would be
+                                    text sitting on a shape it overflows. */}
+                                {r > captionPx * 1.5 ? (
+                                  <text x={cx} y={cy + captionPx * 0.36} textAnchor="middle" fill={INK} fontFamily={STAGE_FONT} fontWeight={900} fontSize={Math.min(r * 0.72, captionPx * 1.25)}>
+                                    {v.toFixed(decimals)}
+                                  </text>
+                                ) : null}
+                                <text
+                                  x={cx}
+                                  y={cy + maxR + captionPx * 1.25}
+                                  textAnchor="middle"
+                                  fill={leading ? INK : INK_SOFT}
+                                  fontFamily={STAGE_FONT}
+                                  fontWeight={leading ? 900 : 700}
+                                  fontSize={captionPx}
+                                >
+                                  {sr.label}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </g>
+                      );
+                    })()
+                  : null}
                 {box.kind === "bars"
                   ? (() => {
                       /** COMPETING QUANTITIES, READ BY LENGTH.
@@ -2080,7 +2273,7 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                       );
                     })()
                   : null}
-                {box.kind === "bars" || box.kind === "memory" || box.kind === "browserWindow" ? null : (() => {
+                {box.kind === "bars" || box.kind === "scoreField" || box.kind === "memory" || box.kind === "browserWindow" ? null : (() => {
                   const form = forms.get(box.id);
                   // A SHAPE THAT HAS STATES needs to be drawn in the state it is
                   // currently in. `phase` moves an object through its declared
@@ -2400,26 +2593,38 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                       // when it succeeds. The bar is the part that matters —
                       // brackets alone are a frame, and a frame is not an act.
                       const scan = scans.get(box.id)!;
-                      const side = Math.min(box.width, box.height);
-                      const pad = side * 0.09;
-                      const half = side / 2 + pad;
-                      const arm = side * 0.2;
+                      // Bracket/sweep extents were both derived from a single
+                      // `side = Math.min(width, height)`, which quietly assumed
+                      // the target is roughly square. On a wide object (an `app`
+                      // filling most of the frame, width >> height) that put a
+                      // small square reticle floating in the middle of the box
+                      // with no relation to its actual edges — four disconnected
+                      // brackets near the top/bottom and a sweep bar far short
+                      // of the real width. Sizing width and height independently
+                      // is what makes the reticle actually track the object.
+                      const scaleRef = Math.min(box.width, box.height);
+                      const pad = scaleRef * 0.09;
+                      const halfW = box.width / 2 + pad;
+                      const halfH = box.height / 2 + pad;
+                      const arm = scaleRef * 0.2;
                       const colour = scan.locked ? "#22c55e" : "rgba(34, 197, 94, 0.85)";
-                      const stroke = Math.max(2.5, side * 0.011);
+                      const stroke = Math.max(2.5, scaleRef * 0.011);
                       // Brackets settle inward over the first third of the pass.
                       const ease = Math.min(1, scan.t * 3);
-                      const off = half + side * 0.06 * (1 - ease);
+                      const inset = scaleRef * 0.06 * (1 - ease);
+                      const offW = halfW + inset;
+                      const offH = halfH + inset;
                       const corner = (sx: number, sy: number) => (
                         <path
                           key={`${sx}-${sy}`}
-                          d={`M ${box.x + sx * off} ${box.y + sy * off - sy * arm} L ${box.x + sx * off} ${box.y + sy * off} L ${box.x + sx * off - sx * arm} ${box.y + sy * off}`}
+                          d={`M ${box.x + sx * offW} ${box.y + sy * offH - sy * arm} L ${box.x + sx * offW} ${box.y + sy * offH} L ${box.x + sx * offW - sx * arm} ${box.y + sy * offH}`}
                           fill="none"
                           stroke={colour}
                           strokeWidth={stroke}
                           strokeLinecap="round"
                         />
                       );
-                      const sweepY = box.y - half + 2 * half * Math.min(1, scan.t);
+                      const sweepY = box.y - halfH + 2 * halfH * Math.min(1, scan.t);
                       return (
                         <g>
                           {corner(-1, -1)}
@@ -2428,19 +2633,19 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                           {corner(1, 1)}
                           {!scan.locked ? (
                             <>
-                              <rect x={box.x - half} y={sweepY - side * 0.09} width={half * 2} height={side * 0.09} fill="rgba(34,197,94,0.16)" />
-                              <rect x={box.x - half} y={sweepY} width={half * 2} height={Math.max(2, side * 0.007)} fill="#22c55e" />
+                              <rect x={box.x - halfW} y={sweepY - scaleRef * 0.09} width={halfW * 2} height={scaleRef * 0.09} fill="rgba(34,197,94,0.16)" />
+                              <rect x={box.x - halfW} y={sweepY} width={halfW * 2} height={Math.max(2, scaleRef * 0.007)} fill="#22c55e" />
                             </>
                           ) : (
                             <rect
-                              x={box.x - half}
-                              y={box.y - half}
-                              width={half * 2}
-                              height={half * 2}
+                              x={box.x - halfW}
+                              y={box.y - halfH}
+                              width={halfW * 2}
+                              height={halfH * 2}
                               fill="none"
                               stroke="rgba(34,197,94,0.35)"
                               strokeWidth={stroke * 0.8}
-                              rx={side * 0.03}
+                              rx={scaleRef * 0.03}
                             />
                           )}
                         </g>
@@ -2801,7 +3006,24 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
             );
           })}
 
-          {[...livePackets.entries()].map(([id, p]) => {
+          {(() => {
+            /** PARKED PACKETS NEED A LANE, NOT A FAN.
+             *
+             * They used to spread horizontally by index with a two-percent
+             * vertical nudge, which works for two and collapses for six: the
+             * labels overlap each other and the row walks off the right of the
+             * frame. Ordering them per host and stacking them vertically means
+             * the nth packet cannot land on the (n-1)th, however many there are
+             * and however long their labels run. */
+            const parkedOrder = new Map<string, number>();
+            const perHost = new Map<string, number>();
+            for (const [id, p] of livePackets.entries()) {
+              if (!p.at || p.flight || p.absorbing) continue;
+              const n = perHost.get(p.at) ?? 0;
+              parkedOrder.set(id, n);
+              perHost.set(p.at, n + 1);
+            }
+            return [...livePackets.entries()].map(([id, p]) => {
             if (p.opacity <= 0.02) return null;
             let point: { x: number; y: number } | null = null;
             let dir = { x: 1, y: 0 };
@@ -2857,10 +3079,15 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
               const host = boxById.get(p.at);
               if (host) {
                 const right = host.x < width * 0.55;
-                const fan = p.spread ? p.spread.index * unit * 0.16 * p.spread.t : 0;
+                const rank = parkedOrder.get(id) ?? 0;
+                // One packet-height per step, so labels of any length clear each
+                // other, and the column starts at the host's top edge so a tall
+                // stack grows downward through free space rather than upward
+                // into the annotation zone.
+                const step = unit * 0.15;
                 point = {
-                  x: host.x + (right ? host.width / 2 + unit * 0.12 : -(host.width / 2 + unit * 0.12)) + fan,
-                  y: host.y - host.height * 0.28 - (p.spread ? Math.abs(p.spread.index) * unit * 0.02 * p.spread.t : 0),
+                  x: host.x + (right ? host.width / 2 + unit * 0.13 : -(host.width / 2 + unit * 0.13)),
+                  y: host.y - host.height * 0.34 + rank * step,
                 };
               }
             }
@@ -2881,7 +3108,8 @@ export const StageCard: React.FC<SharedVisualProps & { data: StageData }> = ({
                 atSeconds={atSeconds}
               />
             );
-          })}
+            });
+          })()}
 
           {packets.map((packet) => (
             <Packet
@@ -3699,9 +3927,12 @@ const BeatText: React.FC<{
         ? "#c81e3c"
         : "#f43f5e"
       : beat.tone === "reveal"
-        ? light
-          ? "#0b6b78"
-          : "#0ea5b7"
+        ? // WHITE, NOT TEAL. A headline that IS the visual has to be the
+          // brightest thing in the frame; the teal read as a third colour
+          // competing with the red rather than as the payoff of a beat.
+          light
+          ? "#10141b"
+          : "#ffffff"
         : ink;
   const rise = (1 - beat.progress) * unit * 0.03;
   const huge = beat.size === "huge";

@@ -6,6 +6,7 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
     "@heroicons/react": "^2.2.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
@@ -57,7 +58,10 @@
     "build": "remotion bundle src/video/index.ts",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "author": "tsx src/authorCli.ts",
+    "author:motion": "tsx scripts/generateMotionScene.ts",
+    "short": "tsx src/shortCli.ts"
   },
   "sideEffects": [
     "*.css"

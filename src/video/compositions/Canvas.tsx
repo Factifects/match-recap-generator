@@ -2,7 +2,7 @@ import React from "react";
 import { useCurrentFrame, staticFile, interpolate, interpolateColors, Img } from "remotion";
 import { Lottie } from "@remotion/lottie";
 import { Gif } from "@remotion/gif";
-import { COLORS, FONT_FAMILY, SUBTITLE_FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter, FPS } from "../theme";
+import { COLORS, FONT_FAMILY, SUBTITLE_FONT_FAMILY, TITLE_STYLE, PLAYER_LABEL_STYLE, colorForCharacter, labelColorOnFill, FPS } from "../theme";
 import { SceneFrame } from "./SceneFrame";
 import { fadeIn, drawIn, pulse, settleFrom, type EasingName } from "../motion";
 import { CANVAS_ICON_COMPONENTS } from "../canvasIcons";
@@ -1372,21 +1372,19 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                       opacity={opacity}
                       style={object.glass ? withGlassBackdrop(transformStyle) : transformStyle}
                     />
-                    {object.label &&
+                    {effectiveLabel &&
                       (() => {
                         // autoSize computed the box to fit exactly one line at
                         // CARD_FONT_SIZE_PX — cap wrapLabel at that same size
                         // instead of its normal 36px ceiling, or it would try
                         // to wrap/shrink text into a box sized for a smaller
                         // font than it's about to render at.
-                        const wrapped = wrapLabel(object.label ?? "", object.autoSize ? CARD_FONT_SIZE_PX : 36, (w * 0.9) / camZoom, object.autoSize ? 1 : 2);
+                        const wrapped = wrapLabel(effectiveLabel ?? "", object.autoSize ? CARD_FONT_SIZE_PX : 36, (w * 0.9) / camZoom, object.autoSize ? 1 : 2);
+                        // Contrast read from the fill this rect ACTUALLY has,
+                        // via the shared rule — see labelColorOnFill in
+                        // theme.ts for the failure this replaced.
+                        const onFill = object.filled && !object.glass;
                         return (
-                          // Rectangles default to a fully opaque, bright
-                          // fill — dark text centered inside reads far
-                          // better there than white-on-bright, matching the
-                          // same convention TreemapCard/PackedCirclesCard
-                          // already use for labels sitting directly on a
-                          // solid color fill.
                           <text
                             y={py}
                             textAnchor="middle"
@@ -1394,7 +1392,7 @@ export const Canvas: React.FC<{ data: CanvasData } & SharedVisualProps> = ({
                             fontFamily={FONT_FAMILY}
                             fontWeight={700}
                             fontSize={wrapped.fontSize}
-                            fill={object.filled && !object.glass ? "#111315" : COLORS.text}
+                            fill={onFill ? labelColorOnFill(color) : COLORS.text}
                             opacity={opacity}
                             style={transformStyle}
                           >

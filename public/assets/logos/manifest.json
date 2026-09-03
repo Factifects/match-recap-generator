@@ -548,5 +548,55 @@
     "source": "https://api.iconify.design/simple-icons/microsoft.svg",
     "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
     "fetchedAt": "2026-08-31T09:14:36.799Z"
+  },
+  "adobeacrobatreader": {
+    "slug": "adobeacrobatreader",
+    "title": "adobeacrobatreader",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/adobeacrobatreader.svg",
+    "source": "https://api.iconify.design/simple-icons/adobeacrobatreader.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-09-02T09:42:09.589Z"
+  },
+  "ubuntu": {
+    "slug": "ubuntu",
+    "title": "ubuntu",
+    "hex": "#dd4814",
+    "monochrome": false,
+    "staticPath": "assets/logos/ubuntu.svg",
+    "source": "https://api.iconify.design/logos/ubuntu.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-09-03T10:39:42.695Z"
+  },
+  "linux": {
+    "slug": "linux",
+    "title": "Linux",
+    "hex": "#FCC624",
+    "monochrome": true,
+    "staticPath": "assets/logos/linux.svg",
+    "source": "https://cdn.simpleicons.org/linux",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-09-03T10:39:42.956Z"
+  },
+  "windows": {
+    "slug": "windows",
+    "title": "windows",
+    "hex": "#94a3b8",
+    "monochrome": true,
+    "staticPath": "assets/logos/windows.svg",
+    "source": "https://api.iconify.design/simple-icons/windows.svg",
+    "license": "Icon file via the Iconify API (api.iconify.design); each source set carries its own licence (SVG Logos: CC0; Carbon: Apache-2.0). Trademarks remain the property of their respective owners.",
+    "fetchedAt": "2026-09-03T10:39:43.196Z"
+  },
+  "android": {
+    "slug": "android",
+    "title": "Android",
+    "hex": "#3DDC84",
+    "monochrome": true,
+    "staticPath": "assets/logos/android.svg",
+    "source": "https://cdn.simpleicons.org/android",
+    "license": "Icon file: CC0-1.0 via Simple Icons (simpleicons.org). Trademarks remain the property of their respective owners; used here for editorial identification.",
+    "fetchedAt": "2026-09-03T10:39:43.224Z"
   }
 }

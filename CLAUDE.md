@@ -60,6 +60,61 @@ It is:
 > "What is physically or temporally happening in the concept being explained,
 > and what visual behavior would demonstrate that to a viewer?"
 
+## Designing a beat: BEFORE / TRIGGER / EVENT / AFTER
+
+Added 2026-09-01, from a direction note that corrected two earlier drafts of the
+file-systems script. It is the operational form of "Visualize the mechanism" —
+that principle says WHAT to aim at; this says HOW to design one beat.
+
+Every important visual beat is designed before its narration is written:
+
+| | |
+|---|---|
+| **BEFORE** | What does the viewer currently believe they are looking at? |
+| **TRIGGER** | What new information or action changes the visual world? |
+| **EVENT** | Exactly what happens on screen — objects moving with intention, transforming for a reason, producing a visible consequence. |
+| **AFTER** | What does the viewer now understand that they did not before? |
+
+**The EVENT is written as a physical description, never as a timeline verb.** A
+verb describes movement; it does not describe a comprehensible event. "Bytes
+scatter into blocks" is not an instruction — "the file surface tears apart, its
+contents separate into byte fragments, each travels deliberately into a numbered
+cell, and the motion stops only once one apparently single file is visibly
+pieces in scattered locations" is. **The verb is an implementation detail chosen
+last.**
+
+Creative order of operations — the renderer's vocabulary comes SIXTH:
+
+1. What invisible mechanism is being explained?
+2. What physical event would make it intuitive?
+3. What does the viewer expect beforehand?
+4. Can the animation deliberately violate that expectation?
+5. What visual consequence proves the explanation?
+6. *Only then* choose timeline actions.
+
+Never choose a visual idea because the engine has a convenient action for it.
+
+Three rules that follow from this, all now in `ENGINE_DOCTRINE`
+(`src/ai/doctrine.ts`) so authoring inherits them:
+
+- **Transform the world; do not replace it.** When one idea leads to the next,
+  transform the existing frame rather than clearing it for an unrelated
+  composition. The transition IS part of the explanation — a chain reorganising
+  into structured records explains an architectural difference better than any
+  label. Resetting the stage every scene is what makes a video a slideshow.
+- **Do not narrate what the viewer can already see.** The animation is the
+  evidence; the narration is the meaning. Not "the blocks are connecting" but
+  "reaching the last block means following every connection before it."
+- **The animation may lead the narration** — anticipate the sentence, contradict
+  what the viewer expects, then reveal. Showing a consequence before naming it is
+  usually stronger than explaining first and illustrating after.
+
+A NOTE ON COST: this material more than doubled the doctrine prompt (1,184 ->
+~2,500 tokens). It is the cached prefix of every authoring call, so
+`authorScript.ts` derives its per-call token reserve from `ENGINE_DOCTRINE`'s
+actual length rather than hardcoding it — a constant there goes stale the next
+time this section grows, and the failure it produces is a 413 no retry can clear.
+
 ## Semantic → visual mapping
 
 | Semantics | Visual |
@@ -407,7 +462,183 @@ Snapshot as of 2026-08-10. Verify before relying on any line here.
   unnarrated visual beats. Wired into `generate.ts` between
   `resolveSegmentAudio` and validation, and into `previewScene`.
 
+- **AI script authoring with validator-driven self-repair (landed 2026-09-01).**
+  `src/ai/` closes the loop the engine never had: a topic in, a validated
+  `analyses/*.txt` script out, with no human authoring a `Data:` block. Two
+  entry points, one pipeline: `npm run author -- --topic "..."` from the
+  terminal, and an "Author with AI" prompt box at the top of the generator UI
+  (`POST /author` -> the same SSE job/progress plumbing the render jobs use).
+  The UI path writes its result straight into the existing script box, so the
+  parse, timeline preview, diagnostics panel and Generate button all light up
+  with no further wiring — authoring feeds the pipeline that already exists
+  rather than becoming a second way to make a video. `/author` is deliberately
+  NOT behind the render mutex: it spawns no headless Chrome, so a script can be
+  written while another video renders. Two stages, split on a context
+  budget: the outline call sees only the one-line medium catalog derived from
+  `VISUAL_DEFINITIONS` and picks a MEDIUM PER SCENE (which is also what makes
+  medium rotation checkable); each scene call then sees only its own medium's
+  JSON Schema plus the two richest real examples of that medium mined from the
+  existing `analyses/` corpus. Nothing restates the spec by hand — the schemas
+  ARE the prompt, derived from the registry, so a new medium becomes authorable
+  the moment it lands there and the prompt can never drift from the parser.
+
+  The property that makes this work with a cheap model: **the model is never
+  trusted, it is measured.** Repair runs in two tiers — tier 1 validates against
+  the same Zod schema the parser uses and hands back the exact failing field
+  paths; tier 2 assembles the script, runs the real `parseSceneScript ->
+  autoFixGeometry -> diagnoseScenes` path (identical to `POST /parse`), and
+  routes each HARD diagnostic back to the scene that caused it for a targeted
+  re-author. Soft findings are reported and never block, per the standing
+  advisory-diagnostics position. First live run: 14 hard geometry findings on
+  one scene, re-authored once, script came back clean.
+
+  **Medium selection is editorial, not schema-checkable (learned 2026-09-01).**
+  The first rendered AI-authored script had four good scenes and two dead ones:
+  `channels` chosen for a concept with no day-shaped structure rendered as three
+  labels in an empty frame, and `spatial` chosen for a concept needing no 3D
+  rendered as an unrecognizable stick. Both passed every validator, because
+  "schema-valid and geometrically sound" and "reads as anything at all" are
+  different questions and only the first is automatable. The fix lives in the
+  authoring layer, not the engine: `mediumCatalog.ts` now holds an EDITORIAL
+  list separate from the registry's capability list — `EXCLUDED_FROM_AUTHORING`
+  drops the football heritage (still renderable, still hand-authorable, never a
+  thing a model should reach for on a tech lesson), and `SPECIALIZED_MEDIUMS`
+  keeps the dangerous-but-valuable ones available while forcing each to state
+  the condition under which it is the right answer. A medium is not offered or
+  withheld on whether it works — it is offered on whether a model choosing it
+  casually would produce something a viewer can read.
+
+  Provider-agnostic behind one narrow interface (`src/ai/provider.ts`), because
+  correctness comes from the repair loop rather than the model. Defaults to
+  Gemini's free tier deliberately — the expensive model must be an explicit
+  choice (`--llm anthropic`) for a video that matters, never the thing an
+  unattended queue silently runs on.
+
+- **Generated motion components — bespoke animation per concept (landed 2026-09-01).**
+  The ceiling on the schema path above is that it can only ASSEMBLE mediums that
+  already exist, so every video is built from the same ~30 looks and a concept
+  fitting none of them gets shoehorned into the nearest one. `Scene Type: motion`
+  removes that ceiling: the model writes an actual Remotion component
+  (`src/ai/authorMotion.ts` -> `src/video/generated/<id>.tsx`), so the animation
+  can use anything Remotion offers rather than anything the registry happens to
+  contain.
+
+  What replaces Zod as the correctness signal is a three-gate loop, each gate
+  catching a class the previous one cannot see:
+  1. **A static contract sweep** (`generatedComponentStore.ts`) — an IMPORT
+     ALLOWLIST rather than a blocklist (only react / remotion / generatedMotion /
+     theme), no dynamic escapes, and no `Date.now`/`Math.random`, which compile
+     fine and make every frame render differently. Nothing unsafe is ever
+     written to disk, not even transiently.
+  2. **A narration-fit sweep** (`findTimingViolations`) — beats must be
+     expressed as fractions of `durationInFrames`. Prose was demonstrably not
+     enough here: the first component generated against a prompt stating this
+     rule hard-coded three milestones anyway, which compiles, renders, looks
+     fine at the estimated length, and then silently stops finishing once the
+     scene is re-fitted to measured audio.
+  3. **The TypeScript compiler**, scoped to the generated file so pre-existing
+     errors elsewhere don't send the model chasing problems it didn't cause.
+
+  A component that never compiles is DELETED rather than left on disk — the
+  barrel imports every `.tsx` in the directory, so one broken file breaks the
+  bundle for every scene, not just its own.
+
+  **DISABLED BY DEFAULT after being rendered and looked at (2026-09-01).** The
+  machinery all works — generate, gate, compile, repair, register, render. The
+  OUTPUT does not. On the models this pipeline can afford, a generated component
+  renders as a few tiny shapes on an empty ground with no text; the critique
+  pass scored one 2/10 readable, 0/10 text, `looksEmpty: true`. A frontier model
+  DID produce good component code earlier the same day, then hit a 20/day quota
+  — which is the whole problem: raw codegen needs a model that defeats the point
+  of running free, and constraining components to fit a free tier's token budget
+  makes them worse.
+
+  The lesson is the one the doctrine already implies: quality lives in the
+  MEDIUM, not in the generation. A hand-built medium produces a good scene from
+  a cheap model every time. `motion` stays in the registry and still renders;
+  it is simply removed from `authorableMediums()` so nothing unattended reaches
+  for it. Re-enable by dropping it from `EXCLUDED_FROM_AUTHORING` if a frontier
+  model ever becomes the default.
+
+- **Visual critique — the first check that looks at the picture (landed 2026-09-01).**
+  Every other gate verifies STRUCTURE: Zod checks shape, `validateGeometry`
+  checks overlap, `tsc` checks types. A scene passes all of them and can still
+  be an empty black frame. That is not hypothetical — the first AI-authored
+  script shipped a `channels` scene that rendered as three labels in a void and
+  a `spatial` scene that rendered as an unrecognizable stick, both structurally
+  perfect. Nothing in the engine could see the problem, because seeing was never
+  something it did.
+
+  `critiqueScene.ts` renders three frames and asks a multimodal model what it
+  sees, scoring readability, mechanism, text legibility and progression, plus a
+  `looksEmpty` flag for the failure static checks are blindest to. Validated
+  against those two exact scenes: the empty one came back `weak` /
+  `looksEmpty: true` (readable 4, mechanism 3) with "the vast majority of the
+  frame is wasted empty dark background"; the good one came back `good`
+  (readable 9, mechanism 8) — and independently caught a label collision a human
+  had spotted by eye.
+
+  Two deliberate design decisions, both about this machine rather than about
+  correctness. It renders SINGLE STILLS via `renderProbeStills`, not a short
+  video: `renderMedia` holds browser workers plus the compositor plus an encoder
+  for its whole duration, while `renderStill` renders one frame and tears down.
+  And frames are captured strictly sequentially — three in parallel would be
+  three simultaneous browsers, which is exactly the RAM contention the
+  concurrency policy in `renderVideo.ts` exists to avoid. Sampling is at 25/55/85%
+  rather than the edges, because the first and last frames mostly capture
+  entrance and exit transitions, which look alike in every scene and say nothing
+  about whether the middle did any work.
+
+  OPT-IN (`--critique`), because it is the only gate that spends a render.
+  Everything cheaper runs first and unconditionally.
+
+- **Word-perfect caption timing (landed 2026-09-01).** `wordCaptions.ts` used to
+  state, in its own header, that "there is no per-word ASR/alignment available
+  from either TTS provider this project uses". That was wrong, and it was
+  load-bearing — it is why every caption in this engine was ESTIMATED by
+  distributing a clip's duration across words by character weight.
+
+  Both providers report real timings. Edge TTS emits WordBoundary events on
+  every synthesis and the installed client already requests
+  `wordBoundaryEnabled` and parses them to milliseconds — the engine was
+  generating exact timings on every render and discarding them; `saveSubtitles`
+  now keeps them in a `.words.json` sidecar beside the cached audio. ElevenLabs
+  exposes `/with-timestamps`, whose character-level alignment is folded into
+  words by `wordTimingsFromAlignment`. Both flow through `GeneratedSpeech.wordTimings`
+  -> the segment -> `buildWordCaptionLinesFromTimings`, with the estimator kept
+  only as the fallback for audio cached before this existed.
+
+  Why it matters more than it sounds: for a subtitle under a diagram, an
+  estimate is fine. For short-form, where the caption IS the content, a word
+  landing 200ms off the voice is the whole difference between reading as
+  produced and reading as generated. A word's highlight is also held until the
+  NEXT word starts rather than ending at its own measured end — the measured gap
+  is the natural pause, and switching off during it makes the highlight blink
+  between every pair of words.
+
+- **Choreography: the animation principles `motion.ts` excludes (landed 2026-09-01).**
+  `motion.ts` opens by declaring "deliberately no spring()/bounce/overshoot
+  anywhere in this file — that's the whole point", and offers four cubic easing
+  curves. That is right for a subtitle and wrong for anything that should feel
+  physical, and it is the reason the visual vocabulary bottomed out at boxes
+  changing colour and dots travelling along lines: an object that eases politely
+  from A to B reads as a value being interpolated, because that is exactly what
+  it is.
+
+  `choreography.ts` adds what it excludes — anticipation, follow-through,
+  overlapping action, secondary motion, staggered timing, squash-and-stretch,
+  arcs — as a SEPARATE module, because both vocabularies are correct for
+  different jobs and nothing existing should change under it. Wired into
+  `StageCard` so far in two places: entrances now settle with a spring on the
+  raw entrance ramp (opacity deliberately keeps the plain ease — an overshooting
+  opacity flickers), and objects declared to enter on the same beat cascade a
+  few frames apart instead of arriving in unison. Simultaneous arrival reads as
+  a diagram being switched on; a cascade has a direction and the eye follows it.
+
 **Not built — the real gaps:**
+- **Level 5 is now partly checkable — see the visual critique pass below.** What
+  remains uncovered is taste and pedagogy: the critique can tell you a frame is
+  empty or a label is unreadable, not whether the explanation is the right one.
 - **Composers still author against the estimate.** The spine now corrects them
   after the fact, which is a real fix (and every composer inherits it without
   being rewritten), but it is still correction rather than intent: compilers
