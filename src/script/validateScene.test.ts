@@ -113,6 +113,180 @@ describe("validateGeometry — checkUnconnectedEntities (fixed to require explan
   });
 });
 
+describe("diagnoseScenes — checkVisualEvent (the Phase 1 director/animator seam)", () => {
+  const eventPlan = {
+    semanticGoal: "A file is a name, not one object on the disk.",
+    primarySubject: "report.pdf",
+    visualWorld: "A desktop file browser window.",
+    viewerKnowledgeBefore: "A file lives in one place on the disk.",
+    viewerKnowledgeAfter: "The browser is presenting a name, not the thing.",
+    representationNeed: "watch-one-thing-transform",
+    event: {
+      before: "The viewer reads the window as their own computer.",
+      trigger: "The narration says the disk has no such file.",
+      action: "report.pdf lifts out and grows while the browser recedes.",
+      consequence: "A floating name beside a scatter of unlabelled pieces.",
+      viewerRealization: "The name and the contents are two different things.",
+    },
+  };
+  const establishingPlan = {
+    ...eventPlan,
+    event: null,
+    establishingReason: "Opening establishing shot — names the domain before anything changes.",
+  };
+
+  it("flags a scene that declares an event but whose Data is a static visual", () => {
+    const script = `### SCENE 1
+
+**Scene Type:** stat
+
+**Narration:** But your disk does not actually have a file called report.pdf.
+
+**Visual Event:** ${JSON.stringify(eventPlan)}
+
+**Data:** {"kind":"single-stat","title":"files","value":1}
+`;
+    const diagnostics = diagnoseScenes(parseSceneScript(script));
+    const finding = diagnostics.find((d) => d.category === "no-visual-event");
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("soft");
+    expect(finding?.level).toBe(4);
+    expect(finding?.message).toContain("reads the window as their own computer");
+    expect(finding?.message).toContain("no timeline, multi-phase change, or explanatory motion");
+  });
+
+  it("does NOT flag a scene whose Data has a real explanatory timeline", () => {
+    const script = `### SCENE 1
+
+**Scene Type:** Canvas
+
+**Narration:** But your disk does not actually have a file called report.pdf.
+
+**Visual Event:** ${JSON.stringify(eventPlan)}
+
+**Data:** {"objects":[{"id":"f","type":"roundedRectangle","x":50,"y":50,"width":20,"height":14},{"id":"name","type":"label","x":50,"y":30,"label":"report.pdf"}],"timeline":[{"type":"appear","id":"f","startSeconds":0.3},{"type":"appear","id":"name","startSeconds":0.6},{"type":"move","id":"name","startSeconds":2,"durationSeconds":0.8,"to":{"x":20,"y":30}},{"type":"move","id":"f","startSeconds":3,"durationSeconds":0.8,"to":{"x":70,"y":50}}]}
+`;
+    const diagnostics = diagnoseScenes(parseSceneScript(script));
+    expect(diagnostics.find((d) => d.category === "no-visual-event")).toBeUndefined();
+  });
+
+  it("does NOT flag a scene with no beat plan at all (every pre-Phase-1 script)", () => {
+    const script = `### SCENE 1
+
+**Scene Type:** stat
+
+**Narration:** A plain stat scene, no beat plan.
+
+**Data:** {"kind":"single-stat","title":"files","value":1}
+`;
+    const diagnostics = diagnoseScenes(parseSceneScript(script));
+    expect(diagnostics.find((d) => d.category === "no-visual-event")).toBeUndefined();
+  });
+
+  it("does NOT flag a declared establishing beat (event: null) even with a static visual", () => {
+    const script = `### SCENE 1
+
+**Scene Type:** stat
+
+**Narration:** This is your computer, and these are your files.
+
+**Visual Event:** ${JSON.stringify(establishingPlan)}
+
+**Data:** {"kind":"single-stat","title":"files","value":1}
+`;
+    const diagnostics = diagnoseScenes(parseSceneScript(script));
+    expect(diagnostics.find((d) => d.category === "no-visual-event")).toBeUndefined();
+  });
+
+  it("reports 'no visual at all' when the Data failed to parse but a Visual Event was declared", () => {
+    const script = `### SCENE 1
+
+**Scene Type:** Canvas
+
+**Narration:** Declared an event; the Data is broken.
+
+**Visual Event:** ${JSON.stringify(eventPlan)}
+
+**Data:** {"objects":[{"id":"a","type":"line","points":[[1,2],[3,4]]}]}
+`;
+    const finding = diagnoseScenes(parseSceneScript(script)).find((d) => d.category === "no-visual-event");
+    expect(finding).toBeDefined();
+    expect(finding?.message).toContain("no visual at all");
+  });
+});
+
+describe("diagnoseScenes — checkRepresentationFit (medium can't express the declared need)", () => {
+  const need = (representationNeed: string) => ({
+    semanticGoal: "g", primarySubject: "s", visualWorld: "w",
+    viewerKnowledgeBefore: "b", viewerKnowledgeAfter: "a",
+    representationNeed,
+    event: { before: "x", trigger: "y", action: "z", consequence: "c", viewerRealization: "r" },
+  });
+
+  it("flags a transformation intent rendered as a static single-stat", () => {
+    const script = `### SCENE 1
+
+**Scene Type:** stat
+
+**Narration:** A contradiction, shown as one number.
+
+**Visual Event:** ${JSON.stringify(need("experience-a-contradiction"))}
+
+**Data:** {"kind":"single-stat","title":"free","value":60,"suffix":" GB"}
+`;
+    const finding = diagnoseScenes(parseSceneScript(script)).find((d) => d.category === "representation-mismatch");
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("soft");
+    expect(finding?.message).toContain("single-stat");
+    expect(finding?.message).toContain("experience-a-contradiction");
+  });
+
+  it("does NOT flag a change-capable medium that simply has no timeline authored (that's checkVisualEvent's job)", () => {
+    const script = `### SCENE 1
+
+**Scene Type:** Diagram
+
+**Narration:** A structure that should build, in a medium that could build it.
+
+**Visual Event:** ${JSON.stringify(need("see-structure-appear"))}
+
+**Data:** {"kind":"diagram","nodes":[{"id":"a","label":"A"},{"id":"b","label":"B"}],"edges":[{"from":"a","to":"b"}]}
+`;
+    const diagnostics = diagnoseScenes(parseSceneScript(script));
+    expect(diagnostics.find((d) => d.category === "representation-mismatch")).toBeUndefined();
+    // checkVisualEvent still fires — right container, nothing staged in it.
+    expect(diagnostics.find((d) => d.category === "no-visual-event")).toBeDefined();
+  });
+
+  it("does NOT flag establish-a-situation on a static medium", () => {
+    const script = `### SCENE 1
+
+**Scene Type:** stat
+
+**Narration:** Just setting the scene.
+
+**Visual Event:** {"semanticGoal":"g","primarySubject":"s","visualWorld":"w","viewerKnowledgeBefore":"b","viewerKnowledgeAfter":"a","representationNeed":"establish-a-situation","event":null,"establishingReason":"opening tableau"}
+
+**Data:** {"kind":"single-stat","title":"files","value":1}
+`;
+    expect(diagnoseScenes(parseSceneScript(script)).find((d) => d.category === "representation-mismatch")).toBeUndefined();
+  });
+
+  it("does NOT flag watch-a-value-change on single-stat (a climbing counter is exactly that)", () => {
+    const script = `### SCENE 1
+
+**Scene Type:** stat
+
+**Narration:** One value, climbing.
+
+**Visual Event:** ${JSON.stringify(need("watch-a-value-change"))}
+
+**Data:** {"kind":"single-stat","title":"count","value":4000}
+`;
+    expect(diagnoseScenes(parseSceneScript(script)).find((d) => d.category === "representation-mismatch")).toBeUndefined();
+  });
+});
+
 describe("checkContractRealization", () => {
   const contract: SceneContract = {
     entities: [

@@ -7,6 +7,7 @@ import { CANVAS3D_PHASE_DURATION_FRAMES } from "../video/compositions/Canvas3D";
 import { FPS } from "../video/theme";
 import { CANVAS_PHASE_TIMING } from "../cadence/canvasCadences";
 import { parseSceneContract } from "./sceneContract";
+import { beatPlanSchema, type BeatPlan } from "./beatPlan";
 import { composeFlow } from "./composeFlow";
 import { selectContractSchema, composeSelect } from "./composeSelect";
 import { queueContractSchema, composeContinuous } from "./composeContinuous";
@@ -187,6 +188,31 @@ function parseDurationSeconds(value: string | undefined): number {
   if (!value) return 5;
   const match = value.match(DURATION_NUMBER);
   return match ? Number(match[1]) : 5;
+}
+
+/** Reads the optional `**Visual Event:**` field — the scene's declared visual
+ * EVENT (see beatPlan.ts), authored by hand as one-line JSON, the same
+ * convention `**Data:**` uses. Absent for every script that doesn't declare
+ * one, which is why it returns undefined rather than a default: `segment.beatPlan`
+ * is meant to be missing there, and `checkVisualEvent` only fires when it is
+ * present. A malformed value degrades to undefined with a warning, the same
+ * way an invalid `**Data:**` block does, rather than failing the parse. */
+function parseBeatPlan(fields: SceneFields): BeatPlan | undefined {
+  const raw = fields["Visual Event"];
+  if (!raw) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    console.warn("Scene has a **Visual Event:** field that is not valid JSON — ignoring it.");
+    return undefined;
+  }
+  const result = beatPlanSchema.safeParse(parsed);
+  if (!result.success) {
+    console.warn(`Scene **Visual Event:** did not match the beat-plan schema — ignoring it: ${result.error.issues.map((i) => i.path.join(".")).join(", ")}`);
+    return undefined;
+  }
+  return result.data;
 }
 
 function parseTransitionOut(value: string | undefined): "cut" | "dissolve" {
@@ -943,6 +969,13 @@ function buildStatementFallback(fields: SceneFields, narration: string): TimedSe
     transitionStyle: resolveTransitionStyle(fields, storyBeat),
     storyBeat,
     panelColor: resolvePanelColor(fields),
+    // Carry the beat plan through even though the visual didn't resolve — a
+    // scene that degraded here because its `**Data:**` was malformed still
+    // declared a `**Visual Event:**`, and dropping it would hide the most
+    // useful finding of all: "you declared an event and the Data that was
+    // meant to stage it did not parse." checkVisualEvent reports exactly that
+    // when a segment has a beatPlan.event but no visual.
+    beatPlan: parseBeatPlan(fields),
   };
 }
 
@@ -1044,6 +1077,7 @@ export function parseSceneScript(scriptText: string): TimedSegment[] {
       continuesChannelsFrom: resolveContinueChannels(fields),
       wordCaptions: resolveWordCaptions(fields),
       strategyProfile: resolveStrategyProfile(fields),
+      beatPlan: parseBeatPlan(fields),
       // Present for every Flow-type scene (resolveFlowVisual requires a
       // real contract to have produced a visual at all) and for any other
       // scene type that additionally declares Entities/Flow purely for

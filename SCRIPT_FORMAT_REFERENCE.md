@@ -75,6 +75,7 @@ typography on screen.
 | `Data` | Depends | Required (as valid JSON matching the exact schema below) for every Scene Type except `Chapter`, `Statement`, and Pattern-mode TacticalBoard. |
 | `Animation` | No | JSON object controlling *how* a visual's existing `Data` gets revealed — not a change to the data itself. Shape: `{ staggerSeconds?: number, focusOrder?: number[], pulse?: boolean }`. `staggerSeconds` overrides the per-item reveal delay; `focusOrder` is a permutation of item indices controlling reveal ORDER (any index left out is appended afterward in natural order) — indices always refer to each visual's own authored item array (`items`/`bars`/`rows`/`tiers`/`stages`/`circles`/`stats`/`segments`/`phases`/`series`, not any internal re-sorted/re-packed order); `pulse` layers a gentle continuous breathing motion on top of each item once its entrance settles. **Read by `Grid`, `BarChart`, `LeagueTable`, `TierCards`, `Funnel`, `PackedCircles`, `KpiPanel`, `Treemap`, `MomentumTimeline`, and `Radar`** — every other Scene Type ignores it. (`MomentumTimeline`'s markers already pulse continuously by default, independent of this field, so `pulse` has no additional effect there — `staggerSeconds`/`focusOrder` still apply.) Malformed/non-JSON values (including free-text notes) are silently ignored, same as a missing field. Not available on `Chapter`/`Statement`, or on any Scene Type not listed above (a named preset like `"style": "assemble"` isn't supported yet either). |
 | `Phases` | No | JSON array of `{ caption: string, startSeconds?: number }`, works on **every** Scene Type with a visual (not `Chapter`/`Statement`) — renders as a caption overlay that cross-fades between entries over the scene's own duration, independent of whichever visual is showing. Without `startSeconds`, phases split the scene's duration evenly; an explicit `startSeconds` on any entry pins that entry's start. Not to be confused with `TacticalBoard`'s own nested `Data.phases` (full player-position choreography, a different field at a different scope). |
+| `Visual Event` | No | JSON object (on one line, like `Data`) declaring what actually *changes* on screen in this scene — the BEFORE / TRIGGER / EVENT / AFTER of the beat. Authored by hand alongside the scene; nothing generates it. Purely a declaration the pipeline checks the `Data` against — it does not change what renders. See "Visual Event" below. |
 
 **Fields that look real but do nothing:** `Annotation` is only used by `Chapter` (as its on-screen
 title) and pitch-tactics visuals (as their `title`) — on every other scene type it's silently
@@ -90,6 +91,42 @@ match that type's schema, the scene does **not** disappear — it renders as a p
 still speaks its line; you just won't get the specific visual you asked for. Fix by either
 correcting `Data` to match the schema, or deliberately using `Statement` if no registry visual
 actually fits the content (see "Chapter and Statement" below).
+
+## Visual Event
+
+`Visual Event` is an **optional** field. It is authored by hand as part of writing the scene —
+the renderer does not produce it, and no LLM in this codebase produces it. It declares, in plain
+prose packed into a JSON object, *what visibly changes* across the scene: what the viewer believes
+they are looking at, what disturbs that, what physically happens, and what they understand
+afterwards. It is the same idea as `Thesis`/`Entities`/`Flow` — a statement of intent the pipeline
+can check the `Data` against — not a second way to describe the animation.
+
+**Existing scripts are unaffected.** A scene with no `Visual Event` field parses and renders
+exactly as before.
+
+Shape (write it on one line, like `Data`):
+
+```
+**Visual Event:** {"semanticGoal": "...", "primarySubject": "...", "visualWorld": "...", "viewerKnowledgeBefore": "...", "viewerKnowledgeAfter": "...", "representationNeed": "watch-one-thing-transform", "event": {"before": "...", "viewerExpectation": "...", "trigger": "...", "action": "...", "transformation": "...", "consequence": "...", "viewerRealization": "..."}}
+```
+
+| Key | Required | What it holds |
+|---|---|---|
+| `semanticGoal` | Yes | The single idea the scene must land. |
+| `primarySubject` | Yes | The one entity the scene is about. |
+| `visualWorld` | Yes | The recognizable situation on screen. |
+| `viewerKnowledgeBefore` / `viewerKnowledgeAfter` | Yes | What the viewer understands entering and leaving the scene — ideally `Before` picks up the previous scene's `After`. |
+| `representationNeed` | Yes | One of `follow-a-chain`, `experience-a-contradiction`, `watch-one-thing-transform`, `compare-two-outcomes`, `trace-a-process`, `see-structure-appear`, `watch-a-value-change`, `establish-a-situation`. |
+| `event` | Yes (or `null`) | The staged change. `null` only for a genuine establishing shot or closing CTA with no before→after — then add `"establishingReason": "..."`. |
+| `event.before` / `event.trigger` / `event.action` / `event.consequence` / `event.viewerRealization` | Yes when `event` is set | `action` is a **physical description** of what happens ("the tile splits along faint seams and the pieces drift apart"), not a timeline verb. |
+| `event.viewerExpectation` / `event.transformation` | No | The belief the trigger challenges; and a note when the world *transforms* rather than merely moves. |
+
+**How it's used.** The parser validates the JSON against the schema and, if it is malformed or
+doesn't match, emits a warning and ignores it (the scene still parses — exactly like a bad `Data`
+block). When it *is* present and declares an `event`, the scene diagnostics run `checkVisualEvent`:
+a soft `no-visual-event` finding if the scene's `Data` has no `timeline`, no multi-phase change and
+no explanatory motion — i.e. it declared a change but staged nothing that shows it. Soft means it
+reports and never blocks.
 
 ## Chapter and Statement
 

@@ -34,7 +34,8 @@ export interface SceneDiagnostic {
   severity: DiagnosticSeverity;
   /** Short kebab-case slug — "overlap" | "unconnected-entities" |
    * "low-density" | "dead-time" | "low-richness" | "contract-unrealized" |
-   * "orphan-label" | "primary-size" | "no-contract-declared". */
+   * "orphan-label" | "primary-size" | "no-contract-declared" |
+   * "no-visual-event" | "representation-mismatch". */
   category: string;
   message: string;
 }

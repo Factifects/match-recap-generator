@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { VISUAL_DEFINITIONS } from "./visualDefinitions";
 import type { SceneContract } from "../script/sceneContract";
+import type { BeatPlan } from "../script/beatPlan";
 import type { WordTiming } from "../audio/elevenLabs";
 
 /** Whole-video render option (not per-segment data) — lives here since this
@@ -390,4 +391,12 @@ export type TimedSegment = Segment & {
    * a `Scene Type: Canvas` scene may declare one purely for validation
    * against hand-authored Data. */
   contract?: SceneContract;
+  /** Scene-spec scripts only: the visual EVENT this scene declares it stages
+   * (see src/script/beatPlan.ts) — the medium-independent BEFORE / TRIGGER /
+   * EVENT / AFTER plan, authored by hand into an optional `**Visual Event:**`
+   * field the same way `**Thesis:**`/`**Entities:**`/`**Flow:**` are. Absent
+   * for every script that doesn't declare one; validateScene.ts's
+   * `checkVisualEvent` only fires when it IS present and declares an event the
+   * Data then fails to demonstrate. */
+  beatPlan?: BeatPlan;
 };

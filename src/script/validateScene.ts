@@ -1,4 +1,5 @@
-import type { TimedSegment } from "../model/Segment";
+import type { TimedSegment, Visual } from "../model/Segment";
+import type { RepresentationNeed } from "./beatPlan";
 import type { CanvasData } from "../video/sharedVisualProps";
 import type { ContractEdge, SceneContract } from "./sceneContract";
 import { resolveObjectPosition } from "../video/canvasLayout";
@@ -244,6 +245,124 @@ function checkPrimarySize(visual: CanvasData, sceneIndex: number, diagnostics: S
   }
 }
 
+/** True when a visual carries something that can actually demonstrate a
+ * before -> after change: an evented `timeline` (every timeline medium), or a
+ * multi-snapshot `phases` block. A `canvas` timeline additionally has to carry
+ * at least one EXPLANATORY action — a timeline of nothing but entrances and
+ * scale-pops is exactly the "objects sitting there" failure this is meant to
+ * catch, and `classifySceneMotion` already draws that line for canvas. Other
+ * media's action vocabularies are richer and not worth re-classifying here;
+ * their presence is taken as intent. */
+function visualExpressesStateChange(visual: Visual): boolean {
+  if (visual.kind === "canvas") {
+    const timeline = visual.timeline ?? [];
+    if (timeline.length > 0) return classifySceneMotion(timeline).explanatoryCount >= 1;
+    return (visual.phases?.length ?? 0) >= 2;
+  }
+  const loose = visual as { timeline?: unknown[]; phases?: unknown[] };
+  if (Array.isArray(loose.timeline) && loose.timeline.length > 0) return true;
+  if (Array.isArray(loose.phases) && loose.phases.length >= 2) return true;
+  return false;
+}
+
+/** A scene that declared a visual EVENT in its `**Visual Event:**` field
+ * (beatPlan.ts) but whose Data has no way to show it — no timeline, no
+ * multi-phase change, no explanatory motion. Soft, matching the standing
+ * position that diagnostics report and the author looks. Fires for every
+ * medium, not just canvas, since a beat plan can attach to any of them. This
+ * is the mechanical form of "does the animation demonstrate the narration",
+ * the same role checkContract plays for a SceneContract. */
+function checkVisualEvent(segment: TimedSegment, sceneIndex: number, diagnostics: SceneDiagnostic[]): void {
+  if (segment.type !== "statement") return;
+  const plan = segment.beatPlan;
+  if (!plan || plan.event === null) return; // no plan, or a declared establishing/CTA beat with no event to stage
+
+  const detail = `declares a visual event (before: "${plan.event.before}" -> consequence: "${plan.event.consequence}")`;
+  if (!segment.visual) {
+    diagnostics.push(
+      diagnostic(sceneIndex, 4, "soft", "no-visual-event", `Scene ${sceneIndex + 1}: ${detail} but the scene has no visual at all.`),
+    );
+    return;
+  }
+  if (!visualExpressesStateChange(segment.visual)) {
+    diagnostics.push(
+      diagnostic(
+        sceneIndex,
+        4,
+        "soft",
+        "no-visual-event",
+        `Scene ${sceneIndex + 1}: ${detail} but its Data has no timeline, multi-phase change, or explanatory motion that demonstrates it.`,
+      ),
+    );
+  }
+}
+
+// The `visual.kind`s whose schema carries a real progression mechanism — an
+// evented `timeline` or a multi-snapshot `phases` block — so they CAN show one
+// thing becoming another over the scene. Everything else renders a single
+// composition with only an entrance/reveal animation on top.
+const CHANGE_CAPABLE_KINDS = new Set([
+  "canvas",
+  "canvas-3d",
+  "diagram",
+  "stage",
+  "spatial",
+  "holdings",
+  "channels",
+  "workspace",
+  "tactical-board",
+  "tactical-board-3d",
+]);
+
+// A representationNeed whose whole point is watching something change over
+// time. `establish-a-situation` and `compare-two-outcomes` are deliberately
+// absent — a static tableau legitimately serves both.
+const NEEDS_TEMPORAL_CHANGE: ReadonlySet<RepresentationNeed> = new Set<RepresentationNeed>([
+  "watch-one-thing-transform",
+  "experience-a-contradiction",
+  "trace-a-process",
+  "follow-a-chain",
+  "see-structure-appear",
+  "watch-a-value-change",
+]);
+
+// Per-need exceptions: a medium that isn't generally change-capable but does
+// express this one kind of change. A single value climbing IS what a stat
+// counter or a line chart shows.
+const EXTRA_CAPABLE_BY_NEED: Partial<Record<RepresentationNeed, ReadonlySet<string>>> = {
+  "watch-a-value-change": new Set(["kinetic-stat", "single-stat", "hero-metric", "line-chart"]),
+};
+
+/** A scene whose declared `representationNeed` requires showing change over
+ * time, paired with a medium that structurally cannot — a `single-stat` for
+ * `watch-one-thing-transform`, a `quote` for `trace-a-process`. This is
+ * upstream of `checkVisualEvent`: that one says "your Data staged nothing",
+ * this one says "the medium you chose can't stage this kind of thing at all",
+ * so the fix is to change the medium (or the declared need), not to bolt more
+ * animation onto the wrong container. Soft — reports, never blocks. */
+function checkRepresentationFit(segment: TimedSegment, sceneIndex: number, diagnostics: SceneDiagnostic[]): void {
+  if (segment.type !== "statement") return;
+  const plan = segment.beatPlan;
+  if (!plan || plan.event === null) return;
+  if (!NEEDS_TEMPORAL_CHANGE.has(plan.representationNeed)) return;
+  const visual = segment.visual;
+  if (!visual) return; // checkVisualEvent already reports the no-visual case
+
+  const kind = visual.kind;
+  if (CHANGE_CAPABLE_KINDS.has(kind)) return;
+  if (EXTRA_CAPABLE_BY_NEED[plan.representationNeed]?.has(kind)) return;
+
+  diagnostics.push(
+    diagnostic(
+      sceneIndex,
+      4,
+      "soft",
+      "representation-mismatch",
+      `Scene ${sceneIndex + 1}: declares representationNeed "${plan.representationNeed}", but the "${kind}" medium renders a single static composition and cannot show a change over time. Choose a medium with a timeline (Canvas, Diagram, Stage, Spatial, Holdings, Channels, Workspace) or change the declared representationNeed.`,
+    ),
+  );
+}
+
 /** Levels 3 (richness) and 4 (semantic fidelity) diagnostics for every
  * segment — call twice from generate.ts (once right after parsing against
  * estimated durations, once after resolveSegmentAudio against real
@@ -254,6 +373,10 @@ function checkPrimarySize(visual: CanvasData, sceneIndex: number, diagnostics: S
 export function diagnoseScenes(segments: TimedSegment[]): SceneDiagnostic[] {
   const diagnostics: SceneDiagnostic[] = [];
   segments.forEach((segment, index) => {
+    // Beat-plan checks — run for every medium (a beat plan can attach to any).
+    checkVisualEvent(segment, index, diagnostics);
+    checkRepresentationFit(segment, index, diagnostics);
+
     if (segment.type !== "statement" || segment.visual?.kind !== "canvas") return;
     const visual = segment.visual;
     const effectiveDuration = effectiveDurationOf(segment);
